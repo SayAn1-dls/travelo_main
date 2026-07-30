@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PaperPlaneRight, ChatsCircle } from "@phosphor-icons/react";
+import { PaperPlaneRight, ChatsCircle, FilmSlate } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const fmtTime = (iso) => {
@@ -82,6 +82,28 @@ export default function TripChat({ tripId, myUserId }) {
           </div>
         ) : (
           messages.map((m) => {
+            if (m.system) {
+              return (
+                <div key={m.id} data-testid="trip-chat-system-message" className="flex justify-center">
+                  <div className="bg-[#0B4F6C] text-white rounded-2xl px-6 py-4 text-center max-w-[85%]">
+                    <FilmSlate size={22} weight="duotone" className="text-[#F9B384] mx-auto" />
+                    <p className="text-sm mt-2">{m.text}</p>
+                    {m.data?.recap_token && (
+                      <a
+                        data-testid="chat-recap-link"
+                        href={`/recap/${m.data.recap_token}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block mt-3 bg-[#E25822] hover:bg-[#C84B1A] text-white text-xs font-bold rounded-full px-4 py-2 transition-colors"
+                      >
+                        Watch the recap
+                      </a>
+                    )}
+                    <p className="text-[10px] text-white/60 mt-2">{fmtTime(m.created_at)}</p>
+                  </div>
+                </div>
+              );
+            }
             const mine = m.user_id === myUserId;
             const reactions = m.reactions && Object.keys(m.reactions).length > 0 ? m.reactions : null;
             return (

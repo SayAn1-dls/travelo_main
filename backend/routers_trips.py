@@ -1,6 +1,7 @@
 import uuid
 import secrets
-from datetime import datetime
+import logging
+from datetime import datetime, timezone
 from urllib.parse import quote
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
@@ -163,6 +164,7 @@ async def join_trip(body: JoinRequest, user: dict = Depends(get_current_user)):
 @trips_router.get("/{trip_id}")
 async def get_trip(trip_id: str, user: dict = Depends(get_current_user)):
     doc = await get_trip_or_404(trip_id, user)
+    await maybe_post_recap(doc)
     return trip_public(doc)
 
 
@@ -629,6 +631,44 @@ async def delete_itinerary_item(trip_id: str, item_id: str, user: dict = Depends
         raise HTTPException(status_code=403, detail="Only the person who added this or the organizer can delete it")
     await db.itinerary_items.delete_one({"_id": item["_id"]})
     return {"ok": True}
+
+
+async def maybe_post_recap(trip):
+    if trip.get("recap_auto_posted"):
+        return
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if trip.get("end_date", "9999-12-31") >= today:
+        return
+    res = await db.trips.update_one(
+        {"_id": trip["_id"], "recap_auto_posted": {"$ne": True}},
+        {"$set": {"recap_auto_posted": True}})
+    if res.modified_count == 0:
+        return
+    token = trip.get("share_token")
+    if not token:
+        token = secrets.token_urlsafe(8)
+        await db.trips.update_one({"_id": trip["_id"]}, {"$set": {"share_token": token}})
+    await db.trip_messages.insert_one({
+        "trip_id": str(trip["_id"]), "user_id": None, "member_id": None,
+        "name": "Travelo", "system": True, "kind": "recap",
+        "text": f"That's a wrap on \"{trip['name']}\"! Your trip recap is ready — relive the memories and share the story.",
+        "data": {"recap_token": token},
+        "created_at": utcnow(),
+    })
+    for m in trip["members"]:
+        if m.get("user_id"):
+            await notify(m["user_id"], "recap_ready", "Your trip recap is ready",
+                         f"\"{trip['name']}\" has ended — the recap was just posted in the trip chat",
+                         {"trip_id": str(trip["_id"])})
+
+
+async def recap_sweep():
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    async for trip in db.trips.find({"end_date": {"$lt": today}, "recap_auto_posted": {"$ne": True}}):
+        try:
+            await maybe_post_recap(trip)
+        except Exception:
+            logging.exception("recap auto-post failed for trip %s", trip.get("_id"))
 
 
 @notifications_router.get("")

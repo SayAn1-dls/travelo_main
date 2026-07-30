@@ -5,13 +5,14 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import logging
+import asyncio
 from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
 from db import db, client
 from auth import auth_router, seed_users
 from routers_bookings import bookings_router
 from routers_destinations import destinations_router
-from routers_trips import trips_router, notifications_router
+from routers_trips import trips_router, notifications_router, recap_sweep
 from routers_chat import chat_router
 from routers_payments import payments_router
 from routers_memories import memories_router
@@ -72,6 +73,16 @@ async def startup():
         logger.info("Object storage initialized")
     except Exception as e:
         logger.error(f"Storage init failed: {e}")
+
+    async def recap_sweep_loop():
+        while True:
+            try:
+                await recap_sweep()
+            except Exception:
+                logger.exception("recap sweep loop error")
+            await asyncio.sleep(3600)
+
+    asyncio.create_task(recap_sweep_loop())
     logger.info("Travelo startup complete")
 
 

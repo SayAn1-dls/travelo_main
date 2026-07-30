@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { formatApiError } from "@/lib/api";
+import api, { formatApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +15,17 @@ export default function AuthPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fbEnabled, setFbEnabled] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    api.get("/auth/facebook/status").then((r) => setFbEnabled(!!r.data.configured)).catch(() => {});
+    if (new URLSearchParams(window.location.search).get("fb_error")) {
+      toast.error("Facebook sign-in didn't go through — please try again");
+      window.history.replaceState({}, "", "/auth");
+    }
+  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -68,11 +77,20 @@ export default function AuthPage() {
             >
               <GoogleLogo size={18} className="mr-2" /> Google
             </Button>
-            <Button data-testid="auth-facebook-btn" variant="outline" className="rounded-xl h-11" disabled title="Add your Facebook OAuth keys to enable">
+            <Button
+              data-testid="auth-facebook-btn"
+              variant="outline"
+              className="rounded-xl h-11"
+              disabled={!fbEnabled}
+              title={fbEnabled ? "Continue with Facebook" : "Add your Facebook OAuth keys to enable"}
+              onClick={() => {
+                window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/auth/facebook/login`;
+              }}
+            >
               <FacebookLogo size={18} className="mr-2" /> Facebook
             </Button>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-2 text-center">Facebook login activates once you add your Meta OAuth credentials.</p>
+          {!fbEnabled && <p className="text-[11px] text-muted-foreground mt-2 text-center">Facebook login activates once you add your Meta OAuth credentials.</p>}
 
           <div className="flex items-center gap-3 my-6">
             <div className="h-px bg-border flex-1" />

@@ -2,10 +2,13 @@ import os
 import jwt
 import bcrypt
 import httpx
+import secrets as pysecrets
+from urllib.parse import urlencode
 from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 from fastapi import APIRouter, Request, Response, HTTPException, Depends
+from fastapi.responses import RedirectResponse
 from db import db
 from models import RegisterRequest, LoginRequest, ProfileUpdate, utcnow
 
@@ -257,6 +260,97 @@ async def update_profile(body: ProfileUpdate, user: dict = Depends(get_current_u
         await db.users.update_one({"_id": user["_id"]}, {"$set": updates})
     fresh = await db.users.find_one({"_id": user["_id"]})
     return public_user(fresh)
+
+
+FB_API_VERSION = "v19.0"
+
+
+def fb_config():
+    app_id = (os.environ.get("FACEBOOK_APP_ID") or "").strip().strip('"')
+    secret = (os.environ.get("FACEBOOK_APP_SECRET") or "").strip().strip('"')
+    return app_id, secret
+
+
+def public_origin(request: Request) -> str:
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    return f"https://{host}"
+
+
+@auth_router.get("/facebook/status")
+async def facebook_status():
+    app_id, secret = fb_config()
+    return {"configured": bool(app_id and secret)}
+
+
+@auth_router.get("/facebook/login")
+async def facebook_login(request: Request):
+    app_id, secret = fb_config()
+    if not (app_id and secret):
+        raise HTTPException(status_code=400, detail="Facebook login isn't configured yet — add your Meta App ID and Secret first")
+    state = pysecrets.token_urlsafe(24)
+    redirect_uri = f"{public_origin(request)}/api/auth/facebook/callback"
+    params = urlencode({
+        "client_id": app_id, "redirect_uri": redirect_uri,
+        "state": state, "scope": "email,public_profile", "response_type": "code",
+    })
+    resp = RedirectResponse(url=f"https://www.facebook.com/{FB_API_VERSION}/dialog/oauth?{params}", status_code=302)
+    resp.set_cookie("fb_oauth_state", state, httponly=True, secure=True, samesite="lax", max_age=600, path="/")
+    return resp
+
+
+@auth_router.get("/facebook/callback")
+async def facebook_callback(request: Request, code: str = None, state: str = None, error: str = None):
+    origin = public_origin(request)
+    fail = RedirectResponse(url=f"{origin}/auth?fb_error=1", status_code=302)
+    app_id, secret = fb_config()
+    if error or not code or not state or not (app_id and secret):
+        return fail
+    if request.cookies.get("fb_oauth_state") != state:
+        return fail
+    redirect_uri = f"{origin}/api/auth/facebook/callback"
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            tr = await c.get(f"https://graph.facebook.com/{FB_API_VERSION}/oauth/access_token",
+                             params={"client_id": app_id, "client_secret": secret,
+                                     "redirect_uri": redirect_uri, "code": code})
+            if tr.status_code != 200:
+                return fail
+            fb_token = tr.json().get("access_token")
+            if not fb_token:
+                return fail
+            pr = await c.get(f"https://graph.facebook.com/{FB_API_VERSION}/me",
+                             params={"fields": "id,name,email,picture", "access_token": fb_token})
+            if pr.status_code != 200:
+                return fail
+            profile = pr.json()
+    except httpx.HTTPError:
+        return fail
+    fb_id = profile["id"]
+    email = (profile.get("email") or f"fb{fb_id}@facebook.travelo").strip().lower()
+    picture = ((profile.get("picture") or {}).get("data") or {}).get("url")
+    user = await db.users.find_one({"facebook_id": fb_id}) or await db.users.find_one({"email": email})
+    if user is None:
+        doc = {
+            "email": email, "password_hash": None,
+            "name": profile.get("name") or "Traveller",
+            "phone": None, "upi_vpa": None, "currency": "INR",
+            "avatar": picture, "role": "user",
+            "providers": ["facebook"], "facebook_id": fb_id,
+            "created_at": utcnow(),
+        }
+        result = await db.users.insert_one(doc)
+        user = await db.users.find_one({"_id": result.inserted_id})
+    else:
+        updates = {"$addToSet": {"providers": "facebook"}, "$set": {"facebook_id": fb_id}}
+        if picture and not user.get("avatar"):
+            updates["$set"]["avatar"] = picture
+        await db.users.update_one({"_id": user["_id"]}, updates)
+    access = create_access_token(str(user["_id"]), user["email"])
+    refresh = create_refresh_token(str(user["_id"]))
+    ok = RedirectResponse(url=f"{origin}/dashboard", status_code=302)
+    ok.delete_cookie("fb_oauth_state", path="/")
+    set_auth_cookies(ok, access, refresh)
+    return ok
 
 
 async def seed_users():
