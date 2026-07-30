@@ -49,6 +49,7 @@ function roundedPath(ctx, x, y, w, h, r) {
 function drawSlide(ctx, slide, recap, images, cur) {
   ctx.fillStyle = "#0B4F6C";
   ctx.fillRect(0, 0, W, H);
+  if (!slide) return;
   ctx.textAlign = "center";
   const cx = W / 2;
 
@@ -180,7 +181,7 @@ export async function exportVideo(recap, token, cur, onProgress) {
     const tick = (now) => {
       const t = now - start;
       if (t >= total) return resolve();
-      const i = Math.min(Math.floor(t / SLIDE_MS), slides.length - 1);
+      const i = Math.max(0, Math.min(Math.floor(t / SLIDE_MS), slides.length - 1));
       drawSlide(ctx, slides[i], recap, images, cur);
       const local = t - i * SLIDE_MS;
       if (local < FADE_MS) {

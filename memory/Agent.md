@@ -51,9 +51,15 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Recap Link Revoke: POST /api/trips/{tid}/recap/revoke (organizer-only 403) $unsets share_token; old links 404; re-share issues new token; revoke btn organizer-only in Memories banner.
 - Cleaned up TEST_-prefixed trips from testing runs.
 
+## Implemented (2026-06 iter 5, testing-agent PASSED 11/11 backend + frontend 100%, iteration_5)
+- Trip Chat Room: GET/POST /api/trips/{tid}/messages (member-only 403, whitespace-only 422), db.trip_messages indexed; TripChat.jsx tab in TripDetail (polls 4s, bubbles mine-right/others-left, Enter to send).
+- Currency Choice: trips.currency (10 codes in models.CURRENCIES + csym()); validated on create; symbol flows through notifications/budget alerts/reminder emails/chat context/recap/frontend (money()/csym() in lib/api.js, fmt() in TripDetail); Stripe settlement checkout uses trip currency (JPY zero-decimal handled); UPI links INR-only (creditor_upi returns None otherwise); currency select in CreateTripDialog.
+- Recap Download: lib/recapExport.js — exportImages (canvas-rendered PNG per slide → jszip .zip) + exportVideo (canvas.captureStream + MediaRecorder → .webm, 3s/slide fade transitions); download menu + progress indicator on RecapPage. Guarded drawSlide/negative-index race post-test.
+- Cleaned all TEST_ trips from DB.
+
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).
-- P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; recap token revoke endpoint; budget-alert suppression map if expense edit/delete endpoints are ever added; optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
+- P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; chat pagination (`?since=` cursor — currently capped at last 300 msgs) + incremental polling; DELETE /api/trips (organizer-only) so test/abandoned trips can be removed; optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
 
 ## Decision Log
 - Bearer token + cookies dual auth → preview proxy cookie quirks can't break auth.
@@ -61,6 +67,8 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Mock booking data deterministic (seeded by route+date) → stable results for testing.
 - Stripe INR dynamic price_data (no catalog) → travel amounts are dynamic; amounts always computed server-side (booking doc / balances), never from client.
 - Claude model: claude-sonnet-4-6 (playbook recommended for anthropic).
+- Trip chat via 4s polling (not websockets/SSE) → simple, works through k8s ingress, adequate for small groups.
+- Recap video is client-rendered WebM (canvas+MediaRecorder) → no server ffmpeg/storage cost; image set zipped client-side with jszip.
 
 ## Dead-Ends (Do NOT Retry)
 - Object storage direct URL https://integrations.emergentagent.com/objstore → 401 "Invalid emergent key" in this env; MUST use INTEGRATION_PROXY_URL base (storage.py auto-resolves).
@@ -69,3 +77,4 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Stripe sandbox job_id 684e0fee-ea17-479d-b145-bdb964b0ec8b; onboarding_url shared with user for claiming.
 - react-leaflet v5 requires React 19 (OK here); default marker icons broken under webpack → custom divIcon pins used.
 - FastAPI 422 detail is an array → formatApiError in lib/api.js handles it.
+- rAF timestamp can be earlier than performance.now() captured just before → clamp frame index with Math.max(0, …) in canvas render loops (caused intermittent drawSlide undefined in recapExport.js).

@@ -426,6 +426,9 @@ async def list_messages(trip_id: str, user: dict = Depends(get_current_user)):
 @trips_router.post("/{trip_id}/messages")
 async def post_message(trip_id: str, body: TripMessageIn, user: dict = Depends(get_current_user)):
     trip = await get_trip_or_404(trip_id, user)
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="Message cannot be empty")
     uid, email = str(user["_id"]), user["email"]
     me = next((m for m in trip["members"] if m.get("user_id") == uid), None) or \
          next((m for m in trip["members"] if m.get("email") == email), None)
@@ -433,7 +436,7 @@ async def post_message(trip_id: str, body: TripMessageIn, user: dict = Depends(g
         "trip_id": trip_id, "user_id": uid,
         "member_id": me["member_id"] if me else None,
         "name": (me or {}).get("name") or user.get("name") or "Member",
-        "text": body.text.strip(),
+        "text": text,
         "created_at": utcnow(),
     }
     result = await db.trip_messages.insert_one(doc)
