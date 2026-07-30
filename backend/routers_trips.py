@@ -644,22 +644,26 @@ async def maybe_post_recap(trip):
         {"$set": {"recap_auto_posted": True}})
     if res.modified_count == 0:
         return
-    token = trip.get("share_token")
-    if not token:
-        token = secrets.token_urlsafe(8)
-        await db.trips.update_one({"_id": trip["_id"]}, {"$set": {"share_token": token}})
-    await db.trip_messages.insert_one({
-        "trip_id": str(trip["_id"]), "user_id": None, "member_id": None,
-        "name": "Travelo", "system": True, "kind": "recap",
-        "text": f"That's a wrap on \"{trip['name']}\"! Your trip recap is ready — relive the memories and share the story.",
-        "data": {"recap_token": token},
-        "created_at": utcnow(),
-    })
-    for m in trip["members"]:
-        if m.get("user_id"):
-            await notify(m["user_id"], "recap_ready", "Your trip recap is ready",
-                         f"\"{trip['name']}\" has ended — the recap was just posted in the trip chat",
-                         {"trip_id": str(trip["_id"])})
+    try:
+        token = trip.get("share_token")
+        if not token:
+            token = secrets.token_urlsafe(8)
+            await db.trips.update_one({"_id": trip["_id"]}, {"$set": {"share_token": token}})
+        await db.trip_messages.insert_one({
+            "trip_id": str(trip["_id"]), "user_id": None, "member_id": None,
+            "name": "Travelo", "system": True, "kind": "recap",
+            "text": f"That's a wrap on \"{trip['name']}\"! Your trip recap is ready — relive the memories and share the story.",
+            "data": {"recap_token": token},
+            "created_at": utcnow(),
+        })
+        for m in trip["members"]:
+            if m.get("user_id"):
+                await notify(m["user_id"], "recap_ready", "Your trip recap is ready",
+                             f"\"{trip['name']}\" has ended — the recap was just posted in the trip chat",
+                             {"trip_id": str(trip["_id"])})
+    except Exception:
+        await db.trips.update_one({"_id": trip["_id"]}, {"$set": {"recap_auto_posted": False}})
+        raise
 
 
 async def recap_sweep():

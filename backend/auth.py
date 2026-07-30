@@ -302,6 +302,7 @@ async def facebook_login(request: Request):
 async def facebook_callback(request: Request, code: str = None, state: str = None, error: str = None):
     origin = public_origin(request)
     fail = RedirectResponse(url=f"{origin}/auth?fb_error=1", status_code=302)
+    fail.delete_cookie("fb_oauth_state", path="/")
     app_id, secret = fb_config()
     if error or not code or not state or not (app_id and secret):
         return fail
