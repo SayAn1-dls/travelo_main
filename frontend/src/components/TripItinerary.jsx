@@ -85,7 +85,7 @@ function ItineraryDialog({ trip, days, item, defaultDate, onClose, onDone }) {
             <Label>Notes (optional)</Label>
             <Textarea data-testid="itinerary-notes-input" placeholder="Carry water, leave by 5am" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="rounded-xl" />
           </div>
-          <Button data-testid="itinerary-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-11">
+          <Button data-testid="itinerary-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#FF5A36] hover:bg-[#E64322] h-11">
             {saving ? "Saving…" : item ? "Save changes" : "Add plan"}
           </Button>
         </div>
@@ -123,7 +123,7 @@ export default function TripItinerary({ trip, userId, isOrganizer, onLogExpense 
     <div data-testid="trip-itinerary">
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-muted-foreground">Day-by-day plan everyone in the trip can build together.</p>
-        <Button data-testid="itinerary-add-btn" onClick={() => setDialog({ item: null })} size="sm" className="rounded-full bg-[#0B4F6C] hover:bg-[#083D54]">
+        <Button data-testid="itinerary-add-btn" onClick={() => setDialog({ item: null })} size="sm" className="rounded-full bg-[#0A2540] hover:bg-[#123B66]">
           <Plus size={15} className="mr-1" /> Add plan
         </Button>
       </div>
@@ -136,19 +136,19 @@ export default function TripItinerary({ trip, userId, isOrganizer, onLogExpense 
               <div className="flex items-baseline gap-3 mb-3">
                 <span className="font-display text-lg font-bold">{di < days.length ? `Day ${di + 1}` : "Extra"}</span>
                 <span className="text-sm text-muted-foreground">{fmtDay(date)}</span>
-                <button data-testid={`itinerary-day-add-${date}`} onClick={() => setDialog({ item: null, date })} className="text-xs font-semibold text-[#E25822] hover:underline ml-auto">+ add here</button>
+                <button data-testid={`itinerary-day-add-${date}`} onClick={() => setDialog({ item: null, date })} className="text-xs font-semibold text-[#FF5A36] hover:underline ml-auto">+ add here</button>
               </div>
               {dayItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground/70 border border-dashed border-[#EAE3D9] rounded-xl px-4 py-3">Nothing planned yet.</p>
+                <p className="text-sm text-muted-foreground/70 border border-dashed border-[#E5E4E0] rounded-xl px-4 py-3">Nothing planned yet.</p>
               ) : (
-                <div className="space-y-2 border-l-2 border-[#EAE3D9] pl-4 ml-1">
+                <div className="space-y-2 border-l-2 border-[#E5E4E0] pl-4 ml-1">
                   {dayItems.map((it) => (
-                    <div key={it.id} data-testid="itinerary-item" className="bg-white border border-[#EAE3D9] rounded-2xl p-4 flex gap-3 relative group">
-                      <span className="absolute -left-[23px] top-5 h-3 w-3 rounded-full bg-[#E25822] border-2 border-white" />
+                    <div key={it.id} data-testid="itinerary-item" className="bg-white border border-[#E5E4E0] rounded-2xl p-4 flex gap-3 relative group">
+                      <span className="absolute -left-[23px] top-5 h-3 w-3 rounded-full bg-[#FF5A36] border-2 border-white" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           {it.time && (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0B4F6C] bg-[#0B4F6C]/10 rounded-full px-2 py-0.5">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0A2540] bg-[#0A2540]/10 rounded-full px-2 py-0.5">
                               <Clock size={11} /> {it.time}
                             </span>
                           )}
@@ -156,14 +156,14 @@ export default function TripItinerary({ trip, userId, isOrganizer, onLogExpense 
                         </div>
                         {it.place && (
                           <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                            <MapPin size={13} className="text-[#E25822] shrink-0" /> {it.place}
+                            <MapPin size={13} className="text-[#FF5A36] shrink-0" /> {it.place}
                           </p>
                         )}
                         {it.notes && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{it.notes}</p>}
                         <p className="text-[11px] text-muted-foreground/70 mt-1.5">added by {it.member_name}</p>
                       </div>
                       <div className="flex gap-1 shrink-0 self-start">
-                        <button data-testid="itinerary-expense-btn" onClick={() => onLogExpense(it)} title="Log an expense for this plan" className="h-7 px-2 rounded-full hover:bg-[#FDF3EC] flex items-center gap-1 text-[11px] font-semibold text-[#E25822] transition-colors" aria-label="Log expense for this plan">
+                        <button data-testid="itinerary-expense-btn" onClick={() => onLogExpense(it)} title="Log an expense for this plan" className="h-7 px-2 rounded-full hover:bg-[#FFF1EC] flex items-center gap-1 text-[11px] font-semibold text-[#FF5A36] transition-colors" aria-label="Log expense for this plan">
                           <Receipt size={13} weight="duotone" /> Log expense
                         </button>
                         {(it.created_by === userId || isOrganizer) && (
@@ -188,7 +188,7 @@ export default function TripItinerary({ trip, userId, isOrganizer, onLogExpense 
 
       {items.length === 0 && (
         <div className="text-center mt-4 text-muted-foreground text-sm flex items-center justify-center gap-2">
-          <CalendarBlank size={16} weight="duotone" className="text-[#E25822]" /> Start with day 1 — where's the crew headed first?
+          <CalendarBlank size={16} weight="duotone" className="text-[#FF5A36]" /> Start with day 1 — where's the crew headed first?
         </div>
       )}
 

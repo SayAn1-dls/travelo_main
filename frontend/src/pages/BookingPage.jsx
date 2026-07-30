@@ -69,7 +69,7 @@ function PassengerDialog({ open, onClose, selection, form, user }) {
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">Complete your booking</DialogTitle>
         </DialogHeader>
-        <div className="bg-[#FDF3EC] rounded-xl p-4 text-sm">
+        <div className="bg-[#FFF1EC] rounded-xl p-4 text-sm">
           <p className="font-semibold">{type === "hotel" ? item.name : `${item.airline || item.train_name} · ${item.origin} → ${item.destination}`}</p>
           <p className="text-muted-foreground mt-0.5">
             {type === "hotel" ? `${form.nights} night(s) · ${form.rooms} room(s) · ${item.room_type}` : `${form.date} · ${item.depart} → ${item.arrive}`}
@@ -112,7 +112,7 @@ function PassengerDialog({ open, onClose, selection, form, user }) {
             <p className="text-xs text-muted-foreground">Total ({type === "hotel" ? `${form.nights}n × ${form.rooms} room` : `${count} traveller${count > 1 ? "s" : ""}`})</p>
             <p className="font-display text-2xl font-bold" data-testid="booking-total">{inr(total)}</p>
           </div>
-          <Button data-testid="pay-with-stripe-btn" onClick={pay} disabled={paying} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-12 px-6">
+          <Button data-testid="pay-with-stripe-btn" onClick={pay} disabled={paying} className="rounded-full bg-[#FF5A36] hover:bg-[#E64322] h-12 px-6">
             {paying ? "Redirecting…" : "Pay securely"} <ArrowRight size={16} className="ml-1" />
           </Button>
         </div>
@@ -161,12 +161,12 @@ export default function BookingPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
-      <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#E25822] mb-2">Booking engine</p>
+      <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-2">Booking engine</p>
       <h1 className="font-display text-4xl sm:text-5xl font-bold">Where to?</h1>
 
-      <div className="bg-white border border-[#EAE3D9] rounded-2xl p-6 sm:p-8 mt-8 shadow-sm">
+      <div className="bg-white border border-[#E5E4E0] rounded-2xl p-6 sm:p-8 mt-8 shadow-sm">
         <Tabs value={tab} onValueChange={(v) => { setTab(v); setResults(null); setForm((f) => ({ ...f, travel_class: v === "train" ? "sleeper" : "economy" })); }}>
-          <TabsList className="rounded-full h-12 p-1 bg-[#F5EFE5]">
+          <TabsList className="rounded-full h-12 p-1 bg-[#F0EFEB]">
             <TabsTrigger data-testid="tab-flights" value="flight" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white"><AirplaneTilt size={17} className="mr-1.5" />Flights</TabsTrigger>
             <TabsTrigger data-testid="tab-trains" value="train" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white"><Train size={17} className="mr-1.5" />Trains</TabsTrigger>
             <TabsTrigger data-testid="tab-hotels" value="hotel" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white"><Buildings size={17} className="mr-1.5" />Hotels</TabsTrigger>
@@ -216,7 +216,7 @@ export default function BookingPage() {
             </div>
           )}
         </div>
-        <Button data-testid="search-submit-btn" onClick={search} disabled={loading} className="mt-6 w-full md:w-auto rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-12 px-10 text-base">
+        <Button data-testid="search-submit-btn" onClick={search} disabled={loading} className="mt-6 w-full md:w-auto rounded-full bg-[#FF5A36] hover:bg-[#E64322] h-12 px-10 text-base">
           {loading ? "Searching…" : "Search"}
         </Button>
       </div>
@@ -238,7 +238,7 @@ export default function BookingPage() {
             {sorted.map((r, i) => (
               <motion.div key={r.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.4) }}>
                 {tab === "hotel" ? (
-                  <div data-testid="result-card" className="bg-white border border-[#EAE3D9] rounded-2xl overflow-hidden flex flex-col sm:flex-row hover:shadow-lg transition-shadow">
+                  <div data-testid="result-card" className="bg-white border border-[#E5E4E0] rounded-2xl overflow-hidden flex flex-col sm:flex-row hover:shadow-lg transition-shadow">
                     <img src={r.image} alt={r.name} className="sm:w-56 h-40 sm:h-auto object-cover" />
                     <div className="p-5 flex-1 flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex-1">
@@ -251,19 +251,19 @@ export default function BookingPage() {
                       <div className="text-right">
                         <p className="font-display text-2xl font-bold">{inr(r.price_per_night)}</p>
                         <p className="text-xs text-muted-foreground">per night</p>
-                        <Button data-testid="select-result-btn" onClick={() => setSelection({ type: tab, item: r })} className="mt-2 rounded-full bg-[#0B4F6C] hover:bg-[#083D54]">Select</Button>
+                        <Button data-testid="select-result-btn" onClick={() => setSelection({ type: tab, item: r })} className="mt-2 rounded-full bg-[#0A2540] hover:bg-[#123B66]">Select</Button>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div data-testid="result-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:shadow-lg transition-shadow">
+                  <div data-testid="result-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:shadow-lg transition-shadow">
                     <div className="flex-1">
                       <p className="font-semibold">{r.airline || r.train_name} <span className="text-muted-foreground font-normal text-sm">· {r.flight_no || `#${r.train_no}`}</span></p>
                       <div className="flex items-center gap-3 mt-2">
                         <div><p className="font-display text-xl font-bold">{r.depart}</p><p className="text-xs text-muted-foreground">{r.origin_code}</p></div>
                         <div className="flex-1 flex flex-col items-center px-2">
                           <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Clock size={11} />{fmtDur(r.duration_mins)}</p>
-                          <div className="w-full h-px bg-[#EAE3D9] relative"><div className="absolute right-0 -top-[3px] h-1.5 w-1.5 rounded-full bg-[#E25822]" /></div>
+                          <div className="w-full h-px bg-[#E5E4E0] relative"><div className="absolute right-0 -top-[3px] h-1.5 w-1.5 rounded-full bg-[#FF5A36]" /></div>
                           <p className="text-[11px] text-muted-foreground">{r.stops ? `${r.stops} stop` : tab === "flight" ? "Non-stop" : `${r.seats_left} seats left`}</p>
                         </div>
                         <div><p className="font-display text-xl font-bold">{r.arrive}</p><p className="text-xs text-muted-foreground">{r.destination_code}</p></div>
@@ -272,7 +272,7 @@ export default function BookingPage() {
                     <div className="text-right sm:border-l sm:pl-5 sm:w-40">
                       <p className="font-display text-2xl font-bold">{inr(r.price)}</p>
                       <p className="text-xs text-muted-foreground">per traveller</p>
-                      <Button data-testid="select-result-btn" onClick={() => setSelection({ type: tab, item: r })} className="mt-2 rounded-full bg-[#0B4F6C] hover:bg-[#083D54]">Select</Button>
+                      <Button data-testid="select-result-btn" onClick={() => setSelection({ type: tab, item: r })} className="mt-2 rounded-full bg-[#0A2540] hover:bg-[#123B66]">Select</Button>
                     </div>
                   </div>
                 )}

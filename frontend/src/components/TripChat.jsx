@@ -70,13 +70,13 @@ export default function TripChat({ tripId, myUserId }) {
   };
 
   return (
-    <div className="bg-white border border-[#EAE3D9] rounded-2xl overflow-hidden flex flex-col" style={{ height: "min(560px, 65vh)" }} data-testid="trip-chat">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-3 bg-[#FDFBF7]">
+    <div className="bg-white border border-[#E5E4E0] rounded-2xl overflow-hidden flex flex-col" style={{ height: "min(560px, 65vh)" }} data-testid="trip-chat">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-3 bg-[#F9F8F6]">
         {messages === null ? (
           <p className="text-sm text-muted-foreground text-center py-10">Loading chat…</p>
         ) : messages.length === 0 ? (
           <div className="text-center py-12" data-testid="trip-chat-empty">
-            <ChatsCircle size={34} weight="duotone" className="text-[#E25822] mx-auto" />
+            <ChatsCircle size={34} weight="duotone" className="text-[#FF5A36] mx-auto" />
             <p className="font-semibold mt-3">No messages yet</p>
             <p className="text-sm text-muted-foreground mt-1">Kick off the planning — everyone in this trip can chat here.</p>
           </div>
@@ -85,8 +85,8 @@ export default function TripChat({ tripId, myUserId }) {
             if (m.system) {
               return (
                 <div key={m.id} data-testid="trip-chat-system-message" className="flex justify-center">
-                  <div className="bg-[#0B4F6C] text-white rounded-2xl px-6 py-4 text-center max-w-[85%]">
-                    <FilmSlate size={22} weight="duotone" className="text-[#F9B384] mx-auto" />
+                  <div className="bg-[#0A2540] text-white rounded-2xl px-6 py-4 text-center max-w-[85%]">
+                    <FilmSlate size={22} weight="duotone" className="text-[#FFB49B] mx-auto" />
                     <p className="text-sm mt-2">{m.text}</p>
                     {m.data?.recap_token && (
                       <a
@@ -94,7 +94,7 @@ export default function TripChat({ tripId, myUserId }) {
                         href={`/recap/${m.data.recap_token}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-block mt-3 bg-[#E25822] hover:bg-[#C84B1A] text-white text-xs font-bold rounded-full px-4 py-2 transition-colors"
+                        className="inline-block mt-3 bg-[#FF5A36] hover:bg-[#E64322] text-white text-xs font-bold rounded-full px-4 py-2 transition-colors"
                       >
                         Watch the recap
                       </a>
@@ -110,14 +110,14 @@ export default function TripChat({ tripId, myUserId }) {
               <div key={m.id} data-testid="trip-chat-message" className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div className="group/msg relative max-w-[75%]">
                   <div
-                    className={`rounded-2xl px-4 py-2.5 cursor-pointer ${mine ? "bg-[#E25822] text-white rounded-br-md" : "bg-white border border-[#EAE3D9] rounded-bl-md"}`}
+                    className={`rounded-2xl px-4 py-2.5 cursor-pointer ${mine ? "bg-[#FF5A36] text-white rounded-br-md" : "bg-white border border-[#E5E4E0] rounded-bl-md"}`}
                     onClick={() => setPickerFor(pickerFor === m.id ? null : m.id)}
                   >
-                    {!mine && <p className="text-[11px] font-bold text-[#0B4F6C] mb-0.5">{m.name}</p>}
+                    {!mine && <p className="text-[11px] font-bold text-[#0A2540] mb-0.5">{m.name}</p>}
                     <p className="text-sm whitespace-pre-wrap break-words">{m.text}</p>
                     <p className={`text-[10px] mt-1 ${mine ? "text-white/70" : "text-muted-foreground"}`}>{fmtTime(m.created_at)}</p>
                   </div>
-                  <div className={`absolute -top-4 ${mine ? "right-1" : "left-1"} ${pickerFor === m.id ? "flex" : "hidden group-hover/msg:flex"} bg-white border border-[#EAE3D9] rounded-full shadow-md px-1.5 py-0.5 gap-0.5 z-10`} data-testid="reaction-picker">
+                  <div className={`absolute -top-4 ${mine ? "right-1" : "left-1"} ${pickerFor === m.id ? "flex" : "hidden group-hover/msg:flex"} bg-white border border-[#E5E4E0] rounded-full shadow-md px-1.5 py-0.5 gap-0.5 z-10`} data-testid="reaction-picker">
                     {REACTIONS.map((e) => (
                       <button key={e} data-testid={`react-btn-${e}`} onClick={() => react(m, e)} className="text-sm leading-none px-0.5 py-0.5 hover:scale-125 transition-transform" aria-label={`React ${e}`}>{e}</button>
                     ))}
@@ -129,7 +129,7 @@ export default function TripChat({ tripId, myUserId }) {
                           key={e}
                           data-testid="reaction-chip"
                           onClick={() => react(m, e)}
-                          className={`text-xs rounded-full border px-1.5 py-0.5 transition-colors ${uids.includes(myUserId) ? "border-[#E25822] bg-[#FDF3EC]" : "border-[#EAE3D9] bg-white hover:bg-[#FDFBF7]"}`}
+                          className={`text-xs rounded-full border px-1.5 py-0.5 transition-colors ${uids.includes(myUserId) ? "border-[#FF5A36] bg-[#FFF1EC]" : "border-[#E5E4E0] bg-white hover:bg-[#F9F8F6]"}`}
                           aria-label={`${e} ${uids.length}`}
                         >
                           {e} {uids.length}
@@ -143,7 +143,7 @@ export default function TripChat({ tripId, myUserId }) {
           })
         )}
       </div>
-      <div className="border-t border-[#EAE3D9] p-3 flex gap-2 bg-white">
+      <div className="border-t border-[#E5E4E0] p-3 flex gap-2 bg-white">
         <Input
           data-testid="trip-chat-input"
           placeholder="Message your crew…"
@@ -152,7 +152,7 @@ export default function TripChat({ tripId, myUserId }) {
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
           className="rounded-full"
         />
-        <Button data-testid="trip-chat-send-btn" onClick={send} disabled={sending || !text.trim()} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A] shrink-0 h-10 w-10 p-0" aria-label="Send message">
+        <Button data-testid="trip-chat-send-btn" onClick={send} disabled={sending || !text.trim()} className="rounded-full bg-[#FF5A36] hover:bg-[#E64322] shrink-0 h-10 w-10 p-0" aria-label="Send message">
           <PaperPlaneRight size={17} weight="fill" />
         </Button>
       </div>

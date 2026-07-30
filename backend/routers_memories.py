@@ -234,10 +234,10 @@ async def build_og_card(trip):
 
     draw = ImageDraw.Draw(base)
     accent = (249, 179, 132)
-    small = _font("DMSans.ttf", 26, [14, 700])
-    big = _font("PlayfairDisplay-Bold.ttf", 84, [800])
-    med = _font("DMSans.ttf", 32, [14, 500])
-    pillf = _font("DMSans.ttf", 24, [14, 700])
+    small = _font("PlusJakartaSans.ttf", 26, [700])
+    big = _font("CormorantGaramond.ttf", 84, [700])
+    med = _font("PlusJakartaSans.ttf", 32, [500])
+    pillf = _font("PlusJakartaSans.ttf", 24, [700])
 
     draw.text((70, 62), "T R A V E L O   R E C A P", font=small, fill=accent)
 

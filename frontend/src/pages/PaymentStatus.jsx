@@ -36,7 +36,7 @@ export function PaymentSuccess() {
     <div className="max-w-lg mx-auto px-5 py-24 text-center">
       {state === "checking" && (
         <div data-testid="payment-checking">
-          <CircleNotch size={48} className="mx-auto animate-spin text-[#0B4F6C]" />
+          <CircleNotch size={48} className="mx-auto animate-spin text-[#0A2540]" />
           <h1 className="font-display text-3xl font-bold mt-6">Confirming your payment…</h1>
           <p className="text-muted-foreground mt-2 text-sm">Hold on, this takes a few seconds.</p>
         </div>
@@ -50,12 +50,12 @@ export function PaymentSuccess() {
           </p>
           <div className="flex justify-center gap-3 mt-8">
             {result?.purpose === "booking" && result?.metadata?.booking_id && (
-              <Button asChild data-testid="payment-view-ticket-btn" className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+              <Button asChild data-testid="payment-view-ticket-btn" className="rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
                 <Link to={`/ticket/${result.metadata.booking_id}`}>View e-ticket</Link>
               </Button>
             )}
             {result?.purpose === "settlement" && result?.metadata?.trip_id && (
-              <Button asChild data-testid="payment-view-trip-btn" className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+              <Button asChild data-testid="payment-view-trip-btn" className="rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
                 <Link to={`/trips/${result.metadata.trip_id}`}>Back to trip</Link>
               </Button>
             )}
@@ -88,7 +88,7 @@ export function PaymentCancel() {
       <h1 className="font-display text-3xl sm:text-4xl font-bold mt-6">Payment cancelled</h1>
       <p className="text-muted-foreground mt-2">No charge was made. Your booking is saved as pending — complete it anytime.</p>
       <div className="flex justify-center gap-3 mt-8">
-        <Button asChild data-testid="cancel-back-bookings-btn" className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+        <Button asChild data-testid="cancel-back-bookings-btn" className="rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
           <Link to="/bookings">My bookings</Link>
         </Button>
         <Button asChild variant="outline" className="rounded-full">

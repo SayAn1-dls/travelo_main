@@ -32,8 +32,8 @@ export default function TicketPage() {
         </Button>
       </div>
 
-      <div id="printable-ticket" data-testid="eticket-card" className="bg-white rounded-2xl overflow-hidden shadow-lg border border-[#EAE3D9]">
-        <div className="bg-[#0B4F6C] text-white px-7 py-5 flex items-center justify-between">
+      <div id="printable-ticket" data-testid="eticket-card" className="bg-white rounded-2xl overflow-hidden shadow-lg border border-[#E5E4E0]">
+        <div className="bg-[#0A2540] text-white px-7 py-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AirplaneTilt size={22} weight="duotone" />
             <span className="font-display font-bold text-xl">Travelo</span>
@@ -45,7 +45,7 @@ export default function TicketPage() {
 
         <div className="px-7 py-6">
           <div className="flex items-center gap-3">
-            <Icon size={30} weight="duotone" className="text-[#E25822]" />
+            <Icon size={30} weight="duotone" className="text-[#FF5A36]" />
             <div>
               <p className="font-display text-xl font-bold">
                 {booking.type === "hotel" ? booking.item.name : `${booking.origin} → ${booking.destination}`}
@@ -86,12 +86,12 @@ export default function TicketPage() {
       </div>
 
       {destSlug && (
-        <div className="mt-8 bg-[#FDF3EC] border border-[#EAE3D9] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
+        <div className="mt-8 bg-[#FFF1EC] border border-[#E5E4E0] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
           <div>
-            <p className="font-display text-lg font-bold flex items-center gap-2"><MapTrifold size={20} weight="duotone" className="text-[#E25822]" /> Getting around {booking.destination}</p>
+            <p className="font-display text-lg font-bold flex items-center gap-2"><MapTrifold size={20} weight="duotone" className="text-[#FF5A36]" /> Getting around {booking.destination}</p>
             <p className="text-sm text-muted-foreground mt-1">Local buses, cabs, scooter & car rentals near your destination.</p>
           </div>
-          <Button asChild data-testid="ticket-destination-hub-btn" className="rounded-full bg-[#0B4F6C] hover:bg-[#083D54]">
+          <Button asChild data-testid="ticket-destination-hub-btn" className="rounded-full bg-[#0A2540] hover:bg-[#123B66]">
             <Link to={`/destinations/${destSlug}`}>Open Destination Hub</Link>
           </Button>
         </div>

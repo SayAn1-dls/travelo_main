@@ -129,7 +129,7 @@ export default function ChatWidget() {
       <button
         data-testid="chat-widget-toggle"
         onClick={() => setOpen(!open)}
-        className="fixed bottom-5 right-5 z-50 h-14 w-14 rounded-full bg-[#0B4F6C] text-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
+        className="fixed bottom-5 right-5 z-50 h-14 w-14 rounded-full bg-[#0A2540] text-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
         aria-label="AI Travel Assistant"
       >
         {open ? <X size={24} /> : <ChatCircleDots size={26} weight="duotone" />}
@@ -137,20 +137,20 @@ export default function ChatWidget() {
 
       {open && (
         <div data-testid="chat-widget-panel" className="fixed bottom-24 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-[400px] h-[540px] max-h-[70vh] bg-white rounded-2xl shadow-2xl border flex flex-col overflow-hidden">
-          <div className="bg-[#0B4F6C] text-white px-5 py-4">
+          <div className="bg-[#0A2540] text-white px-5 py-4">
             <p className="font-display text-lg font-bold flex items-center gap-2"><Compass size={20} weight="duotone" /> Tara — your travel assistant</p>
             <p className="text-xs text-white/70 flex items-center gap-1 mt-0.5">
               <MapPin size={12} /> {tripId ? "Watching your trip budget" : city ? `Near ${city}` : destination ? `Exploring ${destination}` : geoState === "granted" ? "Locating you…" : "Location off"}
             </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FDFBF7]">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#F9F8F6]">
             {geoState === "unset" && (
               <div data-testid="chat-geo-consent" className="bg-white border rounded-xl p-4 text-sm space-y-3">
                 <p className="font-semibold">Can Tara use your location?</p>
                 <p className="text-muted-foreground text-xs">We use it only to recommend places to roam, eat and explore near you. Nothing is shared or stored beyond your chat.</p>
                 <div className="flex gap-2">
-                  <Button data-testid="chat-geo-allow" size="sm" className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]" onClick={requestGeo}>Allow location</Button>
+                  <Button data-testid="chat-geo-allow" size="sm" className="rounded-full bg-[#FF5A36] hover:bg-[#E64322]" onClick={requestGeo}>Allow location</Button>
                   <Button data-testid="chat-geo-deny" size="sm" variant="outline" className="rounded-full" onClick={() => { setGeoState("denied"); localStorage.setItem("travelo_geo", "denied"); }}>
                     Not now
                   </Button>
@@ -164,7 +164,7 @@ export default function ChatWidget() {
                   ? ["How are we doing on budget?", "Who owes whom right now?", "What's worth doing next on this trip?"]
                   : ["Best places to roam near me", "Hidden local spots worth visiting", "Where should I eat tonight?"]
                 ).map((q) => (
-                  <button key={q} data-testid="chat-suggestion" onClick={() => send(q)} className="block w-full text-left text-sm bg-white border rounded-xl px-4 py-2.5 hover:border-[#E25822] transition-colors">
+                  <button key={q} data-testid="chat-suggestion" onClick={() => send(q)} className="block w-full text-left text-sm bg-white border rounded-xl px-4 py-2.5 hover:border-[#FF5A36] transition-colors">
                     {q}
                   </button>
                 ))}
@@ -172,7 +172,7 @@ export default function ChatWidget() {
             )}
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div data-testid={`chat-message-${m.role}`} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-[#E25822] text-white rounded-br-sm" : "bg-white border rounded-bl-sm"}`}>
+                <div data-testid={`chat-message-${m.role}`} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-[#FF5A36] text-white rounded-br-sm" : "bg-white border rounded-bl-sm"}`}>
                   {m.content || (streaming && i === messages.length - 1 ? "…" : "")}
                 </div>
               </div>
@@ -189,7 +189,7 @@ export default function ChatWidget() {
               placeholder="Ask Tara…"
               className="rounded-full"
             />
-            <Button data-testid="chat-send-btn" onClick={() => send()} disabled={streaming} size="icon" className="rounded-full bg-[#0B4F6C] hover:bg-[#083D54] shrink-0">
+            <Button data-testid="chat-send-btn" onClick={() => send()} disabled={streaming} size="icon" className="rounded-full bg-[#0A2540] hover:bg-[#123B66] shrink-0">
               <PaperPlaneTilt size={18} />
             </Button>
           </div>

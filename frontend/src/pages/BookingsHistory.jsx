@@ -31,15 +31,15 @@ export default function BookingsHistory() {
 
   return (
     <div className="max-w-4xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
-      <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#E25822] mb-2">Trip history</p>
+      <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-2">Trip history</p>
       <h1 className="font-display text-4xl sm:text-5xl font-bold">My bookings</h1>
 
       {bookings === null ? (
         <p className="mt-10 text-muted-foreground">Loading…</p>
       ) : bookings.length === 0 ? (
-        <div className="bg-white border border-dashed border-[#EAE3D9] rounded-2xl p-14 text-center mt-10">
+        <div className="bg-white border border-dashed border-[#E5E4E0] rounded-2xl p-14 text-center mt-10">
           <p className="text-muted-foreground">Your journeys will show up here.</p>
-          <Button asChild data-testid="bookings-empty-cta" className="mt-4 rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+          <Button asChild data-testid="bookings-empty-cta" className="mt-4 rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
             <Link to="/book">Book your first journey <ArrowRight size={16} className="ml-1" /></Link>
           </Button>
         </div>
@@ -48,9 +48,9 @@ export default function BookingsHistory() {
           {bookings.map((b) => {
             const Icon = typeIcon[b.type] || AirplaneTilt;
             return (
-              <div key={b.id} data-testid="booking-history-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-[#FDF3EC] flex items-center justify-center shrink-0">
-                  <Icon size={24} weight="duotone" className="text-[#E25822]" />
+              <div key={b.id} data-testid="booking-history-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-[#FFF1EC] flex items-center justify-center shrink-0">
+                  <Icon size={24} weight="duotone" className="text-[#FF5A36]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -66,7 +66,7 @@ export default function BookingsHistory() {
                       <Link to={`/ticket/${b.id}`}>E-ticket</Link>
                     </Button>
                   ) : b.status === "pending_payment" ? (
-                    <Button data-testid="complete-payment-btn" onClick={() => payNow(b)} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">Complete payment</Button>
+                    <Button data-testid="complete-payment-btn" onClick={() => payNow(b)} className="rounded-full bg-[#FF5A36] hover:bg-[#E64322]">Complete payment</Button>
                   ) : null}
                 </div>
               </div>

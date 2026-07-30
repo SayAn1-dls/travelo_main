@@ -136,14 +136,14 @@ export default function RecapPage() {
 
   if (error)
     return (
-      <div className="min-h-screen bg-[#0B4F6C] text-white flex items-center justify-center px-6 text-center" data-testid="recap-error">
+      <div className="min-h-screen bg-[#0A2540] text-white flex items-center justify-center px-6 text-center" data-testid="recap-error">
         <p className="font-display text-2xl">This recap link is invalid or was removed.</p>
       </div>
     );
   if (!recap)
     return (
-      <div className="min-h-screen bg-[#0B4F6C] text-white flex items-center justify-center">
-        <AirplaneTilt size={36} weight="duotone" className="text-[#F9B384] animate-pulse" />
+      <div className="min-h-screen bg-[#0A2540] text-white flex items-center justify-center">
+        <AirplaneTilt size={36} weight="duotone" className="text-[#FFB49B] animate-pulse" />
       </div>
     );
 
@@ -151,10 +151,10 @@ export default function RecapPage() {
   const topCategory = Object.entries(recap.stats.by_category).sort((a, b) => b[1] - a[1])[0];
 
   return (
-    <div className="min-h-screen bg-[#0B4F6C] text-white relative overflow-hidden grain flex flex-col" data-testid="recap-page">
+    <div className="min-h-screen bg-[#0A2540] text-white relative overflow-hidden grain flex flex-col" data-testid="recap-page">
       <header className="relative z-10 flex items-center justify-between px-5 sm:px-8 py-5">
         <span className="flex items-center gap-2">
-          <AirplaneTilt size={24} weight="duotone" className="text-[#F9B384]" />
+          <AirplaneTilt size={24} weight="duotone" className="text-[#FFB49B]" />
           <span className="font-display font-bold text-xl">Travelo recap</span>
         </span>
         <button data-testid="recap-close-btn" onClick={() => navigate("/")} className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors">
@@ -174,7 +174,7 @@ export default function RecapPage() {
           >
         {slide.kind === "title" && (
           <div className="text-center max-w-2xl" data-testid="recap-slide-title">
-            <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#F9B384]">The story of</p>
+            <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#FFB49B]">The story of</p>
             <h1 className="font-display text-4xl sm:text-6xl font-bold mt-4 leading-tight">{recap.name}</h1>
             <p className="text-white/80 mt-4 text-lg">{recap.destination} · {recap.start_date} → {recap.end_date}</p>
             <p className="text-white/60 mt-2 text-sm">with {recap.members.join(" · ")}</p>
@@ -183,7 +183,7 @@ export default function RecapPage() {
 
         {slide.kind === "itinerary" && (
           <div className="max-w-2xl w-full" data-testid="recap-slide-itinerary">
-            <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#F9B384] text-center">The plan</p>
+            <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#FFB49B] text-center">The plan</p>
             <h2 className="font-display text-3xl sm:text-5xl font-bold mt-3 text-center">Day {slide.day}</h2>
             <p className="text-white/60 text-sm text-center mt-1">
               {new Date(`${slide.date}T00:00:00`).toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}
@@ -191,7 +191,7 @@ export default function RecapPage() {
             <div className="mt-8 space-y-3">
               {slide.items.slice(0, 6).map((it, i) => (
                 <div key={i} className="bg-white/10 rounded-2xl px-5 py-3 flex items-center gap-4">
-                  <span className={`font-bold text-sm w-12 shrink-0 ${it.time ? "text-[#F9B384]" : "text-white/30"}`}>{it.time || "—"}</span>
+                  <span className={`font-bold text-sm w-12 shrink-0 ${it.time ? "text-[#FFB49B]" : "text-white/30"}`}>{it.time || "—"}</span>
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{it.title}</p>
                     {it.place && <p className="text-xs text-white/60 truncate">{it.place}</p>}
@@ -217,7 +217,7 @@ export default function RecapPage() {
 
         {slide.kind === "note" && (
           <blockquote className="text-center max-w-2xl" data-testid="recap-slide-note">
-            <Quotes size={40} weight="duotone" className="text-[#F9B384] mx-auto" />
+            <Quotes size={40} weight="duotone" className="text-[#FFB49B] mx-auto" />
             <p className="font-display italic text-2xl sm:text-4xl leading-snug mt-5 whitespace-pre-wrap">{slide.note}</p>
             <p className="text-white/60 text-sm mt-5">— {slide.member_name}</p>
           </blockquote>
@@ -225,21 +225,21 @@ export default function RecapPage() {
 
         {slide.kind === "stats" && (
           <div className="text-center max-w-2xl w-full" data-testid="recap-slide-stats">
-            <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#F9B384]">The damage</p>
+            <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#FFB49B]">The damage</p>
             <h2 className="font-display text-3xl sm:text-5xl font-bold mt-4">{money(recap.stats.total_spent, recap.currency)} well spent.</h2>
             <div className="grid grid-cols-3 gap-4 mt-10">
               <div className="bg-white/10 rounded-2xl p-5">
-                <Wallet size={26} weight="duotone" className="text-[#F9B384] mx-auto" />
+                <Wallet size={26} weight="duotone" className="text-[#FFB49B] mx-auto" />
                 <p className="font-display text-xl font-bold mt-2">{recap.stats.budget_total ? `${Math.round((recap.stats.total_spent / recap.stats.budget_total) * 100)}%` : "—"}</p>
                 <p className="text-xs text-white/60">of budget used</p>
               </div>
               <div className="bg-white/10 rounded-2xl p-5">
-                <UsersThree size={26} weight="duotone" className="text-[#F9B384] mx-auto" />
+                <UsersThree size={26} weight="duotone" className="text-[#FFB49B] mx-auto" />
                 <p className="font-display text-xl font-bold mt-2">{recap.members.length}</p>
                 <p className="text-xs text-white/60">travellers</p>
               </div>
               <div className="bg-white/10 rounded-2xl p-5">
-                <Images size={26} weight="duotone" className="text-[#F9B384] mx-auto" />
+                <Images size={26} weight="duotone" className="text-[#FFB49B] mx-auto" />
                 <p className="font-display text-xl font-bold mt-2">{recap.memories.length}</p>
                 <p className="text-xs text-white/60">memories</p>
               </div>
@@ -254,28 +254,28 @@ export default function RecapPage() {
       <footer className="relative z-10 flex flex-col items-center gap-4 pb-8">
         <div className="flex items-center gap-3">
           <button data-testid="recap-prev-btn" onClick={prev} className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"><CaretLeft size={18} /></button>
-          <button data-testid="recap-playpause-btn" onClick={() => setPlaying(!playing)} className="h-12 w-12 rounded-full bg-[#E25822] hover:bg-[#C84B1A] flex items-center justify-center transition-colors">
+          <button data-testid="recap-playpause-btn" onClick={() => setPlaying(!playing)} className="h-12 w-12 rounded-full bg-[#FF5A36] hover:bg-[#E64322] flex items-center justify-center transition-colors">
             {playing ? <Pause size={20} weight="fill" /> : <Play size={20} weight="fill" />}
           </button>
           <button data-testid="recap-next-btn" onClick={next} className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"><CaretRight size={18} /></button>
-          <button data-testid="recap-music-btn" onClick={toggleMusic} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${musicOn ? "bg-[#F9B384] text-[#0B4F6C]" : "bg-white/10 hover:bg-white/25"}`} aria-label="Toggle ambient music">
+          <button data-testid="recap-music-btn" onClick={toggleMusic} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${musicOn ? "bg-[#FFB49B] text-[#0A2540]" : "bg-white/10 hover:bg-white/25"}`} aria-label="Toggle ambient music">
             {musicOn ? <MusicNotes size={18} weight="fill" /> : <SpeakerSlash size={18} />}
           </button>
           <button data-testid="recap-whatsapp-btn" onClick={shareWhatsApp} className="h-11 w-11 rounded-full bg-[#25D366] hover:bg-[#1EBE5A] flex items-center justify-center transition-colors" aria-label="Share on WhatsApp">
             <WhatsappLogo size={20} weight="fill" />
           </button>
           <div className="relative">
-            <button data-testid="recap-download-btn" onClick={() => setDlOpen(!dlOpen)} disabled={!!exporting} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${dlOpen ? "bg-[#F9B384] text-[#0B4F6C]" : "bg-white/10 hover:bg-white/25"} disabled:opacity-50`} aria-label="Download recap">
+            <button data-testid="recap-download-btn" onClick={() => setDlOpen(!dlOpen)} disabled={!!exporting} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${dlOpen ? "bg-[#FFB49B] text-[#0A2540]" : "bg-white/10 hover:bg-white/25"} disabled:opacity-50`} aria-label="Download recap">
               <DownloadSimple size={18} />
             </button>
             {dlOpen && (
               <div className="absolute bottom-14 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 bg-white text-[#1A1A1A] rounded-2xl shadow-2xl p-2 w-60 z-20" data-testid="recap-download-menu">
-                <button data-testid="recap-download-video-btn" onClick={() => runExport("video")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#FDF3EC] text-left transition-colors">
-                  <FilmSlate size={20} weight="duotone" className="text-[#E25822] shrink-0" />
+                <button data-testid="recap-download-video-btn" onClick={() => runExport("video")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#FFF1EC] text-left transition-colors">
+                  <FilmSlate size={20} weight="duotone" className="text-[#FF5A36] shrink-0" />
                   <span><span className="block text-sm font-semibold">Video (.webm)</span><span className="block text-xs text-muted-foreground">Animated slideshow</span></span>
                 </button>
-                <button data-testid="recap-download-images-btn" onClick={() => runExport("images")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#FDF3EC] text-left transition-colors">
-                  <FileZip size={20} weight="duotone" className="text-[#0B4F6C] shrink-0" />
+                <button data-testid="recap-download-images-btn" onClick={() => runExport("images")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#FFF1EC] text-left transition-colors">
+                  <FileZip size={20} weight="duotone" className="text-[#0A2540] shrink-0" />
                   <span><span className="block text-sm font-semibold">Image set (.zip)</span><span className="block text-xs text-muted-foreground">One PNG per slide</span></span>
                 </button>
               </div>
@@ -283,13 +283,13 @@ export default function RecapPage() {
           </div>
         </div>
         {exporting && (
-          <p data-testid="recap-export-progress" className="text-xs text-[#F9B384] font-semibold tracking-wide">
+          <p data-testid="recap-export-progress" className="text-xs text-[#FFB49B] font-semibold tracking-wide">
             {exporting.label}… {exporting.progress}%
           </p>
         )}
         <div className="flex gap-1.5 flex-wrap justify-center max-w-md">
           {slides.map((_, i) => (
-            <button key={i} onClick={() => setIdx(i)} className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${i === idx ? "w-6 bg-[#F9B384]" : "w-1.5 bg-white/30"}`} aria-label={`Slide ${i + 1}`} />
+            <button key={i} onClick={() => setIdx(i)} className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${i === idx ? "w-6 bg-[#FFB49B]" : "w-1.5 bg-white/30"}`} aria-label={`Slide ${i + 1}`} />
           ))}
         </div>
       </footer>

@@ -107,7 +107,7 @@ function ExpenseDialog({ trip, myMemberId, expense = null, prefill = null, onClo
               ))}
             </RadioGroup>
           </div>
-          <div className="space-y-2 bg-[#FDF3EC] rounded-xl p-4">
+          <div className="space-y-2 bg-[#FFF1EC] rounded-xl p-4">
             {form.split_type === "equal" && trip.members.map((m) => (
               <label key={m.member_id} className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
@@ -131,7 +131,7 @@ function ExpenseDialog({ trip, myMemberId, expense = null, prefill = null, onClo
               </div>
             ))}
           </div>
-          <Button data-testid="expense-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-11">
+          <Button data-testid="expense-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#FF5A36] hover:bg-[#E64322] h-11">
             {saving ? "Saving…" : expense ? "Save changes" : "Add expense"}
           </Button>
         </div>
@@ -222,13 +222,13 @@ function MemoriesTab({ trip, userId, isOrganizer }) {
 
   return (
     <div>
-      <div className="bg-[#0B4F6C] text-white rounded-2xl p-5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden grain">
+      <div className="bg-[#0A2540] text-white rounded-2xl p-5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden grain">
         <div>
           <p className="font-display text-lg font-bold">Trip recap slideshow</p>
           <p className="text-sm text-white/75">Relive the photos & notes as a story — and share it with anyone.</p>
         </div>
         <div className="flex gap-2 shrink-0 relative z-10">
-          <Button data-testid="play-recap-btn" onClick={playRecap} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+          <Button data-testid="play-recap-btn" onClick={playRecap} className="rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
             <Play size={15} className="mr-1.5" weight="fill" /> Play recap
           </Button>
           <Button data-testid="copy-recap-link-btn" onClick={copyShare} variant="outline" className="rounded-full bg-white/10 border-white/40 text-white hover:bg-white hover:text-[#1A1A1A] transition-colors">
@@ -242,16 +242,16 @@ function MemoriesTab({ trip, userId, isOrganizer }) {
         </div>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
-        <div className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
-          <p className="font-semibold flex items-center gap-2 mb-3"><Camera size={20} weight="duotone" className="text-[#E25822]" /> Add a photo</p>
+        <div className="bg-white border border-[#E5E4E0] rounded-2xl p-5">
+          <p className="font-semibold flex items-center gap-2 mb-3"><Camera size={20} weight="duotone" className="text-[#FF5A36]" /> Add a photo</p>
           <Input data-testid="memory-caption-input" placeholder="Caption (optional)" value={caption} onChange={(e) => setCaption(e.target.value)} className="rounded-xl" />
           <input ref={fileRef} data-testid="memory-file-input" type="file" accept="image/*" className="hidden" onChange={(e) => uploadPhoto(e.target.files?.[0])} />
           <Button data-testid="memory-upload-btn" onClick={() => fileRef.current?.click()} disabled={uploading} variant="outline" className="rounded-full mt-3">
             {uploading ? "Uploading…" : "Choose photo & upload"}
           </Button>
         </div>
-        <div className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
-          <p className="font-semibold flex items-center gap-2 mb-3"><NotePencil size={20} weight="duotone" className="text-[#0B4F6C]" /> Add a note</p>
+        <div className="bg-white border border-[#E5E4E0] rounded-2xl p-5">
+          <p className="font-semibold flex items-center gap-2 mb-3"><NotePencil size={20} weight="duotone" className="text-[#0A2540]" /> Add a note</p>
           <Textarea data-testid="memory-note-input" placeholder="Sunset at Palolem was unreal…" value={note} onChange={(e) => setNote(e.target.value)} className="rounded-xl" rows={2} />
           <Button data-testid="memory-note-btn" onClick={addNote} variant="outline" className="rounded-full mt-3">Add note</Button>
         </div>
@@ -262,7 +262,7 @@ function MemoriesTab({ trip, userId, isOrganizer }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           {memories.map((m) => (
-            <div key={m.id} data-testid="memory-card" className="bg-white border border-[#EAE3D9] rounded-2xl overflow-hidden group relative">
+            <div key={m.id} data-testid="memory-card" className="bg-white border border-[#E5E4E0] rounded-2xl overflow-hidden group relative">
               {m.kind === "photo" ? (
                 <>
                   <BlobImage path={`/memories/${m.id}/image`} alt={m.caption || "Trip memory"} className="w-full h-48 object-cover" />
@@ -272,8 +272,8 @@ function MemoriesTab({ trip, userId, isOrganizer }) {
                   </div>
                 </>
               ) : (
-                <div className="p-5 bg-[#FDF3EC] h-full">
-                  <NotePencil size={18} weight="duotone" className="text-[#0B4F6C]" />
+                <div className="p-5 bg-[#FFF1EC] h-full">
+                  <NotePencil size={18} weight="duotone" className="text-[#0A2540]" />
                   <p className="text-sm mt-2 whitespace-pre-wrap">{m.note}</p>
                   <p className="text-xs text-muted-foreground mt-3">— {m.member_name}</p>
                 </div>
@@ -333,7 +333,7 @@ export default function TripDetail() {
       <div className="max-w-5xl mx-auto px-5 py-24 text-center" data-testid="trip-not-found">
         <p className="font-display text-3xl font-bold">Trip not found</p>
         <p className="text-muted-foreground mt-2 text-sm">It may have been deleted, or the link is wrong.</p>
-        <Button onClick={() => navigate("/trips")} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A] mt-6" data-testid="back-to-trips-btn">Back to your trips</Button>
+        <Button onClick={() => navigate("/trips")} className="rounded-full bg-[#FF5A36] hover:bg-[#E64322] mt-6" data-testid="back-to-trips-btn">Back to your trips</Button>
       </div>
     );
   if (!trip) return <div className="max-w-5xl mx-auto px-5 py-20 text-center text-muted-foreground">Loading trip…</div>;
@@ -455,7 +455,7 @@ export default function TripDetail() {
     <div className="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#E25822] mb-2">{trip.destination} · {trip.start_date} → {trip.end_date}</p>
+          <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-2">{trip.destination} · {trip.start_date} → {trip.end_date}</p>
           <h1 className="font-display text-4xl sm:text-5xl font-bold" data-testid="trip-title">
             {trip.name}
             {trip.archived && <Badge variant="outline" data-testid="trip-archived-badge" className="ml-3 align-middle text-amber-700 border-amber-300 font-sans">Archived</Badge>}
@@ -465,7 +465,7 @@ export default function TripDetail() {
           <Button data-testid="copy-invite-btn" onClick={copyInvite} variant="outline" className="rounded-full">
             <Copy size={16} className="mr-1.5" /> Invite code: {trip.invite_code}
           </Button>
-          <Button data-testid="add-expense-btn" onClick={() => setExpenseDialog({ expense: null })} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+          <Button data-testid="add-expense-btn" onClick={() => setExpenseDialog({ expense: null })} className="rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
             <Plus size={17} className="mr-1" /> Add expense
           </Button>
           {isOrganizer && (
@@ -488,7 +488,7 @@ export default function TripDetail() {
         </div>
       </div>
 
-      <div className="bg-white border border-[#EAE3D9] rounded-2xl p-6 mt-8">
+      <div className="bg-white border border-[#E5E4E0] rounded-2xl p-6 mt-8">
         <div className="flex items-end justify-between mb-3">
           <div>
             <p className="text-sm text-muted-foreground">Total spent</p>
@@ -513,14 +513,14 @@ export default function TripDetail() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v === "chat") setChatUnread(0); }} className="mt-10">
-        <TabsList className="rounded-full h-12 p-1 bg-[#F5EFE5] max-w-full overflow-x-auto justify-start">
+        <TabsList className="rounded-full h-12 p-1 bg-[#F0EFEB] max-w-full overflow-x-auto justify-start">
           <TabsTrigger data-testid="trip-tab-expenses" value="expenses" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Expenses</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-balances" value="balances" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Balances</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-itinerary" value="itinerary" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Itinerary</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-chat" value="chat" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">
             Chat
             {chatUnread > 0 && (
-              <span data-testid="chat-unread-badge" className="ml-1.5 h-5 min-w-5 px-1 rounded-full bg-[#E25822] text-white text-[10px] inline-flex items-center justify-center font-bold">{chatUnread}</span>
+              <span data-testid="chat-unread-badge" className="ml-1.5 h-5 min-w-5 px-1 rounded-full bg-[#FF5A36] text-white text-[10px] inline-flex items-center justify-center font-bold">{chatUnread}</span>
             )}
           </TabsTrigger>
           <TabsTrigger data-testid="trip-tab-members" value="members" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Members</TabsTrigger>
@@ -530,9 +530,9 @@ export default function TripDetail() {
         <TabsContent value="expenses" className="mt-6 space-y-3">
           {expenses.length === 0 && <p className="text-muted-foreground text-sm py-8 text-center">No expenses yet — log the first one.</p>}
           {expenses.map((e) => (
-            <div key={e.id} data-testid="expense-item" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex items-center gap-4">
-              <div className="h-11 w-11 rounded-xl bg-[#FDF3EC] flex items-center justify-center shrink-0">
-                <Receipt size={22} weight="duotone" className="text-[#E25822]" />
+            <div key={e.id} data-testid="expense-item" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex items-center gap-4">
+              <div className="h-11 w-11 rounded-xl bg-[#FFF1EC] flex items-center justify-center shrink-0">
+                <Receipt size={22} weight="duotone" className="text-[#FF5A36]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{e.description} {e.edited_at && <span className="text-xs text-muted-foreground font-normal">(edited)</span>}</p>
@@ -560,9 +560,9 @@ export default function TripDetail() {
                 {trip.members.map((m) => {
                   const net = balances.net[m.member_id] || 0;
                   return (
-                    <div key={m.member_id} data-testid="balance-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
+                    <div key={m.member_id} data-testid="balance-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5">
                       <p className="font-semibold">{m.name}</p>
-                      <p className={`font-display text-2xl font-bold mt-1 ${net > 0.01 ? "text-emerald-700" : net < -0.01 ? "text-[#C84B1A]" : "text-muted-foreground"}`}>
+                      <p className={`font-display text-2xl font-bold mt-1 ${net > 0.01 ? "text-emerald-700" : net < -0.01 ? "text-[#E64322]" : "text-muted-foreground"}`}>
                         {net > 0.01 ? `gets back ${fmt(net)}` : net < -0.01 ? `owes ${fmt(-net)}` : "settled up"}
                       </p>
                     </div>
@@ -570,7 +570,7 @@ export default function TripDetail() {
                 })}
               </div>
 
-              <h3 className="font-display text-xl font-bold mt-10 mb-4 flex items-center gap-2"><HandCoins size={22} weight="duotone" className="text-[#E25822]" /> Settle up</h3>
+              <h3 className="font-display text-xl font-bold mt-10 mb-4 flex items-center gap-2"><HandCoins size={22} weight="duotone" className="text-[#FF5A36]" /> Settle up</h3>
               {balances.suggestions.length === 0 ? (
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-8 text-center">
                   <CheckCircle size={32} weight="duotone" className="text-emerald-600 mx-auto" />
@@ -581,15 +581,15 @@ export default function TripDetail() {
                   {balances.suggestions.map((s, i) => {
                     const iOwe = myMember?.member_id === s.from_member_id;
                     return (
-                      <div key={i} data-testid="settlement-suggestion" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div key={i} data-testid="settlement-suggestion" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
                         <p className="flex-1 text-sm sm:text-base">
                           <span className="font-bold">{memberOf(s.from_member_id).name}</span> owes{" "}
                           <span className="font-bold">{memberOf(s.to_member_id).name}</span>{" "}
-                          <span className="font-display text-xl font-bold text-[#C84B1A]">{fmt(s.amount)}</span>
+                          <span className="font-display text-xl font-bold text-[#E64322]">{fmt(s.amount)}</span>
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {iOwe && s.upi_link && (
-                            <a data-testid="settle-upi-btn" href={s.upi_link} className="inline-flex items-center text-sm font-bold text-white bg-[#E25822] hover:bg-[#C84B1A] rounded-full px-5 py-2 transition-colors">
+                            <a data-testid="settle-upi-btn" href={s.upi_link} className="inline-flex items-center text-sm font-bold text-white bg-[#FF5A36] hover:bg-[#E64322] rounded-full px-5 py-2 transition-colors">
                               Pay via UPI
                             </a>
                           )}
@@ -618,11 +618,11 @@ export default function TripDetail() {
                   <h3 className="font-display text-lg font-bold mt-10 mb-3">Settlement history</h3>
                   <div className="space-y-2">
                     {balances.settlements.map((st) => (
-                      <div key={st.id} data-testid="settlement-history-item" className="bg-white border border-[#EAE3D9] rounded-xl px-4 py-3 flex items-center justify-between text-sm">
+                      <div key={st.id} data-testid="settlement-history-item" className="bg-white border border-[#E5E4E0] rounded-xl px-4 py-3 flex items-center justify-between text-sm">
                         <span>{memberOf(st.from_member_id).name} paid {memberOf(st.to_member_id).name} <b>{fmt(st.amount)}</b> <span className="text-muted-foreground">via {st.method}</span></span>
                         <span className="flex items-center gap-3">
                           {st.proof_path && (
-                            <button data-testid="view-proof-btn" onClick={() => setProofView(st.id)} className="text-xs font-semibold text-[#0B4F6C] hover:underline flex items-center gap-1">
+                            <button data-testid="view-proof-btn" onClick={() => setProofView(st.id)} className="text-xs font-semibold text-[#0A2540] hover:underline flex items-center gap-1">
                               <Camera size={14} /> Proof
                             </button>
                           )}
@@ -653,8 +653,8 @@ export default function TripDetail() {
         <TabsContent value="members" className="mt-6">
           <div className="space-y-3">
             {trip.members.map((m) => (
-              <div key={m.member_id} data-testid="member-item" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-[#E8DCC4] flex items-center justify-center font-bold">{m.name.charAt(0).toUpperCase()}</div>
+              <div key={m.member_id} data-testid="member-item" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-[#EAE7E0] flex items-center justify-center font-bold">{m.name.charAt(0).toUpperCase()}</div>
                 <div className="flex-1">
                   <p className="font-semibold">{m.name} {m.member_id === trip.organizer_member_id && <Badge variant="outline" className="ml-1 text-[10px]">Organizer</Badge>} {!m.user_id && <Badge variant="outline" className="ml-1 text-[10px] text-amber-700 border-amber-300">Invited</Badge>}</p>
                   <p className="text-sm text-muted-foreground">{m.email}</p>
@@ -668,16 +668,16 @@ export default function TripDetail() {
           </div>
 
           {myMember && (
-            <div className="bg-[#FDF3EC] border border-[#EAE3D9] rounded-2xl p-5 mt-6 flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="bg-[#FFF1EC] border border-[#E5E4E0] rounded-2xl p-5 mt-6 flex flex-col sm:flex-row gap-3 sm:items-end">
               <div className="space-y-1.5 flex-1 max-w-xs">
                 <Label>How much are you bringing? ({sym.trim()})</Label>
                 <Input data-testid="contribution-input" type="number" min="0" placeholder={String(myMember.contribution || 0)} value={contribution} onChange={(e) => setContribution(e.target.value)} className="rounded-xl bg-white" />
               </div>
-              <Button data-testid="contribution-save-btn" onClick={saveContribution} className="rounded-full bg-[#0B4F6C] hover:bg-[#083D54]">Save</Button>
+              <Button data-testid="contribution-save-btn" onClick={saveContribution} className="rounded-full bg-[#0A2540] hover:bg-[#123B66]">Save</Button>
             </div>
           )}
 
-          <div className="bg-white border border-[#EAE3D9] rounded-2xl p-5 mt-4">
+          <div className="bg-white border border-[#E5E4E0] rounded-2xl p-5 mt-4">
             <Label className="mb-2 block">Add a member by email</Label>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input data-testid="new-member-name" placeholder="Name" value={newMember.name} onChange={(e) => setNewMember({ ...newMember, name: e.target.value })} className="rounded-xl" />
@@ -725,7 +725,7 @@ export default function TripDetail() {
           <DialogHeader><DialogTitle className="font-display text-2xl">Delete this expense?</DialogTitle></DialogHeader>
           {deleteTarget && (
             <div className="space-y-4">
-              <p className="text-sm bg-[#FDF3EC] rounded-xl p-4">
+              <p className="text-sm bg-[#FFF1EC] rounded-xl p-4">
                 <b>{deleteTarget.description}</b> · {fmt(deleteTarget.amount)} paid by {memberOf(deleteTarget.paid_by).name}
               </p>
               <p className="text-xs text-muted-foreground">Balances will be recalculated for everyone. This can't be undone.</p>
@@ -743,7 +743,7 @@ export default function TripDetail() {
           <DialogHeader><DialogTitle className="font-display text-2xl">Mark as settled</DialogTitle></DialogHeader>
           {settleTarget && (
             <div className="space-y-4">
-              <p className="text-sm bg-[#FDF3EC] rounded-xl p-4">
+              <p className="text-sm bg-[#FFF1EC] rounded-xl p-4">
                 <b>{memberOf(settleTarget.from_member_id).name}</b> paid <b>{memberOf(settleTarget.to_member_id).name}</b>{" "}
                 <span className="font-display text-lg font-bold">{fmt(settleTarget.amount)}</span>
               </p>
@@ -756,7 +756,7 @@ export default function TripDetail() {
                 <Input data-testid="settle-proof-input" type="file" accept="image/*" onChange={(e) => setProofFile(e.target.files?.[0] || null)} className="rounded-xl" />
                 {proofFile && <p className="text-xs text-muted-foreground">Attached: {proofFile.name}</p>}
               </div>
-              <Button data-testid="settle-confirm-btn" onClick={confirmSettle} disabled={settling} className="w-full rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-11">
+              <Button data-testid="settle-confirm-btn" onClick={confirmSettle} disabled={settling} className="w-full rounded-full bg-[#FF5A36] hover:bg-[#E64322] h-11">
                 {settling ? "Saving…" : "Confirm settlement"}
               </Button>
             </div>

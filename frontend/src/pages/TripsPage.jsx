@@ -43,7 +43,7 @@ function CreateTripDialog({ onCreated }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button data-testid="create-trip-btn" className="rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-11 px-6">
+        <Button data-testid="create-trip-btn" className="rounded-full bg-[#FF5A36] hover:bg-[#E64322] h-11 px-6">
           <Plus size={18} className="mr-1.5" /> New travel plan
         </Button>
       </DialogTrigger>
@@ -108,7 +108,7 @@ function CreateTripDialog({ onCreated }) {
               </div>
             ))}
           </div>
-          <Button data-testid="trip-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-11">
+          <Button data-testid="trip-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#FF5A36] hover:bg-[#E64322] h-11">
             {saving ? "Creating…" : "Create trip"}
           </Button>
         </div>
@@ -134,28 +134,28 @@ function TripCard({ trip: t, index: i }) {
   const cd = tripCountdown(t);
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-      <Link to={`/trips/${t.id}`} data-testid="trip-card" className="block bg-white border border-[#EAE3D9] rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300">
+      <Link to={`/trips/${t.id}`} data-testid="trip-card" className="block bg-white border border-[#E5E4E0] rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-display text-xl font-bold">{t.name}</h3>
           <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
             {cd && !t.archived && (
-              <Badge data-testid="trip-countdown-badge" className={`border-0 gap-1 ${cd.kind === "live" ? "bg-emerald-600 text-white" : "bg-[#0B4F6C] text-white"}`}>
+              <Badge data-testid="trip-countdown-badge" className={`border-0 gap-1 ${cd.kind === "live" ? "bg-emerald-600 text-white" : "bg-[#0A2540] text-white"}`}>
                 <AirplaneTilt size={12} weight="fill" /> {cd.label}
               </Badge>
             )}
             {t.unread_chat > 0 && (
-              <Badge data-testid="trip-chat-unread-badge" className="bg-[#E25822] text-white border-0 gap-1">
+              <Badge data-testid="trip-chat-unread-badge" className="bg-[#FF5A36] text-white border-0 gap-1">
                 <ChatsCircle size={12} weight="fill" /> {t.unread_chat} new
               </Badge>
             )}
-            <Badge variant="outline" className="border-[#0B4F6C] text-[#0B4F6C]">{t.members.length} members</Badge>
+            <Badge variant="outline" className="border-[#0A2540] text-[#0A2540]">{t.members.length} members</Badge>
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-1">{t.destination} · {t.start_date} → {t.end_date}</p>
         <div className="flex items-center gap-2 mt-4">
           <div className="flex -space-x-2">
             {t.members.slice(0, 4).map((m) => (
-              <div key={m.member_id} className="h-8 w-8 rounded-full bg-[#E8DCC4] border-2 border-white flex items-center justify-center text-xs font-bold text-[#1A1A1A]">
+              <div key={m.member_id} className="h-8 w-8 rounded-full bg-[#EAE7E0] border-2 border-white flex items-center justify-center text-xs font-bold text-[#1A1A1A]">
                 {m.name.charAt(0).toUpperCase()}
               </div>
             ))}
@@ -191,14 +191,14 @@ export default function TripsPage() {
     <div className="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
         <div>
-          <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#E25822] mb-2">Group travel planner</p>
+          <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-2">Group travel planner</p>
           <h1 className="font-display text-4xl sm:text-5xl font-bold">Your trips</h1>
         </div>
         <CreateTripDialog onCreated={(t) => navigate(`/trips/${t.id}`)} />
       </div>
 
-      <div className="mt-8 bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col sm:flex-row gap-3 sm:items-center">
-        <p className="text-sm font-medium flex items-center gap-2"><SignIn size={18} className="text-[#0B4F6C]" /> Got an invite code?</p>
+      <div className="mt-8 bg-white border border-[#E5E4E0] rounded-2xl p-5 flex flex-col sm:flex-row gap-3 sm:items-center">
+        <p className="text-sm font-medium flex items-center gap-2"><SignIn size={18} className="text-[#0A2540]" /> Got an invite code?</p>
         <div className="flex gap-2 flex-1 sm:max-w-sm">
           <Input data-testid="join-code-input" placeholder="e.g. xY3kPq_z" value={code} onChange={(e) => setCode(e.target.value)} className="rounded-xl" />
           <Button data-testid="join-trip-btn" onClick={join} variant="outline" className="rounded-full">Join</Button>
@@ -208,8 +208,8 @@ export default function TripsPage() {
       {trips === null ? (
         <p className="mt-10 text-muted-foreground">Loading…</p>
       ) : trips.length === 0 ? (
-        <div className="mt-10 bg-[#0B4F6C] text-white rounded-2xl p-12 text-center relative overflow-hidden grain">
-          <UsersThree size={40} weight="duotone" className="text-[#F9B384] mx-auto" />
+        <div className="mt-10 bg-[#0A2540] text-white rounded-2xl p-12 text-center relative overflow-hidden grain">
+          <UsersThree size={40} weight="duotone" className="text-[#FFB49B] mx-auto" />
           <p className="font-display text-2xl font-bold mt-4">No trips yet</p>
           <p className="text-white/75 mt-2 max-w-md mx-auto text-sm">Create a travel plan, invite your crew, set a budget and let Travelo handle the money math.</p>
         </div>

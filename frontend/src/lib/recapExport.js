@@ -47,25 +47,25 @@ function roundedPath(ctx, x, y, w, h, r) {
 }
 
 function drawSlide(ctx, slide, recap, images, cur) {
-  ctx.fillStyle = "#0B4F6C";
+  ctx.fillStyle = "#0A2540";
   ctx.fillRect(0, 0, W, H);
   if (!slide) return;
   ctx.textAlign = "center";
   const cx = W / 2;
 
   if (slide.kind === "title") {
-    ctx.fillStyle = "#F9B384";
-    ctx.font = "600 20px 'DM Sans', sans-serif";
+    ctx.fillStyle = "#FFB49B";
+    ctx.font = "600 20px 'Plus Jakarta Sans', sans-serif";
     ctx.fillText("T H E   S T O R Y   O F", cx, 220);
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 64px 'Playfair Display', serif";
+    ctx.font = "bold 64px 'Cormorant Garamond', serif";
     const lines = wrap(ctx, recap.name, 1000, 2);
     lines.forEach((l, i) => ctx.fillText(l, cx, 312 + i * 76));
     const base = 312 + lines.length * 76;
-    ctx.font = "24px 'DM Sans', sans-serif";
+    ctx.font = "24px 'Plus Jakarta Sans', sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.85)";
     ctx.fillText(`${recap.destination} · ${recap.start_date} → ${recap.end_date}`, cx, base + 16);
-    ctx.font = "18px 'DM Sans', sans-serif";
+    ctx.font = "18px 'Plus Jakarta Sans', sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.fillText(wrap(ctx, `with ${recap.members.join(" · ")}`, 1050, 1)[0], cx, base + 54);
   } else if (slide.kind === "photo") {
@@ -81,30 +81,30 @@ function drawSlide(ctx, slide, recap, images, cur) {
       ctx.restore();
     }
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "italic 30px 'Playfair Display', serif";
+    ctx.font = "italic 30px 'Cormorant Garamond', serif";
     if (slide.caption) ctx.fillText(wrap(ctx, slide.caption, 1000, 1)[0], cx, 596);
-    ctx.font = "17px 'DM Sans', sans-serif";
+    ctx.font = "17px 'Plus Jakarta Sans', sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.fillText(`captured by ${slide.member_name}`, cx, slide.caption ? 634 : 596);
   } else if (slide.kind === "note") {
-    ctx.fillStyle = "#F9B384";
-    ctx.font = "bold 110px 'Playfair Display', serif";
+    ctx.fillStyle = "#FFB49B";
+    ctx.font = "bold 110px 'Cormorant Garamond', serif";
     ctx.fillText("\u201C", cx, 210);
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "italic 38px 'Playfair Display', serif";
+    ctx.font = "italic 38px 'Cormorant Garamond', serif";
     const lines = wrap(ctx, slide.note, 940, 5);
     lines.forEach((l, i) => ctx.fillText(l, cx, 296 + i * 54));
-    ctx.font = "18px 'DM Sans', sans-serif";
+    ctx.font = "18px 'Plus Jakarta Sans', sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.fillText(`— ${slide.member_name}`, cx, 296 + lines.length * 54 + 34);
   } else if (slide.kind === "itinerary") {
-    ctx.fillStyle = "#F9B384";
-    ctx.font = "600 20px 'DM Sans', sans-serif";
+    ctx.fillStyle = "#FFB49B";
+    ctx.font = "600 20px 'Plus Jakarta Sans', sans-serif";
     ctx.fillText("T H E   P L A N", cx, 128);
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 54px 'Playfair Display', serif";
+    ctx.font = "bold 54px 'Cormorant Garamond', serif";
     ctx.fillText(`Day ${slide.day}`, cx, 200);
-    ctx.font = "20px 'DM Sans', sans-serif";
+    ctx.font = "20px 'Plus Jakarta Sans', sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.fillText(new Date(`${slide.date}T00:00:00`).toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" }), cx, 238);
     const rows = slide.items.slice(0, 5);
@@ -113,16 +113,16 @@ function drawSlide(ctx, slide, recap, images, cur) {
       ctx.fillStyle = "rgba(255,255,255,0.1)";
       if (roundedPath(ctx, cx - 420, y, 840, 60, 16)) ctx.fill();
       ctx.textAlign = "left";
-      ctx.fillStyle = "#F9B384";
-      ctx.font = "700 20px 'DM Sans', sans-serif";
+      ctx.fillStyle = "#FFB49B";
+      ctx.font = "700 20px 'Plus Jakarta Sans', sans-serif";
       ctx.fillText(it.time || "—", cx - 390, y + 37);
       ctx.fillStyle = "#FFFFFF";
-      ctx.font = "600 22px 'DM Sans', sans-serif";
+      ctx.font = "600 22px 'Plus Jakarta Sans', sans-serif";
       const title = wrap(ctx, it.title, it.place ? 480 : 700, 1)[0];
       ctx.fillText(title, cx - 310, y + 37);
       if (it.place) {
         ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.font = "17px 'DM Sans', sans-serif";
+        ctx.font = "17px 'Plus Jakarta Sans', sans-serif";
         ctx.textAlign = "right";
         ctx.fillText(wrap(ctx, it.place, 210, 1)[0], cx + 390, y + 37);
       }
@@ -130,15 +130,15 @@ function drawSlide(ctx, slide, recap, images, cur) {
     });
     if (slide.items.length > 5) {
       ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = "17px 'DM Sans', sans-serif";
+      ctx.font = "17px 'Plus Jakarta Sans', sans-serif";
       ctx.fillText(`+ ${slide.items.length - 5} more plans`, cx, 286 + 5 * 72 + 12);
     }
   } else {
-    ctx.fillStyle = "#F9B384";
-    ctx.font = "600 20px 'DM Sans', sans-serif";
+    ctx.fillStyle = "#FFB49B";
+    ctx.font = "600 20px 'Plus Jakarta Sans', sans-serif";
     ctx.fillText("T H E   D A M A G E", cx, 170);
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 56px 'Playfair Display', serif";
+    ctx.font = "bold 56px 'Cormorant Garamond', serif";
     ctx.fillText(`${money(recap.stats.total_spent, cur)} well spent.`, cx, 258);
     const stats = [
       [recap.stats.budget_total ? `${Math.round((recap.stats.total_spent / recap.stats.budget_total) * 100)}%` : "—", "of budget used"],
@@ -150,20 +150,20 @@ function drawSlide(ctx, slide, recap, images, cur) {
       ctx.fillStyle = "rgba(255,255,255,0.1)";
       if (roundedPath(ctx, x - 122, 330, 244, 150, 20)) ctx.fill();
       ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 40px 'Playfair Display', serif";
+      ctx.font = "bold 40px 'Cormorant Garamond', serif";
       ctx.fillText(v, x, 402);
-      ctx.font = "16px 'DM Sans', sans-serif";
+      ctx.font = "16px 'Plus Jakarta Sans', sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.65)";
       ctx.fillText(label, x, 442);
     });
     const top = Object.entries(recap.stats.by_category).sort((a, b) => b[1] - a[1])[0];
     if (top) {
-      ctx.font = "19px 'DM Sans', sans-serif";
+      ctx.font = "19px 'Plus Jakarta Sans', sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.75)";
       ctx.fillText(`Biggest spend: ${top[0]} at ${money(top[1], cur)}`, cx, 556);
     }
   }
-  ctx.font = "600 15px 'DM Sans', sans-serif";
+  ctx.font = "600 15px 'Plus Jakarta Sans', sans-serif";
   ctx.fillStyle = "rgba(255,255,255,0.4)";
   ctx.fillText("Travelo recap", cx, H - 26);
 }
@@ -233,7 +233,7 @@ export async function exportVideo(recap, token, cur, onProgress) {
       drawSlide(ctx, slides[i], recap, images, cur);
       const local = t - i * SLIDE_MS;
       if (local < FADE_MS) {
-        ctx.fillStyle = `rgba(11,79,108,${(1 - local / FADE_MS).toFixed(3)})`;
+        ctx.fillStyle = `rgba(10,37,64,${(1 - local / FADE_MS).toFixed(3)})`;
         ctx.fillRect(0, 0, W, H);
       }
       onProgress?.(Math.min(99, Math.round((t / total) * 100)));

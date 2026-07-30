@@ -17,8 +17,8 @@ const pin = (color) =>
     iconAnchor: [8, 16],
   });
 
-const attractionPin = pin("#E25822");
-const hubPin = pin("#0B4F6C");
+const attractionPin = pin("#FF5A36");
+const hubPin = pin("#0A2540");
 
 export default function DestinationHub() {
   const { slug } = useParams();
@@ -54,14 +54,14 @@ export default function DestinationHub() {
           <Button
             data-testid="ask-tara-btn"
             onClick={() => window.dispatchEvent(new CustomEvent("travelo-open-chat"))}
-            className="rounded-full bg-[#0B4F6C] hover:bg-[#083D54] shrink-0"
+            className="rounded-full bg-[#0A2540] hover:bg-[#123B66] shrink-0"
           >
             <ChatCircleDots size={18} className="mr-2" weight="duotone" /> Ask Tara about {dest.name}
           </Button>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-[#EAE3D9]" data-testid="destination-map">
+          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-[#E5E4E0]" data-testid="destination-map">
             <MapContainer center={[dest.lat, dest.lng]} zoom={11} style={{ height: "440px", width: "100%" }} scrollWheelZoom={false}>
               <TileLayer attribution='&copy; OpenStreetMap' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
               {dest.attractions.map((a) => (
@@ -76,22 +76,22 @@ export default function DestinationHub() {
               ))}
             </MapContainer>
             <div className="bg-white px-4 py-2.5 flex gap-5 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#E25822]" /> Attractions</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#0B4F6C]" /> Transport hubs</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#FF5A36]" /> Attractions</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#0A2540]" /> Transport hubs</span>
             </div>
           </div>
 
           <div className="lg:col-span-2 space-y-3">
-            <h3 className="font-display text-lg font-bold flex items-center gap-2"><MapPin size={18} weight="duotone" className="text-[#E25822]" /> Don't miss</h3>
+            <h3 className="font-display text-lg font-bold flex items-center gap-2"><MapPin size={18} weight="duotone" className="text-[#FF5A36]" /> Don't miss</h3>
             {dest.attractions.map((a) => (
-              <div key={a.name} className="bg-white border border-[#EAE3D9] rounded-xl px-4 py-3 flex items-center justify-between">
+              <div key={a.name} className="bg-white border border-[#E5E4E0] rounded-xl px-4 py-3 flex items-center justify-between">
                 <span className="font-medium text-sm">{a.name}</span>
                 <Badge variant="outline" className="text-[10px] capitalize">{a.type}</Badge>
               </div>
             ))}
-            <h3 className="font-display text-lg font-bold flex items-center gap-2 pt-2"><AirplaneTilt size={18} weight="duotone" className="text-[#0B4F6C]" /> Arrival hubs</h3>
+            <h3 className="font-display text-lg font-bold flex items-center gap-2 pt-2"><AirplaneTilt size={18} weight="duotone" className="text-[#0A2540]" /> Arrival hubs</h3>
             {dest.hubs.map((h) => (
-              <div key={h.name} className="bg-white border border-[#EAE3D9] rounded-xl px-4 py-3 flex items-center justify-between">
+              <div key={h.name} className="bg-white border border-[#E5E4E0] rounded-xl px-4 py-3 flex items-center justify-between">
                 <span className="font-medium text-sm">{h.name}</span>
                 <Badge variant="outline" className="text-[10px] capitalize">{h.type}</Badge>
               </div>
@@ -100,7 +100,7 @@ export default function DestinationHub() {
         </div>
 
         <Tabs defaultValue="buses" className="mt-12">
-          <TabsList className="rounded-full h-12 p-1 bg-[#F5EFE5] flex-wrap h-auto">
+          <TabsList className="rounded-full h-12 p-1 bg-[#F0EFEB] flex-wrap h-auto">
             <TabsTrigger data-testid="transport-tab-buses" value="buses" className="rounded-full px-5 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white"><Bus size={16} className="mr-1.5" />Buses</TabsTrigger>
             <TabsTrigger data-testid="transport-tab-cabs" value="cabs" className="rounded-full px-5 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white"><Taxi size={16} className="mr-1.5" />Cabs</TabsTrigger>
             <TabsTrigger data-testid="transport-tab-bikes" value="bikes" className="rounded-full px-5 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white"><Scooter size={16} className="mr-1.5" />Bike rentals</TabsTrigger>
@@ -109,8 +109,8 @@ export default function DestinationHub() {
 
           <TabsContent value="buses" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             {t.buses.map((b) => (
-              <div key={b.route} data-testid="transport-bus-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
-                <Bus size={24} weight="duotone" className="text-[#E25822]" />
+              <div key={b.route} data-testid="transport-bus-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5">
+                <Bus size={24} weight="duotone" className="text-[#FF5A36]" />
                 <p className="font-semibold mt-2">{b.route}</p>
                 <p className="text-sm text-muted-foreground">{b.operator}</p>
                 <div className="flex justify-between mt-3 text-sm"><span className="text-muted-foreground">{b.frequency}</span><span className="font-bold">{b.fare}</span></div>
@@ -120,12 +120,12 @@ export default function DestinationHub() {
 
           <TabsContent value="cabs" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             {t.cabs.map((c) => (
-              <div key={c.name} data-testid="transport-cab-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
-                <Taxi size={24} weight="duotone" className="text-[#E25822]" />
+              <div key={c.name} data-testid="transport-cab-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5">
+                <Taxi size={24} weight="duotone" className="text-[#FF5A36]" />
                 <p className="font-semibold mt-2">{c.name}</p>
                 <p className="text-sm text-muted-foreground">{c.type} · {c.note}</p>
                 {c.deeplink && (
-                  <a data-testid="cab-deeplink" href={c.deeplink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-[#0B4F6C] hover:underline">
+                  <a data-testid="cab-deeplink" href={c.deeplink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-[#0A2540] hover:underline">
                     Open app <ArrowSquareOut size={14} />
                   </a>
                 )}
@@ -135,8 +135,8 @@ export default function DestinationHub() {
 
           <TabsContent value="bikes" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             {t.bike_rentals.map((b) => (
-              <div key={b.name} data-testid="transport-bike-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
-                <Scooter size={24} weight="duotone" className="text-[#E25822]" />
+              <div key={b.name} data-testid="transport-bike-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5">
+                <Scooter size={24} weight="duotone" className="text-[#FF5A36]" />
                 <p className="font-semibold mt-2">{b.name}</p>
                 <p className="text-sm text-muted-foreground">{b.location}</p>
                 <p className="font-bold text-sm mt-3">{b.price}</p>
@@ -146,8 +146,8 @@ export default function DestinationHub() {
 
           <TabsContent value="cars" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             {t.car_rentals.map((c) => (
-              <div key={c.name} data-testid="transport-car-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
-                <Car size={24} weight="duotone" className="text-[#E25822]" />
+              <div key={c.name} data-testid="transport-car-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5">
+                <Car size={24} weight="duotone" className="text-[#FF5A36]" />
                 <p className="font-semibold mt-2">{c.name}</p>
                 <p className="text-sm text-muted-foreground">{c.location}</p>
                 <p className="font-bold text-sm mt-3">{c.price}</p>
@@ -156,12 +156,12 @@ export default function DestinationHub() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-12 bg-[#FDF3EC] border border-[#EAE3D9] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="mt-12 bg-[#FFF1EC] border border-[#E5E4E0] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <p className="font-display text-lg font-bold">Ready to go to {dest.name}?</p>
             <p className="text-sm text-muted-foreground">Search flights, trains and stays in one place.</p>
           </div>
-          <Button asChild data-testid="destination-book-cta" className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+          <Button asChild data-testid="destination-book-cta" className="rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
             <Link to="/book">Book this trip</Link>
           </Button>
         </div>

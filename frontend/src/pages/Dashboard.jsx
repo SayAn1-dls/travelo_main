@@ -28,12 +28,12 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#E25822] mb-2">Your travel HQ</p>
+        <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-2">Your travel HQ</p>
         <h1 className="font-display text-4xl sm:text-5xl font-bold" data-testid="dashboard-welcome">
           Welcome back, {firstName}.
         </h1>
         <p className="text-muted-foreground mt-2">
-          {activeTrip ? <>Continue planning your <Link to={`/trips/${activeTrip.id}`} className="text-[#0B4F6C] font-semibold hover:underline">{activeTrip.destination} trip</Link>.</> : "Where are we off to next?"}
+          {activeTrip ? <>Continue planning your <Link to={`/trips/${activeTrip.id}`} className="text-[#0A2540] font-semibold hover:underline">{activeTrip.destination} trip</Link>.</> : "Where are we off to next?"}
         </p>
       </motion.div>
 
@@ -45,8 +45,8 @@ export default function Dashboard() {
           { label: "My bookings", to: "/bookings", icon: Ticket, testid: "quick-bookings" },
         ].map((q, i) => (
           <motion.div key={q.to + q.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }}>
-            <Link to={q.to} data-testid={`dashboard-${q.testid}`} className="group bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col gap-3 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300 h-full">
-              <q.icon size={28} weight="duotone" className="text-[#E25822]" />
+            <Link to={q.to} data-testid={`dashboard-${q.testid}`} className="group bg-white border border-[#E5E4E0] rounded-2xl p-5 flex flex-col gap-3 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300 h-full">
+              <q.icon size={28} weight="duotone" className="text-[#FF5A36]" />
               <span className="font-semibold text-sm">{q.label}</span>
             </Link>
           </motion.div>
@@ -57,12 +57,12 @@ export default function Dashboard() {
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-2xl font-bold">Upcoming journeys</h2>
-            <Link to="/bookings" className="text-sm text-[#0B4F6C] font-semibold hover:underline">View all</Link>
+            <Link to="/bookings" className="text-sm text-[#0A2540] font-semibold hover:underline">View all</Link>
           </div>
           {confirmed.length === 0 ? (
-            <div className="bg-white border border-dashed border-[#EAE3D9] rounded-2xl p-10 text-center">
+            <div className="bg-white border border-dashed border-[#E5E4E0] rounded-2xl p-10 text-center">
               <p className="text-muted-foreground text-sm">No confirmed bookings yet.</p>
-              <Button asChild data-testid="dashboard-empty-book-btn" className="mt-4 rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+              <Button asChild data-testid="dashboard-empty-book-btn" className="mt-4 rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
                 <Link to="/book">Search flights, trains & hotels <ArrowRight size={16} className="ml-1" /></Link>
               </Button>
             </div>
@@ -71,9 +71,9 @@ export default function Dashboard() {
               {confirmed.slice(0, 3).map((b) => {
                 const Icon = typeIcon[b.type] || AirplaneTilt;
                 return (
-                  <Link key={b.id} to={`/ticket/${b.id}`} data-testid="dashboard-booking-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-shadow block">
-                    <div className="h-12 w-12 rounded-xl bg-[#FDF3EC] flex items-center justify-center shrink-0">
-                      <Icon size={24} weight="duotone" className="text-[#E25822]" />
+                  <Link key={b.id} to={`/ticket/${b.id}`} data-testid="dashboard-booking-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-shadow block">
+                    <div className="h-12 w-12 rounded-xl bg-[#FFF1EC] flex items-center justify-center shrink-0">
+                      <Icon size={24} weight="duotone" className="text-[#FF5A36]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{b.type === "hotel" ? b.item.name : `${b.origin} → ${b.destination}`}</p>
@@ -90,24 +90,24 @@ export default function Dashboard() {
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-2xl font-bold">Your trips</h2>
-            <Link to="/trips" className="text-sm text-[#0B4F6C] font-semibold hover:underline">View all</Link>
+            <Link to="/trips" className="text-sm text-[#0A2540] font-semibold hover:underline">View all</Link>
           </div>
           {trips.length === 0 ? (
-            <div className="bg-[#0B4F6C] text-white rounded-2xl p-10 relative overflow-hidden grain">
-              <UsersThree size={32} weight="duotone" className="text-[#F9B384]" />
+            <div className="bg-[#0A2540] text-white rounded-2xl p-10 relative overflow-hidden grain">
+              <UsersThree size={32} weight="duotone" className="text-[#FFB49B]" />
               <p className="font-display text-xl font-bold mt-3">Travelling with friends?</p>
               <p className="text-white/75 text-sm mt-1">Create a travel plan: shared budget, split expenses, zero awkward math.</p>
-              <Button asChild data-testid="dashboard-empty-trip-btn" className="mt-5 rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+              <Button asChild data-testid="dashboard-empty-trip-btn" className="mt-5 rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
                 <Link to="/trips">Create a trip</Link>
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
               {trips.slice(0, 3).map((t) => (
-                <Link key={t.id} to={`/trips/${t.id}`} data-testid="dashboard-trip-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 hover:shadow-md transition-shadow block">
+                <Link key={t.id} to={`/trips/${t.id}`} data-testid="dashboard-trip-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 hover:shadow-md transition-shadow block">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold">{t.name}</p>
-                    <Badge variant="outline" className="border-[#0B4F6C] text-[#0B4F6C]">{t.members.length} members</Badge>
+                    <Badge variant="outline" className="border-[#0A2540] text-[#0A2540]">{t.members.length} members</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{t.destination} · {t.start_date} → {t.end_date}</p>
                   <p className="text-sm mt-2">Budget <span className="font-bold">{inr(t.budget_total)}</span></p>

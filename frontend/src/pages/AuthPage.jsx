@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { AirplaneTilt, GoogleLogo, FacebookLogo } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
-const SIDE_IMG = "https://images.pexels.com/photos/17077092/pexels-photo-17077092.jpeg?auto=compress&w=1200";
+const SIDE_IMG = "https://images.unsplash.com/photo-1486912500284-6f2462ba07ea?auto=format&fit=crop&w=1200&q=80";
 
 export default function AuthPage() {
   const [mode, setMode] = useState("login");
@@ -42,7 +42,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-[#FDFBF7]">
+    <div className="min-h-screen grid lg:grid-cols-2 bg-[#F9F8F6]">
       <div className="hidden lg:block relative overflow-hidden">
         <img src={SIDE_IMG} alt="Destination" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -55,7 +55,7 @@ export default function AuthPage() {
       <div className="flex items-center justify-center px-5 py-12">
         <div className="w-full max-w-md">
           <button data-testid="auth-logo" onClick={() => navigate("/")} className="flex items-center gap-2 mb-10">
-            <AirplaneTilt size={28} weight="duotone" className="text-[#E25822]" />
+            <AirplaneTilt size={28} weight="duotone" className="text-[#FF5A36]" />
             <span className="font-display font-bold text-2xl">Travelo</span>
           </button>
 
@@ -114,14 +114,14 @@ export default function AuthPage() {
               <Input data-testid="auth-password-input" required type="password" minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••••" className="h-11 rounded-xl" />
             </div>
             {error && <p data-testid="auth-error" className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{error}</p>}
-            <Button data-testid="auth-submit-btn" type="submit" disabled={loading} className="w-full h-12 rounded-full bg-[#E25822] hover:bg-[#C84B1A] text-base">
+            <Button data-testid="auth-submit-btn" type="submit" disabled={loading} className="w-full h-12 rounded-full bg-[#FF5A36] hover:bg-[#E64322] text-base">
               {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
             </Button>
           </form>
 
           <p className="text-sm text-muted-foreground mt-6 text-center">
             {mode === "login" ? "New to Travelo?" : "Already have an account?"}{" "}
-            <button data-testid="auth-mode-toggle" className="text-[#E25822] font-semibold hover:underline" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
+            <button data-testid="auth-mode-toggle" className="text-[#FF5A36] font-semibold hover:underline" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
               {mode === "login" ? "Create account" : "Sign in"}
             </button>
           </p>

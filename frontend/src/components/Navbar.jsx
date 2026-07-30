@@ -53,7 +53,7 @@ function ProfileDialog({ user, refreshMe }) {
           <Input data-testid="profile-upi-input" placeholder="yourname@okhdfcbank" value={form.upi_vpa} onChange={(e) => setForm({ ...form, upi_vpa: e.target.value })} />
           <p className="text-xs text-muted-foreground">Friends who owe you get a one-tap "Pay via UPI" button using this ID.</p>
         </div>
-        <Button data-testid="profile-save-btn" onClick={save} disabled={saving} className="w-full rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+        <Button data-testid="profile-save-btn" onClick={save} disabled={saving} className="w-full rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
           {saving ? "Saving…" : "Save profile"}
         </Button>
       </div>
@@ -82,7 +82,7 @@ function NotificationsBell() {
         <button data-testid="notifications-bell" className="relative p-2 rounded-full hover:bg-accent transition-colors">
           <Bell size={22} weight="duotone" />
           {unread > 0 && (
-            <span data-testid="notifications-unread-count" className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-[#E25822] text-white text-[10px] flex items-center justify-center font-bold">
+            <span data-testid="notifications-unread-count" className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-[#FF5A36] text-white text-[10px] flex items-center justify-center font-bold">
               {unread}
             </span>
           )}
@@ -92,14 +92,14 @@ function NotificationsBell() {
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <span className="font-semibold">Notifications</span>
           {items.length > 0 && (
-            <button data-testid="notifications-read-all" className="text-xs text-[#0B4F6C] hover:underline" onClick={() => api.post("/notifications/read-all").then(load)}>
+            <button data-testid="notifications-read-all" className="text-xs text-[#0A2540] hover:underline" onClick={() => api.post("/notifications/read-all").then(load)}>
               Mark all read
             </button>
           )}
         </div>
         {items.length === 0 && <p className="p-6 text-sm text-muted-foreground text-center">Nothing yet. Go plan something.</p>}
         {items.map((n) => (
-          <div key={n.id} data-testid="notification-item" className={`px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-accent/50 ${!n.read ? "bg-[#FDF3EC]" : ""}`} onClick={() => openItem(n)}>
+          <div key={n.id} data-testid="notification-item" className={`px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-accent/50 ${!n.read ? "bg-[#FFF1EC]" : ""}`} onClick={() => openItem(n)}>
             <p className="text-sm font-semibold">{n.title}</p>
             <p className="text-sm text-muted-foreground">{n.message}</p>
             {n.data?.upi_link && (
@@ -107,7 +107,7 @@ function NotificationsBell() {
                 data-testid="notification-pay-now"
                 href={n.data.upi_link}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-block mt-2 text-xs font-bold text-white bg-[#E25822] hover:bg-[#C84B1A] rounded-full px-4 py-1.5 transition-colors"
+                className="inline-block mt-2 text-xs font-bold text-white bg-[#FF5A36] hover:bg-[#E64322] rounded-full px-4 py-1.5 transition-colors"
               >
                 Pay Now via UPI
               </a>
@@ -127,7 +127,7 @@ export default function Navbar() {
     <header className="glass sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
         <Link to="/dashboard" data-testid="nav-logo" className="flex items-center gap-2">
-          <AirplaneTilt size={26} weight="duotone" className="text-[#E25822]" />
+          <AirplaneTilt size={26} weight="duotone" className="text-[#FF5A36]" />
           <span className="font-display font-bold text-2xl tracking-tight">Travelo</span>
         </Link>
         <nav className="hidden md:flex items-center gap-1">
@@ -149,7 +149,7 @@ export default function Navbar() {
           <Dialog>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button data-testid="nav-avatar" className="h-9 w-9 rounded-full bg-[#0B4F6C] text-white font-bold text-sm flex items-center justify-center ml-1">
+                <button data-testid="nav-avatar" className="h-9 w-9 rounded-full bg-[#0A2540] text-white font-bold text-sm flex items-center justify-center ml-1">
                   {(user?.name || "T").charAt(0).toUpperCase()}
                 </button>
               </DropdownMenuTrigger>
@@ -157,7 +157,7 @@ export default function Navbar() {
                 <div className="px-3 py-2">
                   <p className="text-sm font-semibold">{user?.name}</p>
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
-                  {!user?.upi_vpa && <Badge variant="outline" className="mt-1 text-[10px] border-[#E25822] text-[#E25822]">Add UPI ID for settlements</Badge>}
+                  {!user?.upi_vpa && <Badge variant="outline" className="mt-1 text-[10px] border-[#FF5A36] text-[#FF5A36]">Add UPI ID for settlements</Badge>}
                 </div>
                 <DropdownMenuSeparator />
                 <DialogTrigger asChild>

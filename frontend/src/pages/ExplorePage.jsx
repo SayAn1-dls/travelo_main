@@ -12,7 +12,7 @@ export default function ExplorePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
-      <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#E25822] mb-2">Destination hubs</p>
+      <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-2">Destination hubs</p>
       <h1 className="font-display text-4xl sm:text-5xl font-bold">Explore & get around</h1>
       <p className="text-muted-foreground mt-3 max-w-xl">Every destination hub shows the local buses, cab apps, scooter rentals and car hires — so you land knowing exactly how to move.</p>
 

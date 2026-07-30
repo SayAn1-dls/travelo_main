@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=DM+Sans:opsz,wght@9..40,300..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,45 +6,46 @@
 
 body {
     margin: 0;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
 .font-display {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    letter-spacing: 0.005em;
 }
 
 ::selection {
-    background: #e25822;
-    color: #fdfbf7;
+    background: #FF5A36;
+    color: #F9F8F6;
 }
 
 @layer base {
     :root {
-        --background: 40 60% 98%;
+        --background: 40 20% 97%;
         --foreground: 0 0% 10%;
         --card: 0 0% 100%;
         --card-foreground: 0 0% 10%;
         --popover: 0 0% 100%;
         --popover-foreground: 0 0% 10%;
-        --primary: 17 77% 51%;
-        --primary-foreground: 40 60% 98%;
-        --secondary: 198 82% 23%;
-        --secondary-foreground: 40 60% 98%;
-        --muted: 35 29% 92%;
+        --primary: 11 100% 61%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 211 73% 15%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 48 15% 93%;
         --muted-foreground: 0 0% 40%;
-        --accent: 35 29% 90%;
+        --accent: 16 100% 96%;
         --accent-foreground: 0 0% 10%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
-        --border: 35 29% 88%;
-        --input: 35 29% 85%;
-        --ring: 17 77% 51%;
-        --chart-1: 17 77% 51%;
-        --chart-2: 198 82% 23%;
+        --border: 48 9% 89%;
+        --input: 48 8% 86%;
+        --ring: 11 100% 61%;
+        --chart-1: 11 100% 61%;
+        --chart-2: 211 73% 15%;
         --chart-3: 25 95% 53%;
-        --chart-4: 39 45% 78%;
+        --chart-4: 19 100% 81%;
         --chart-5: 165 40% 40%;
         --radius: 0.75rem;
     }
@@ -69,14 +70,14 @@ body {
 }
 
 .glass {
-    background: rgba(253, 251, 247, 0.72);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(234, 227, 217, 0.6);
+    background: rgba(249, 248, 246, 0.72);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(229, 228, 224, 0.7);
 }
 
 .leaflet-container {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     border-radius: 1rem;
     z-index: 0;
 }

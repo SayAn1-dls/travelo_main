@@ -23,7 +23,7 @@ function ProtectedLayout() {
   if (user === null)
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="font-display text-2xl text-[#E25822] animate-pulse">Travelo</div>
+        <div className="font-display text-2xl text-[#FF5A36] animate-pulse">Travelo</div>
       </div>
     );
   if (user === false) return <Navigate to="/auth" replace />;

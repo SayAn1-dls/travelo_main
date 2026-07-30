@@ -20,8 +20,8 @@ export default function AuthCallback() {
   }, [googleSession, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFBF7]" data-testid="auth-callback-loading">
-      <AirplaneTilt size={40} weight="duotone" className="text-[#E25822] animate-pulse" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F9F8F6]" data-testid="auth-callback-loading">
+      <AirplaneTilt size={40} weight="duotone" className="text-[#FF5A36] animate-pulse" />
       <p className="font-display text-2xl font-bold mt-4">Signing you in…</p>
     </div>
   );
