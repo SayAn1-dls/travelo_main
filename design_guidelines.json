@@ -1,0 +1,128 @@
+{
+  "theme": "light",
+  "typography": {
+    "heading_font": "Playfair Display",
+    "body_font": "DM Sans",
+    "scale": {
+      "h1": "text-5xl sm:text-6xl tracking-tight leading-none",
+      "h2": "text-3xl sm:text-4xl tracking-tight",
+      "h3": "text-2xl sm:text-3xl",
+      "h4": "text-xl",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm",
+      "overline": "text-xs uppercase tracking-[0.2em] font-semibold"
+    },
+    "guidelines": "Use Playfair Display for all main headings to provide a distinctive, warm, editorial feel (like a travel magazine). Use DM Sans for body text, data, and UI elements to maintain high readability. Avoid generic fonts like Inter for headings."
+  },
+  "colors": {
+    "palette": {
+      "primary": "#E25822",
+      "primary_hover": "#C84B1A",
+      "secondary": "#0B4F6C",
+      "background": "#FDFBF7",
+      "surface": "#FFFFFF",
+      "text_main": "#1A1A1A",
+      "text_muted": "#666666",
+      "border": "#EAE3D9",
+      "accent_warm": "#F97316",
+      "accent_sand": "#E8DCC4"
+    },
+    "guidelines": "Adopt an 'Organic & Earthy' archetype. Avoid standard corporate SaaS blue/white. Use Sandy Beige (#FDFBF7) as the primary background. Use Terracotta (#E25822) or Sunset Orange (#F97316) for primary actions (CTAs). Deep Teal (#0B4F6C) can be used for secondary elements or high-contrast sections. Never use pure black (#000000); use Dark Charcoal (#1A1A1A)."
+  },
+  "visual_enhancers": {
+    "surfaces": "Use subtle glassmorphism (backdrop-blur-xl bg-white/70 with 1px border-white/40) for sticky headers over hero images. For dashboard cards, use flat backgrounds with a subtle border (border-[#EAE3D9]) and gentle shadows on hover (shadow-lg, -translate-y-1).",
+    "textures": "Incorporate subtle grain overlays on large colored sections to avoid digital flatness.",
+    "icons": "Use @phosphor-icons/react (Duotone weight) for a high-end, premium look. For UI data sections, Phosphor Regular is also acceptable. Do not use emoji as icons."
+  },
+  "components": {
+    "buttons": "Pill-shaped (rounded-full) or softly rounded (rounded-xl) with interaction animations. Primary buttons use Terracotta with white text.",
+    "cards": "For destinations: Image-heavy, minimal padding on the image, content overlapping or immediately below. For dashboard widgets: Clean, dense, subtle borders.",
+    "navigation": "Sticky header with glassmorphism over the hero section, transitioning to solid beige background on scroll. Desktop must have visible links, not just a hamburger.",
+    "forms": "Use Shadcn components heavily customized to fit the warm theme (rounded-xl, beige-tinted borders, terracotta focus rings).",
+    "toasts": "Use 'sonner' for toast notifications, located in /app/src/components/ui/sonner.js."
+  },
+  "grids": {
+    "marketing_sections": "Use The 'Bento' Grid Protocol (Asymmetry). Base Grid: grid-cols-1 md:grid-cols-12 with gap-8. Mix tall, square, and wide spans to create visual tension and avoid boring equal squares.",
+    "dashboard_sections": "High Density Grid. Base Grid: grid-cols-1 md:grid-cols-3 lg:grid-cols-4 with gap-6."
+  },
+  "layouts": {
+    "spacing": "Generous Spacing Philosophy. Use p-8, p-12, p-16 for section padding. For containers with borders, ensure internal padding (p-6) prevents text collision.",
+    "alignment": "Left-align paragraphs, inputs, and dense content. Center-align hero text only if it balances the image. Optical alignment > strict geometric alignment.",
+    "mobile_first": "Images must not exceed 80vh on mobile. Use max-h-[80vh] md:max-h-none."
+  },
+  "motion": {
+    "interactions": "All interactive elements need hover states (color shift, subtle lift).",
+    "page_transitions": "Smooth transitions on page load or section scroll. Use framer-motion for staggering entrance of destination cards.",
+    "parallax": "Subtle parallax on the main hero image. Can be achieved with framer-motion or CSS background-attachment: fixed (cautiously on mobile)."
+  },
+  "accessibility": {
+    "contrast": "Ensure text over images has a gradient overlay (e.g., bg-gradient-to-t from-black/60 to-transparent) or text-shadow to meet WCAG AA.",
+    "focus": "Clear focus rings on all inputs and buttons, utilizing the primary terracotta color.",
+    "testing": "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., data-testid=\"booking-submit-button\")."
+  },
+  "media": {
+    "hero_overlay": "Max overlay opacity bg-black/40. If text needs more contrast, use a gradient overlay, never a flat blanket that kills the image.",
+    "treatment": "Images should feel warm, color-graded towards sunset/golden hour."
+  },
+  "3d_libraries": {
+    "recommendation": "Use framer-motion for smooth 2D transitions and parallax. Avoid heavy 3D rendering (like R3F) to keep booking flows fast and conversion-focused, unless adding a specific interactive globe for the 'Destination Hub' (react-globe.gl could be considered, but 2D maps with Mapbox are often better for booking utility)."
+  },
+  "image_urls": {
+    "hero_destinations": {
+      "description": "Large, breathtaking travel destinations with sunset hues for the landing page hero.",
+      "urls": [
+        "https://images.pexels.com/photos/27590848/pexels-photo-27590848.jpeg",
+        "https://images.pexels.com/photos/17077092/pexels-photo-17077092.jpeg",
+        "https://images.pexels.com/photos/34827195/pexels-photo-34827195.jpeg"
+      ]
+    },
+    "group_travel": {
+      "description": "Images depicting groups of people enjoying nature/adventure for the Group Travel Planner section.",
+      "urls": [
+        "https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc",
+        "https://images.unsplash.com/photo-1539635278303-d4002c07eae3"
+      ]
+    },
+    "transport_trains": {
+      "description": "Scenic train journeys for the train booking or transport hub.",
+      "urls": [
+        "https://images.unsplash.com/photo-1442570468985-f63ed5de9086",
+        "https://images.unsplash.com/photo-1426086800127-2601510ca027"
+      ]
+    },
+    "hotels": {
+      "description": "Luxury hotel room views for the hotel booking section.",
+      "urls": [
+        "https://images.pexels.com/photos/2417842/pexels-photo-2417842.jpeg",
+        "https://images.pexels.com/photos/33389169/pexels-photo-33389169.jpeg",
+        "https://images.unsplash.com/photo-1559414059-34fe0a59e57a"
+      ]
+    }
+  },
+  "instructions_to_main_agent": [
+    "Use standard HTML/Tailwind for marketing layouts. Use Shadcn components for complex interactive logic (forms, dialogs, calendars).",
+    "Ensure the application is mobile-first responsive. Most travelers use the app mid-trip on their phones.",
+    "Implement a personalized dashboard feeling. 'Welcome back, [Name]' with recently viewed/saved trips.",
+    "For the Group Planner, create clean debt settlement UI (e.g., 'Ravi owes ₹1,200') with high contrast.",
+    "Do NOT use pure black or white. Use the defined warm palette.",
+    "Install required icon library: yarn add @phosphor-icons/react",
+    "For fonts, import Playfair Display and DM Sans from Google Fonts in index.css or via next/font if using Next.js (Note: use .js/.jsx conventions as requested).",
+    "Do not use generic blue SaaS colors. Stick to the Terracotta/Teal/Beige palette."
+  ],
+  "universal_guidelines_for_main_agent": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid the 'AI slop' aesthetic. Make creative, distinctive frontends.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition (e.g., transition: all). Always add transitions for specific interactive elements.",
+    "You MUST NOT center align the app container, i.e., do not add .App { text-align: center; } in the css file.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER use AI assistant Emoji characters like \ud83e\udd16\ud83e\udde0\ud83d\udcad\ud83d\udca1\ud83d\udd2e\ud83c\udfaf etc. for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "All interactive elements MUST include a data-testid attribute.",
+    "Use 'sonner' for toast notifications."
+  ]
+}
