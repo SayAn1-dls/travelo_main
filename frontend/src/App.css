@@ -1,20 +1,27 @@
-.ticket-cut {
-    -webkit-mask: radial-gradient(circle 12px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
-        radial-gradient(circle 12px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+* {
+    margin: 0;
+    padding: 0;
 }
 
-@media print {
-    body * {
-        visibility: hidden;
-    }
-    #printable-ticket,
-    #printable-ticket * {
-        visibility: visible;
-    }
-    #printable-ticket {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-    }
+html {
+    scroll-behavior: smooth;
+}
+
+.leaflet-container {
+    position: relative;
+    left: 0;
+    top: 0;
+    width: 100%;
+}
+
+img {
+    image-rendering: auto;
+}
+
+a {
+    transition: color 0.2s ease;
+}
+
+button {
+    cursor: pointer;
 }
