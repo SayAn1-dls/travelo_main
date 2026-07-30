@@ -24,12 +24,13 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Payments: Stripe sandbox (acct_1Ty43fSQ5IbQI3xl), dynamic price_data in INR, purposes: booking|settlement; webhook /api/stripe/webhook; status poll with Stripe-direct fallback; apply_success idempotent (booking→confirmed / settlement→recorded+notification). Tax: tries automatic_tax, falls back gracefully (_tax_supported flag).
 - Design: Playfair Display + DM Sans; palette terracotta #E25822 / teal #0B4F6C / beige #FDFBF7; glass navbar; grain overlay class.
 
-## Implemented (2026-06)
-- Full MVP: auth (register/login/me/refresh/profile+UPI), booking search/create/pay flow, e-ticket page (print→PDF), bookings history, destinations hub w/ Leaflet map + transport tabs + cab deep links, group trips (create/join/members/contributions/expenses/balances/settlements/reminders), in-app notifications w/ UPI Pay Now, Tara chat widget w/ geo consent, Stripe checkout for bookings + settlements, landing page. — verification pending (testing agent next)
+## Implemented (2026-06, testing-agent PASSED 100% backend 23/23 + all frontend flows, iteration_1)
+- Full MVP: auth (register/login/me/refresh/profile+UPI), booking search/create/pay flow (Stripe redirect verified), e-ticket page (print→PDF), bookings history, destinations hub w/ Leaflet map + transport tabs + cab deep links, group trips (create/join/members/contributions/expenses equal-custom-percentage/balances/settlements/reminders), in-app notifications w/ UPI Pay Now, Tara chat widget w/ geo consent + SSE streaming (Claude verified), Stripe checkout for bookings + settlements, landing page.
+- Destination images swapped to context-matched Unsplash photos for Goa/Bali/Jaipur (HEAD-checked 200).
 
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Real Google/Facebook OAuth once user supplies keys; email (SendGrid) + push (FCM) notifications; payment proof upload on settlements.
-- P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI.
+- P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
 
 ## Decision Log
 - Bearer token + cookies dual auth → preview proxy cookie quirks can't break auth.
