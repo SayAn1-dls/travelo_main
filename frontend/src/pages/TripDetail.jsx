@@ -1,0 +1,390 @@
+import { useCallback, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import api, { formatApiError, inr } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle } from "@phosphor-icons/react";
+import { toast } from "sonner";
+
+const CATEGORIES = ["stay", "food", "transport", "activities", "other"];
+
+function AddExpenseDialog({ trip, myMemberId, onAdded }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ description: "", amount: "", category: "food", paid_by: myMemberId || "", split_type: "equal" });
+  const [selected, setSelected] = useState(trip.members.map((m) => m.member_id));
+  const [customAmts, setCustomAmts] = useState({});
+  const [percents, setPercents] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    const amount = Number(form.amount);
+    if (!form.description || !amount || !form.paid_by) return toast.error("Fill description, amount and payer");
+    let splits = [];
+    if (form.split_type === "equal") {
+      if (!selected.length) return toast.error("Select at least one member to split with");
+      splits = selected.map((id) => ({ member_id: id }));
+    } else if (form.split_type === "custom") {
+      splits = trip.members.map((m) => ({ member_id: m.member_id, amount: Number(customAmts[m.member_id]) || 0 })).filter((s) => s.amount > 0);
+    } else {
+      splits = trip.members.map((m) => ({ member_id: m.member_id, percent: Number(percents[m.member_id]) || 0 })).filter((s) => s.percent > 0);
+    }
+    setSaving(true);
+    try {
+      await api.post(`/trips/${trip.id}/expenses`, { ...form, amount, splits });
+      toast.success("Expense added");
+      setOpen(false);
+      setForm({ description: "", amount: "", category: "food", paid_by: myMemberId || "", split_type: "equal" });
+      setCustomAmts({});
+      setPercents({});
+      onAdded();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button data-testid="add-expense-btn" className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+          <Plus size={17} className="mr-1" /> Add expense
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" data-testid="add-expense-dialog">
+        <DialogHeader><DialogTitle className="font-display text-2xl">Log an expense</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5 col-span-2">
+              <Label>What was it?</Label>
+              <Input data-testid="expense-description-input" placeholder="Beach shack dinner" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-xl" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Amount (₹)</Label>
+              <Input data-testid="expense-amount-input" type="number" min="1" placeholder="2400" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="rounded-xl" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Category</Label>
+              <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                <SelectTrigger data-testid="expense-category-select" className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Who paid?</Label>
+            <Select value={form.paid_by} onValueChange={(v) => setForm({ ...form, paid_by: v })}>
+              <SelectTrigger data-testid="expense-paidby-select" className="rounded-xl"><SelectValue placeholder="Select member" /></SelectTrigger>
+              <SelectContent>{trip.members.map((m) => <SelectItem key={m.member_id} value={m.member_id}>{m.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>How to split?</Label>
+            <RadioGroup value={form.split_type} onValueChange={(v) => setForm({ ...form, split_type: v })} className="flex gap-4">
+              {[["equal", "Equally"], ["custom", "Custom ₹"], ["percentage", "By %"]].map(([v, l]) => (
+                <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <RadioGroupItem data-testid={`split-type-${v}`} value={v} /> {l}
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+          <div className="space-y-2 bg-[#FDF3EC] rounded-xl p-4">
+            {form.split_type === "equal" && trip.members.map((m) => (
+              <label key={m.member_id} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  data-testid={`split-member-${m.member_id}`}
+                  checked={selected.includes(m.member_id)}
+                  onCheckedChange={(c) => setSelected(c ? [...selected, m.member_id] : selected.filter((x) => x !== m.member_id))}
+                />
+                {m.name}
+              </label>
+            ))}
+            {form.split_type === "custom" && trip.members.map((m) => (
+              <div key={m.member_id} className="flex items-center gap-2">
+                <span className="text-sm flex-1">{m.name}</span>
+                <Input data-testid={`custom-amount-${m.member_id}`} type="number" min="0" placeholder="₹" className="w-28 rounded-xl h-9 bg-white" value={customAmts[m.member_id] || ""} onChange={(e) => setCustomAmts({ ...customAmts, [m.member_id]: e.target.value })} />
+              </div>
+            ))}
+            {form.split_type === "percentage" && trip.members.map((m) => (
+              <div key={m.member_id} className="flex items-center gap-2">
+                <span className="text-sm flex-1">{m.name}</span>
+                <Input data-testid={`percent-${m.member_id}`} type="number" min="0" max="100" placeholder="%" className="w-24 rounded-xl h-9 bg-white" value={percents[m.member_id] || ""} onChange={(e) => setPercents({ ...percents, [m.member_id]: e.target.value })} />
+              </div>
+            ))}
+          </div>
+          <Button data-testid="expense-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-11">
+            {saving ? "Adding…" : "Add expense"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function TripDetail() {
+  const { id } = useParams();
+  const { user } = useAuth();
+  const [trip, setTrip] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [balances, setBalances] = useState(null);
+  const [contribution, setContribution] = useState("");
+  const [newMember, setNewMember] = useState({ name: "", email: "" });
+
+  const load = useCallback(() => {
+    api.get(`/trips/${id}`).then((r) => setTrip(r.data)).catch(() => {});
+    api.get(`/trips/${id}/expenses`).then((r) => setExpenses(r.data)).catch(() => {});
+    api.get(`/trips/${id}/balances`).then((r) => setBalances(r.data)).catch(() => {});
+  }, [id]);
+  useEffect(() => { load(); }, [load]);
+
+  if (!trip) return <div className="max-w-5xl mx-auto px-5 py-20 text-center text-muted-foreground">Loading trip…</div>;
+
+  const memberOf = (mid) => trip.members.find((m) => m.member_id === mid) || { name: "?" };
+  const myMember = trip.members.find((m) => m.user_id === user?.id);
+  const spent = balances?.total_spent || 0;
+  const pct = trip.budget_total > 0 ? Math.min((spent / trip.budget_total) * 100, 100) : 0;
+
+  const copyInvite = () => {
+    navigator.clipboard.writeText(trip.invite_code);
+    toast.success("Invite code copied — share it with your crew");
+  };
+
+  const remind = async (s) => {
+    try {
+      await api.post(`/trips/${id}/remind`, s);
+      toast.success(`Reminder sent to ${memberOf(s.from_member_id).name}`);
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const payCard = async (s) => {
+    try {
+      const { data } = await api.post("/payments/checkout", {
+        purpose: "settlement", origin_url: window.location.origin,
+        trip_id: id, from_member_id: s.from_member_id, to_member_id: s.to_member_id,
+      });
+      window.location.href = data.checkout_url;
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const markSettled = async (s) => {
+    try {
+      await api.post(`/trips/${id}/settlements`, { ...s, method: "upi", note: "Marked settled manually" });
+      toast.success("Marked as settled");
+      load();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const saveContribution = async () => {
+    try {
+      await api.put(`/trips/${id}/contribution`, { contribution: Number(contribution) || 0 });
+      toast.success("Contribution saved");
+      load();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const addMember = async () => {
+    if (!newMember.email.trim()) return;
+    try {
+      await api.post(`/trips/${id}/members`, newMember);
+      toast.success("Member added");
+      setNewMember({ name: "", email: "" });
+      load();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#E25822] mb-2">{trip.destination} · {trip.start_date} → {trip.end_date}</p>
+          <h1 className="font-display text-4xl sm:text-5xl font-bold" data-testid="trip-title">{trip.name}</h1>
+        </div>
+        <div className="flex gap-2">
+          <Button data-testid="copy-invite-btn" onClick={copyInvite} variant="outline" className="rounded-full">
+            <Copy size={16} className="mr-1.5" /> Invite code: {trip.invite_code}
+          </Button>
+          <AddExpenseDialog trip={trip} myMemberId={myMember?.member_id} onAdded={load} />
+        </div>
+      </div>
+
+      <div className="bg-white border border-[#EAE3D9] rounded-2xl p-6 mt-8">
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <p className="text-sm text-muted-foreground">Total spent</p>
+            <p className="font-display text-3xl font-bold" data-testid="trip-total-spent">{inr(spent)} <span className="text-base text-muted-foreground font-normal">of {inr(trip.budget_total)}</span></p>
+          </div>
+          <Badge className={`border-0 ${pct > 90 ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-800"}`}>{Math.round(pct)}% used</Badge>
+        </div>
+        <Progress value={pct} className="h-2.5" />
+        {balances && Object.keys(balances.by_category).length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {Object.entries(balances.by_category).map(([cat, amt]) => {
+              const budget = trip.budget_categories?.[cat];
+              return (
+                <Badge key={cat} variant="outline" className="capitalize py-1.5 px-3">
+                  {cat}: {inr(amt)}{budget ? ` / ${inr(budget)}` : ""}
+                </Badge>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <Tabs defaultValue="expenses" className="mt-10">
+        <TabsList className="rounded-full h-12 p-1 bg-[#F5EFE5]">
+          <TabsTrigger data-testid="trip-tab-expenses" value="expenses" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Expenses</TabsTrigger>
+          <TabsTrigger data-testid="trip-tab-balances" value="balances" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Balances</TabsTrigger>
+          <TabsTrigger data-testid="trip-tab-members" value="members" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Members</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="expenses" className="mt-6 space-y-3">
+          {expenses.length === 0 && <p className="text-muted-foreground text-sm py-8 text-center">No expenses yet — log the first one.</p>}
+          {expenses.map((e) => (
+            <div key={e.id} data-testid="expense-item" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex items-center gap-4">
+              <div className="h-11 w-11 rounded-xl bg-[#FDF3EC] flex items-center justify-center shrink-0">
+                <Receipt size={22} weight="duotone" className="text-[#E25822]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate">{e.description}</p>
+                <p className="text-sm text-muted-foreground">Paid by {memberOf(e.paid_by).name} · split {e.split_type} · <span className="capitalize">{e.category}</span></p>
+              </div>
+              <p className="font-display text-xl font-bold">{inr(e.amount)}</p>
+            </div>
+          ))}
+        </TabsContent>
+
+        <TabsContent value="balances" className="mt-6">
+          {balances && (
+            <>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {trip.members.map((m) => {
+                  const net = balances.net[m.member_id] || 0;
+                  return (
+                    <div key={m.member_id} data-testid="balance-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
+                      <p className="font-semibold">{m.name}</p>
+                      <p className={`font-display text-2xl font-bold mt-1 ${net > 0.01 ? "text-emerald-700" : net < -0.01 ? "text-[#C84B1A]" : "text-muted-foreground"}`}>
+                        {net > 0.01 ? `gets back ${inr(net)}` : net < -0.01 ? `owes ${inr(-net)}` : "settled up"}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <h3 className="font-display text-xl font-bold mt-10 mb-4 flex items-center gap-2"><HandCoins size={22} weight="duotone" className="text-[#E25822]" /> Settle up</h3>
+              {balances.suggestions.length === 0 ? (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-8 text-center">
+                  <CheckCircle size={32} weight="duotone" className="text-emerald-600 mx-auto" />
+                  <p className="font-semibold mt-2">All settled — no one owes anyone.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {balances.suggestions.map((s, i) => {
+                    const iOwe = myMember?.member_id === s.from_member_id;
+                    return (
+                      <div key={i} data-testid="settlement-suggestion" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <p className="flex-1 text-sm sm:text-base">
+                          <span className="font-bold">{memberOf(s.from_member_id).name}</span> owes{" "}
+                          <span className="font-bold">{memberOf(s.to_member_id).name}</span>{" "}
+                          <span className="font-display text-xl font-bold text-[#C84B1A]">{inr(s.amount)}</span>
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {iOwe && s.upi_link && (
+                            <a data-testid="settle-upi-btn" href={s.upi_link} className="inline-flex items-center text-sm font-bold text-white bg-[#E25822] hover:bg-[#C84B1A] rounded-full px-5 py-2 transition-colors">
+                              Pay via UPI
+                            </a>
+                          )}
+                          {iOwe && (
+                            <Button data-testid="settle-card-btn" onClick={() => payCard(s)} size="sm" variant="outline" className="rounded-full">
+                              <CreditCard size={15} className="mr-1.5" /> Pay by card
+                            </Button>
+                          )}
+                          {!iOwe && (
+                            <Button data-testid="settle-remind-btn" onClick={() => remind(s)} size="sm" variant="outline" className="rounded-full">
+                              <BellRinging size={15} className="mr-1.5" /> Remind
+                            </Button>
+                          )}
+                          <Button data-testid="settle-mark-btn" onClick={() => markSettled(s)} size="sm" variant="ghost" className="rounded-full text-muted-foreground">
+                            Mark settled
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {balances.settlements.length > 0 && (
+                <>
+                  <h3 className="font-display text-lg font-bold mt-10 mb-3">Settlement history</h3>
+                  <div className="space-y-2">
+                    {balances.settlements.map((st) => (
+                      <div key={st.id} data-testid="settlement-history-item" className="bg-white border border-[#EAE3D9] rounded-xl px-4 py-3 flex items-center justify-between text-sm">
+                        <span>{memberOf(st.from_member_id).name} paid {memberOf(st.to_member_id).name} <b>{inr(st.amount)}</b> <span className="text-muted-foreground">via {st.method}</span></span>
+                        <CheckCircle size={18} weight="duotone" className="text-emerald-600" />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="members" className="mt-6">
+          <div className="space-y-3">
+            {trip.members.map((m) => (
+              <div key={m.member_id} data-testid="member-item" className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-[#E8DCC4] flex items-center justify-center font-bold">{m.name.charAt(0).toUpperCase()}</div>
+                <div className="flex-1">
+                  <p className="font-semibold">{m.name} {m.member_id === trip.organizer_member_id && <Badge variant="outline" className="ml-1 text-[10px]">Organizer</Badge>} {!m.user_id && <Badge variant="outline" className="ml-1 text-[10px] text-amber-700 border-amber-300">Invited</Badge>}</p>
+                  <p className="text-sm text-muted-foreground">{m.email}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Bringing</p>
+                  <p className="font-bold">{inr(m.contribution)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {myMember && (
+            <div className="bg-[#FDF3EC] border border-[#EAE3D9] rounded-2xl p-5 mt-6 flex flex-col sm:flex-row gap-3 sm:items-end">
+              <div className="space-y-1.5 flex-1 max-w-xs">
+                <Label>How much are you bringing? (₹)</Label>
+                <Input data-testid="contribution-input" type="number" min="0" placeholder={String(myMember.contribution || 0)} value={contribution} onChange={(e) => setContribution(e.target.value)} className="rounded-xl bg-white" />
+              </div>
+              <Button data-testid="contribution-save-btn" onClick={saveContribution} className="rounded-full bg-[#0B4F6C] hover:bg-[#083D54]">Save</Button>
+            </div>
+          )}
+
+          <div className="bg-white border border-[#EAE3D9] rounded-2xl p-5 mt-4">
+            <Label className="mb-2 block">Add a member by email</Label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input data-testid="new-member-name" placeholder="Name" value={newMember.name} onChange={(e) => setNewMember({ ...newMember, name: e.target.value })} className="rounded-xl" />
+              <Input data-testid="new-member-email" placeholder="email@example.com" value={newMember.email} onChange={(e) => setNewMember({ ...newMember, email: e.target.value })} className="rounded-xl" />
+              <Button data-testid="new-member-add-btn" onClick={addMember} variant="outline" className="rounded-full shrink-0">Add member</Button>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
