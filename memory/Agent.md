@@ -39,9 +39,14 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Trip Memories tab: photo uploads (object storage) + notes, delete by creator/organizer, BlobImage authed rendering.
 - Payment proof: settle dialog with optional screenshot upload; Proof viewer in settlement history.
 
+## Implemented (2026-06 iter 3, testing-agent PASSED 4/4 new + frontend 100%, iteration_3)
+- Trip Chat Context: chat_stream accepts trip_id; build_trip_context injects budget/spend/balances/recent expenses into Tara's system prompt (member-only, fails silently). ChatWidget detects /trips/:id → session `trip-{id}`, budget suggestion chips, "Watching your trip budget" subtitle.
+- Memory Slideshow: POST /api/trips/{id}/recap/share → stable share_token on trip; PUBLIC GET /api/recap/{token} (+/image/{memory_id}); RecapPage at public route /recap/:token — auto-advancing slideshow (title → memories → stats), play/pause/dots; "Play recap" + "Share link" banner in Memories tab.
+- Spending Alerts: add_expense fires budget_alert notification to ALL registered members exactly when a category budget or budget_total is crossed (no duplicates on later expenses); over-budget category chips styled red with "— over!".
+
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).
-- P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
+- P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; recap token revoke endpoint; budget-alert suppression map if expense edit/delete endpoints are ever added; optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
 
 ## Decision Log
 - Bearer token + cookies dual auth → preview proxy cookie quirks can't break auth.

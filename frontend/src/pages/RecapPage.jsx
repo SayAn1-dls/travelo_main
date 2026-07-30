@@ -28,7 +28,7 @@ export default function RecapPage() {
     if (!playing || slides.length < 2) return;
     const t = setInterval(next, 5000);
     return () => clearInterval(t);
-  }, [playing, next, slides.length]);
+  }, [playing, next, slides.length, idx]);
 
   if (error)
     return (

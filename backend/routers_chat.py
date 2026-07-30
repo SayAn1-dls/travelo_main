@@ -32,9 +32,9 @@ async def build_trip_context(trip_id, user):
     from routers_trips import get_trip_or_404, compute_balances
     try:
         trip = await get_trip_or_404(trip_id, user)
-    except HTTPException:
+        balances = await compute_balances(trip)
+    except Exception:
         return None
-    balances = await compute_balances(trip)
     names = {m["member_id"]: m["name"] for m in trip["members"]}
     budgets = trip.get("budget_categories") or {}
     cat_lines = ", ".join(
