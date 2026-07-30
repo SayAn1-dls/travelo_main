@@ -16,6 +16,7 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Never fabricate/hardcode production API keys.
 
 ## Architecture & Tech
+- Design system (iter 10 reskin per /app/design_guidelines.json — "Editorial Luxury & Escapism"): fonts Cormorant Garamond (font-display headings) + Plus Jakarta Sans (body); palette: bg #F9F8F6, deep ocean #0A2540 (hover #123B66), coral accent #FF5A36 (hover #E64322), soft peach #FFB49B, borders #E5E4E0, muted #F0EFEB, tint #FFF1EC, avatar #EAE7E0. Shadcn CSS vars in index.css match. Canvas recap exports (recapExport.js) + backend PIL OG card (CormorantGaramond.ttf/PlusJakartaSans.ttf in backend/assets/fonts, wght-only variable axes) use same fonts/colors. OLD hexes (#E25822/#0B4F6C/#FDFBF7/#F9B384/#EAE3D9 etc.) fully retired — do not reintroduce.
 - FastAPI + MongoDB (motor) + React 19 (CRA/craco) + shadcn + Tailwind; framer-motion; @phosphor-icons/react (duotone); react-leaflet v5 + OSM tiles.
 - Backend modules: server.py (wiring/startup), db.py, models.py, auth.py (JWT+bcrypt, cookies+Bearer, brute-force lockout), providers.py (BookingProvider ABC + MockProvider, deterministic seeded results), destinations_data.py (6 curated hubs: goa, bali, rishikesh, jaipur, manali, kochi), routers_bookings/destinations/trips(+notifications)/chat/payments.
 - Auth: access token 12h + refresh 7d; httpOnly cookies AND Authorization Bearer (frontend stores token in localStorage `travelo_token`).
@@ -76,6 +77,9 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 ## Implemented (2026-06 iter 9, testing-agent PASSED 8/8 backend + frontend 100%, iteration_9)
 - Recap Auto Post: maybe_post_recap() in routers_trips.py — when end_date < today (UTC), posts ONE "Travelo" system message in trip chat (kind recap, data.recap_token) + recap_ready notifications to registered members; atomic recap_auto_posted claim w/ rollback on failure; triggered lazily on GET /trips/{id} + hourly recap_sweep_loop (server.py startup); TripChat renders system msgs as centered teal card w/ "Watch the recap" button (chat-recap-link, no reactions).
 - Facebook Login (config-gated, per integration_expert playbook): full OAuth code flow in auth.py — /auth/facebook/status | /login (302 to FB dialog, state cookie CSRF) | /callback (code→token→/me profile, create/link user by facebook_id then email, fallback email fb{id}@facebook.travelo, JWT cookies, redirect /dashboard; failures → /auth?fb_error=1 + state cookie cleared). ACTIVATES when FACEBOOK_APP_ID/FACEBOOK_APP_SECRET set in backend/.env (currently empty — button disabled via /status, user must also whitelist https://<domain>/api/auth/facebook/callback in Meta app). User skipped providing keys this round.
+
+## Implemented (2026-06 iter 10, testing-agent frontend regression 100%, iteration_10)
+- Full UI reskin (user request: travel-feeling fonts + attractive professional colors, UI-only): global hex swap via sed across src (excl. components/ui), index.css fonts/vars/glass, tailwind fontFamily, new unsplash hero (Landing) + side image (Auth), recap canvas + OG card fonts updated. Fixed pre-existing hydration warning (Badge inside <p>) on Members tab.
 
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).

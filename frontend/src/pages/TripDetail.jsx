@@ -656,7 +656,7 @@ export default function TripDetail() {
               <div key={m.member_id} data-testid="member-item" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex items-center gap-4">
                 <div className="h-10 w-10 rounded-full bg-[#EAE7E0] flex items-center justify-center font-bold">{m.name.charAt(0).toUpperCase()}</div>
                 <div className="flex-1">
-                  <p className="font-semibold">{m.name} {m.member_id === trip.organizer_member_id && <Badge variant="outline" className="ml-1 text-[10px]">Organizer</Badge>} {!m.user_id && <Badge variant="outline" className="ml-1 text-[10px] text-amber-700 border-amber-300">Invited</Badge>}</p>
+                  <div className="font-semibold">{m.name} {m.member_id === trip.organizer_member_id && <Badge variant="outline" className="ml-1 text-[10px]">Organizer</Badge>} {!m.user_id && <Badge variant="outline" className="ml-1 text-[10px] text-amber-700 border-amber-300">Invited</Badge>}</div>
                   <p className="text-sm text-muted-foreground">{m.email}</p>
                 </div>
                 <div className="text-right">
