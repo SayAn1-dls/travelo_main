@@ -532,7 +532,10 @@ ALLOWED_REACTIONS = ["❤️", "👍", "😂", "🎉", "😮"]
 @trips_router.post("/{trip_id}/messages/{message_id}/react")
 async def react_message(trip_id: str, message_id: str, body: ReactionIn, user: dict = Depends(get_current_user)):
     await get_trip_or_404(trip_id, user)
-    if body.emoji not in ALLOWED_REACTIONS:
+    emoji = body.emoji
+    if emoji not in ALLOWED_REACTIONS and emoji + "\ufe0f" in ALLOWED_REACTIONS:
+        emoji = emoji + "\ufe0f"
+    if emoji not in ALLOWED_REACTIONS:
         raise HTTPException(status_code=400, detail="Unsupported reaction")
     try:
         mid = ObjectId(message_id)
@@ -542,18 +545,13 @@ async def react_message(trip_id: str, message_id: str, body: ReactionIn, user: d
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
     uid = str(user["_id"])
-    reactions = msg.get("reactions") or {}
-    users = reactions.get(body.emoji, [])
-    if uid in users:
-        users.remove(uid)
-    else:
-        users.append(uid)
-    if users:
-        reactions[body.emoji] = users
-    else:
-        reactions.pop(body.emoji, None)
-    await db.trip_messages.update_one({"_id": mid}, {"$set": {"reactions": reactions}})
-    return {"ok": True, "reactions": reactions}
+    field = f"reactions.{emoji}"
+    res = await db.trip_messages.update_one({"_id": mid, field: {"$ne": uid}}, {"$addToSet": {field: uid}})
+    if res.modified_count == 0:
+        await db.trip_messages.update_one({"_id": mid}, {"$pull": {field: uid}})
+        await db.trip_messages.update_one({"_id": mid, field: {"$size": 0}}, {"$unset": {field: ""}})
+    fresh = await db.trip_messages.find_one({"_id": mid})
+    return {"ok": True, "reactions": fresh.get("reactions") or {}}
 
 
 def validate_itinerary_dates(body):

@@ -63,6 +63,11 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Recap Sharing Card: GET /api/recap/{token}/share — public HTML with OG meta + redirect to /recap/{token}; GET /api/recap/{token}/og.png — PIL 1200x630 card (first trip photo bg w/ gradient, else teal; Playfair/DMSans variable TTFs in backend/assets/fonts); Share-link button copies the /share URL.
 - TripDetail 404 "Trip not found" state for deleted/invalid trip ids.
 
+## Implemented (2026-06 iter 7, testing-agent PASSED 10/10 backend + frontend 100%, iteration_7)
+- Chat Reactions: POST /trips/{tid}/messages/{mid}/react (❤️👍😂🎉😮, atomic $addToSet/$pull toggle, VS16-normalized, non-member 403, bad emoji 400); TripChat hover picker + tap-to-show on bubble (touch fallback), reaction chips w/ counts, own reaction highlighted.
+- Trip Itinerary: db.itinerary_items CRUD — GET/POST /trips/{tid}/itinerary, PUT/DELETE /{item_id} (creator-or-organizer, 403 else), date YYYY-MM-DD + optional HH:MM validated, sorted date+time; TripItinerary.jsx tab (between Balances and Chat): Day N sections spanning trip dates, timeline cards w/ time chip/place/notes, per-day "+ add here", dialog add/edit; delete_trip cascade includes itinerary_items.
+- Recap WhatsApp Share: recap-whatsapp-btn on RecapPage footer → wa.me/?text= with /api/recap/{token}/share link (synchronous window.open — keep it that way for popup blockers).
+
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).
 - P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; chat pagination (`?since=` cursor — currently capped at last 300 msgs) + incremental polling; storage sweeper for files of hard-deleted trips (memories only soft-deleted); optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.

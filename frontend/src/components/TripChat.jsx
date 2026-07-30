@@ -18,6 +18,7 @@ export default function TripChat({ tripId, myUserId }) {
   const [messages, setMessages] = useState(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [pickerFor, setPickerFor] = useState(null);
   const scrollRef = useRef(null);
   const countRef = useRef(-1);
 
@@ -59,6 +60,7 @@ export default function TripChat({ tripId, myUserId }) {
   };
 
   const react = async (m, emoji) => {
+    setPickerFor(null);
     try {
       const { data } = await api.post(`/trips/${tripId}/messages/${m.id}/react`, { emoji });
       setMessages((msgs) => (msgs || []).map((x) => (x.id === m.id ? { ...x, reactions: data.reactions } : x)));
@@ -85,12 +87,15 @@ export default function TripChat({ tripId, myUserId }) {
             return (
               <div key={m.id} data-testid="trip-chat-message" className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div className="group/msg relative max-w-[75%]">
-                  <div className={`rounded-2xl px-4 py-2.5 ${mine ? "bg-[#E25822] text-white rounded-br-md" : "bg-white border border-[#EAE3D9] rounded-bl-md"}`}>
+                  <div
+                    className={`rounded-2xl px-4 py-2.5 cursor-pointer ${mine ? "bg-[#E25822] text-white rounded-br-md" : "bg-white border border-[#EAE3D9] rounded-bl-md"}`}
+                    onClick={() => setPickerFor(pickerFor === m.id ? null : m.id)}
+                  >
                     {!mine && <p className="text-[11px] font-bold text-[#0B4F6C] mb-0.5">{m.name}</p>}
                     <p className="text-sm whitespace-pre-wrap break-words">{m.text}</p>
                     <p className={`text-[10px] mt-1 ${mine ? "text-white/70" : "text-muted-foreground"}`}>{fmtTime(m.created_at)}</p>
                   </div>
-                  <div className={`absolute -top-4 ${mine ? "right-1" : "left-1"} hidden group-hover/msg:flex bg-white border border-[#EAE3D9] rounded-full shadow-md px-1.5 py-0.5 gap-0.5 z-10`} data-testid="reaction-picker">
+                  <div className={`absolute -top-4 ${mine ? "right-1" : "left-1"} ${pickerFor === m.id ? "flex" : "hidden group-hover/msg:flex"} bg-white border border-[#EAE3D9] rounded-full shadow-md px-1.5 py-0.5 gap-0.5 z-10`} data-testid="reaction-picker">
                     {REACTIONS.map((e) => (
                       <button key={e} data-testid={`react-btn-${e}`} onClick={() => react(m, e)} className="text-sm leading-none px-0.5 py-0.5 hover:scale-125 transition-transform" aria-label={`React ${e}`}>{e}</button>
                     ))}
