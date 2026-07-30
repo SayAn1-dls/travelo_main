@@ -21,6 +21,16 @@ export function formatApiError(err) {
   return String(detail);
 }
 
-export const inr = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+export const CURRENCIES = {
+  INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "AED ",
+  SGD: "S$", THB: "฿", IDR: "Rp ", JPY: "¥", AUD: "A$",
+};
+
+export const csym = (code) => CURRENCIES[code || "INR"] || `${code} `;
+
+export const money = (n, code = "INR") =>
+  `${csym(code)}${Number(n || 0).toLocaleString(code === "INR" || !code ? "en-IN" : "en-US", { maximumFractionDigits: 0 })}`;
+
+export const inr = (n) => money(n, "INR");
 
 export default api;

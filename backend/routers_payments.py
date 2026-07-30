@@ -5,7 +5,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request
 from db import db
 from auth import get_current_user
-from models import CheckoutRequest, utcnow
+from models import CheckoutRequest, csym, utcnow
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -14,12 +14,15 @@ payments_router = APIRouter()
 
 _tax_supported = True
 
+ZERO_DECIMAL = {"jpy"}
 
-def create_session(name, amount_inr, success_url, cancel_url, metadata):
+
+def create_session(name, amount, currency, success_url, cancel_url, metadata):
     global _tax_supported
+    unit_amount = int(round(amount)) if currency in ZERO_DECIMAL else int(round(amount * 100))
     kwargs = dict(
         line_items=[{
-            "price_data": {"currency": "inr", "product_data": {"name": name}, "unit_amount": int(round(amount_inr * 100))},
+            "price_data": {"currency": currency, "product_data": {"name": name}, "unit_amount": unit_amount},
             "quantity": 1,
         }],
         mode="payment",
@@ -41,6 +44,7 @@ async def create_checkout(body: CheckoutRequest, user: dict = Depends(get_curren
     success_url = f"{origin}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{origin}/payment/cancel"
     metadata = {"user_id": str(user["_id"]), "purpose": body.purpose}
+    currency = "inr"
 
     if body.purpose == "booking":
         if not body.booking_id:
@@ -64,6 +68,7 @@ async def create_checkout(body: CheckoutRequest, user: dict = Depends(get_curren
         if not match:
             raise HTTPException(status_code=400, detail="No outstanding balance between these members")
         amount = float(match["amount"])
+        currency = trip.get("currency", "INR").lower()
         to_m = next(m for m in trip["members"] if m["member_id"] == body.to_member_id)
         name = f"Trip settlement — pay {to_m['name']} for \"{trip['name']}\""
         metadata.update({"trip_id": body.trip_id, "from_member_id": body.from_member_id, "to_member_id": body.to_member_id})
@@ -74,13 +79,13 @@ async def create_checkout(body: CheckoutRequest, user: dict = Depends(get_curren
         raise HTTPException(status_code=400, detail="Amount too small")
 
     try:
-        session = create_session(name, amount, success_url, cancel_url, metadata)
+        session = create_session(name, amount, currency, success_url, cancel_url, metadata)
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=502, detail=f"Payment provider error: {e.user_message or 'try again'}")
 
     await db.payment_transactions.insert_one({
         "session_id": session.id, "user_id": str(user["_id"]), "purpose": body.purpose,
-        "amount": amount, "currency": "inr", "metadata": metadata,
+        "amount": amount, "currency": currency, "metadata": metadata,
         "status": "initiated", "payment_status": "pending",
         "created_at": utcnow(), "updated_at": utcnow(),
     })
@@ -120,11 +125,12 @@ async def apply_success(session_id: str, meta_fallback: dict = None):
             })
             to_m = next((m for m in trip["members"] if m["member_id"] == meta["to_member_id"]), None)
             from_m = next((m for m in trip["members"] if m["member_id"] == meta["from_member_id"]), None)
+            sym = csym(trip.get("currency", "INR"))
             if to_m and to_m.get("user_id"):
                 await db.notifications.insert_one({
                     "user_id": to_m["user_id"], "type": "settlement",
                     "title": "Payment received",
-                    "message": f"{from_m['name'] if from_m else 'A member'} paid ₹{prev['amount']:,.0f} for \"{trip['name']}\" via card",
+                    "message": f"{from_m['name'] if from_m else 'A member'} paid {sym}{prev['amount']:,.0f} for \"{trip['name']}\" via card",
                     "data": {"trip_id": meta["trip_id"]}, "read": False, "created_at": utcnow(),
                 })
 

@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 5 testing of 3 new features — (A) multi-currency trips (INR/USD/EUR/GBP/AED/SGD/THB/IDR/JPY/AUD), (B) per-trip Chat Room via GET/POST /api/trips/{id}/messages, (C) recap page Download (video .webm + image set .zip). Backend: created /app/backend/tests/test_iter5_features.py with 11 focused tests — all 11 PASS (40s). Covered: EUR trip creation returns currency=EUR; unsupported 'XYZ' → 400 'Unsupported currency'; omit currency → defaults INR; chat POST/GET works for aarav + meera in same trip with chronological ordering and payload fields (user_id/name/created_at/text); empty text → 422; non-member GET & POST → 403; expense_added + budget_alert notifications on EUR trip contain € (never ₹) in title/message; EUR balances suggestions have upi_link null (INR keeps upi_link when creditor has upi_vpa); Stripe settlement checkout on EUR trip produces session with payment_transactions.currency='eur'; public GET /api/recap/{token} includes currency field. Frontend Playwright: aarav login → /trips → CreateTripDialog: trip-currency-select opens; currency-option-USD selectable; budget Label rerenders as 'Total budget ($)'; USD trip created → trip detail shows trip-total-spent '$0 of $3,000' (no ₹); add-expense-dialog shows 'Amount ($)' + 'Custom $' radio label; back on /trips the new card shows '$3,000 budget'. EUR TEST_EuroTrip 6a6b277497fc9f4f0c14ea00: trip-tab-chat visible between Balances and Members; sent chat message renders as trip-chat-message; trip-total-spent shows '€4,000 of €3,000'; expenses list uses €. Cross-user: meera logged in same trip Chat tab sees aarav's message + can post her own. Recap /recap/n_WojKqATJ8 (freshly issued for EUR trip): recap-download-btn opens recap-download-menu with video + images buttons; images click → recap-export-progress appears → travelo-recap-test-eurotrip.zip download event fires; video click → progress appears → travelo-recap-test-eurotrip.webm download event fires; stats slide displays '€4,000 well spent.' (EUR symbol in recap). 0 console errors on the clean images-then-video flow.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Recap video export after mid-play slide navigation", "issue": "Observed once during the combined-flow run: after clicking recap-next-btn several times to advance slides and then triggering images-then-video export, an uncaught 'Cannot read properties of undefined (reading 'kind') at drawSlide' error surfaced from recapExport.js tick() (still produced the stats-slide frame). Not reproducible on a fresh load of the same recap URL (images and video both exported cleanly with 0 console errors on the isolated retry). Suggests a possible race/stale-closure or slides[i] index edge when export tick runs while React state around currentIdx is mutating; consider guarding drawSlide with `if (!slide) return;` and clamping i to slides.length-1 defensively.", "affected_selectors": ["recap-download-video-btn"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter5_features.py",
+    "/app/test_reports/pytest/iter5_features.xml"
+  ],
+  "action_items": [
+    "OPTIONAL/LOW: harden frontend/src/lib/recapExport.js drawSlide/tick against undefined slides (defensive `if (!slide) return;` + `i = Math.max(0, Math.min(i, slides.length-1))`) to eliminate the intermittent 'kind of undefined' error observed after user slide navigation.",
+    "OPTIONAL: DELETE /api/trips/{id} is not implemented (returns 405). Test-created TEST_USDTrip_UI (id 6a6b29450f4646705defbf74) remains in DB — could not be cleaned by test. Consider adding a DELETE endpoint (organizer-only) or a soft-delete flag; otherwise TEST_ trips will keep accumulating iteration after iteration."
+  ],
+  "critical_code_review_comments": [
+    "backend/routers_trips.py list_messages/post_message have no pagination cap surfaced to the client — .to_list(300) silently drops older messages once a trip exceeds 300 msgs. Consider a `?before=<timestamp>` cursor or return `has_more` flag.",
+    "backend/routers_trips.py post_message trims text but does NOT re-check min-length after trim — a payload of '   ' (3 spaces) passes Pydantic min_length=1, then gets stripped to '' and stored. Add `if not body.text.strip(): raise HTTPException(422)`.",
+    "backend/routers_payments.py create_session settlement path lower-cases currency for Stripe but does not validate that trip currency is in Stripe's supported list — an exotic future addition to CURRENCIES could 400 at Stripe API surface with a confusing message. Whitelist explicitly.",
+    "frontend/src/lib/recapExport.js drawSlide assumes recap.stats.by_category exists (line 122 Object.entries()) — a trip with zero expenses would still have by_category={} so it's fine now, but no defensive null-guard.",
+    "frontend/src/components/TripChat.jsx polls every 4s with GET /api/trips/{id}/messages returning up to 300 msgs — for busy trips this is wasteful. Consider `?since=<last_created_at>` incremental fetch."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter5_features.py"
+  ],
+  "success_rate": {"backend": "100% (11/11 iter5 tests)", "frontend": "100% on isolated flows (USD create + $ display everywhere, EUR chat + € display, cross-user chat, recap images.zip + video.webm downloads with progress + € on stats slide). 1 intermittent non-blocking JS error observed once when combining recap slide navigation with export."},
+  "seed_data_creation": "test_iter5_features.py creates ~10 short-lived TEST_-prefixed trips (TEST_Iter5, TEST_Chat, TEST_ChatEmpty, TEST_ChatSolo, TEST_EurNotif, TEST_EurBal, TEST_InrBal, TEST_EurStripe, TEST_EurRecap, TEST_DefaultINR); backend has no DELETE /api/trips endpoint so they linger in DB. Frontend Playwright test additionally created TEST_USDTrip_UI (id 6a6b29450f4646705defbf74) that could not be cleaned up (405). TEST_EuroTrip 6a6b277497fc9f4f0c14ea00 has a NEW share_token 'n_WojKqATJ8' (created by this iteration; prior tokens may have been consumed).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "aarav@test.com / Pass@123 (organizer); meera@test.com / Pass@123 (member)",
+  "context_for_next_testing_agent": "All iter5 features PASS. Backend tests use retry wrapper for the recurring ingress ConnectTimeout flake (documented since iter1). REACT_APP_BACKEND_URL from /app/frontend/.env; TEST_EuroTrip 6a6b277497fc9f4f0c14ea00 remains as canonical EUR fixture with recap token 'n_WojKqATJ8'. No DELETE /api/trips endpoint — TEST_ trips accumulate. If retesting recap video export, prefer a fresh page load (no prior slide navigation) to avoid the intermittent drawSlide-undefined issue.",
+  "rca_of_the_issue": "No functional defects. The single intermittent frontend 'Cannot read properties of undefined (reading kind) at drawSlide' surfaced only in a combined flow (recap-next-btn clicks → images export → video export back-to-back). On a fresh load repeating images-then-video, 0 errors and both files downloaded. Most likely cause: a race where slides[i] indexing produces an out-of-range value on the very first tick (t≈0) or a stale-closure slides reference; the defensive guard suggested above eliminates the whole class."
+}

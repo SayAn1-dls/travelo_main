@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import api, { inr } from "@/lib/api";
+import api, { money } from "@/lib/api";
 import BlobImage from "@/components/BlobImage";
-import { AirplaneTilt, CaretLeft, CaretRight, Pause, Play, X, Quotes, UsersThree, Wallet, Images, MusicNotes, SpeakerSlash } from "@phosphor-icons/react";
+import { exportImages, exportVideo, downloadBlob } from "@/lib/recapExport";
+import { toast } from "sonner";
+import { AirplaneTilt, CaretLeft, CaretRight, Pause, Play, X, Quotes, UsersThree, Wallet, Images, MusicNotes, SpeakerSlash, DownloadSimple, FilmSlate, FileZip } from "@phosphor-icons/react";
 
 function createAmbient() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -77,7 +79,24 @@ export default function RecapPage() {
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [musicOn, setMusicOn] = useState(false);
+  const [dlOpen, setDlOpen] = useState(false);
+  const [exporting, setExporting] = useState(null);
   const ambientRef = useRef(null);
+
+  const runExport = async (type) => {
+    setDlOpen(false);
+    if (exporting) return;
+    setExporting({ label: type === "video" ? "Rendering video" : "Rendering images", progress: 0 });
+    try {
+      const fn = type === "video" ? exportVideo : exportImages;
+      const blob = await fn(recap, token, recap.currency, (p) => setExporting((e) => (e ? { ...e, progress: p } : e)));
+      downloadBlob(blob, `travelo-recap-${recap.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.${type === "video" ? "webm" : "zip"}`);
+      toast.success(type === "video" ? "Video downloaded" : "Image set downloaded");
+    } catch (e) {
+      toast.error(e?.message || "Export failed — please try again");
+    }
+    setExporting(null);
+  };
 
   const toggleMusic = () => {
     if (!musicOn) {
@@ -177,7 +196,7 @@ export default function RecapPage() {
         {slide.kind === "stats" && (
           <div className="text-center max-w-2xl w-full" data-testid="recap-slide-stats">
             <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#F9B384]">The damage</p>
-            <h2 className="font-display text-3xl sm:text-5xl font-bold mt-4">{inr(recap.stats.total_spent)} well spent.</h2>
+            <h2 className="font-display text-3xl sm:text-5xl font-bold mt-4">{money(recap.stats.total_spent, recap.currency)} well spent.</h2>
             <div className="grid grid-cols-3 gap-4 mt-10">
               <div className="bg-white/10 rounded-2xl p-5">
                 <Wallet size={26} weight="duotone" className="text-[#F9B384] mx-auto" />
@@ -195,7 +214,7 @@ export default function RecapPage() {
                 <p className="text-xs text-white/60">memories</p>
               </div>
             </div>
-            {topCategory && <p className="text-white/70 text-sm mt-8">Biggest spend: <b className="capitalize">{topCategory[0]}</b> at {inr(topCategory[1])}</p>}
+            {topCategory && <p className="text-white/70 text-sm mt-8">Biggest spend: <b className="capitalize">{topCategory[0]}</b> at {money(topCategory[1], recap.currency)}</p>}
           </div>
         )}
           </motion.div>
@@ -212,7 +231,29 @@ export default function RecapPage() {
           <button data-testid="recap-music-btn" onClick={toggleMusic} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${musicOn ? "bg-[#F9B384] text-[#0B4F6C]" : "bg-white/10 hover:bg-white/25"}`} aria-label="Toggle ambient music">
             {musicOn ? <MusicNotes size={18} weight="fill" /> : <SpeakerSlash size={18} />}
           </button>
+          <div className="relative">
+            <button data-testid="recap-download-btn" onClick={() => setDlOpen(!dlOpen)} disabled={!!exporting} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${dlOpen ? "bg-[#F9B384] text-[#0B4F6C]" : "bg-white/10 hover:bg-white/25"} disabled:opacity-50`} aria-label="Download recap">
+              <DownloadSimple size={18} />
+            </button>
+            {dlOpen && (
+              <div className="absolute bottom-14 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 bg-white text-[#1A1A1A] rounded-2xl shadow-2xl p-2 w-60 z-20" data-testid="recap-download-menu">
+                <button data-testid="recap-download-video-btn" onClick={() => runExport("video")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#FDF3EC] text-left transition-colors">
+                  <FilmSlate size={20} weight="duotone" className="text-[#E25822] shrink-0" />
+                  <span><span className="block text-sm font-semibold">Video (.webm)</span><span className="block text-xs text-muted-foreground">Animated slideshow</span></span>
+                </button>
+                <button data-testid="recap-download-images-btn" onClick={() => runExport("images")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#FDF3EC] text-left transition-colors">
+                  <FileZip size={20} weight="duotone" className="text-[#0B4F6C] shrink-0" />
+                  <span><span className="block text-sm font-semibold">Image set (.zip)</span><span className="block text-xs text-muted-foreground">One PNG per slide</span></span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+        {exporting && (
+          <p data-testid="recap-export-progress" className="text-xs text-[#F9B384] font-semibold tracking-wide">
+            {exporting.label}… {exporting.progress}%
+          </p>
+        )}
         <div className="flex gap-1.5 flex-wrap justify-center max-w-md">
           {slides.map((_, i) => (
             <button key={i} onClick={() => setIdx(i)} className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${i === idx ? "w-6 bg-[#F9B384]" : "w-1.5 bg-white/30"}`} aria-label={`Slide ${i + 1}`} />

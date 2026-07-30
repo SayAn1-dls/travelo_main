@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import api, { formatApiError, inr } from "@/lib/api";
+import api, { formatApiError, money, csym } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +14,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import BlobImage from "@/components/BlobImage";
+import TripChat from "@/components/TripChat";
 import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash, Play, LinkSimple, PencilSimple, LinkBreak } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["stay", "food", "transport", "activities", "other"];
 
 function ExpenseDialog({ trip, myMemberId, expense = null, onClose, onDone }) {
+  const sym = csym(trip.currency);
   const [form, setForm] = useState(() =>
     expense
       ? { description: expense.description, amount: String(expense.amount), category: expense.category, paid_by: expense.paid_by, split_type: expense.split_type }
@@ -75,7 +77,7 @@ function ExpenseDialog({ trip, myMemberId, expense = null, onClose, onDone }) {
               <Input data-testid="expense-description-input" placeholder="Beach shack dinner" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-xl" />
             </div>
             <div className="space-y-1.5">
-              <Label>Amount (₹)</Label>
+              <Label>Amount ({sym})</Label>
               <Input data-testid="expense-amount-input" type="number" min="1" placeholder="2400" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="rounded-xl" />
             </div>
             <div className="space-y-1.5">
@@ -96,7 +98,7 @@ function ExpenseDialog({ trip, myMemberId, expense = null, onClose, onDone }) {
           <div className="space-y-2">
             <Label>How to split?</Label>
             <RadioGroup value={form.split_type} onValueChange={(v) => setForm({ ...form, split_type: v })} className="flex gap-4">
-              {[["equal", "Equally"], ["custom", "Custom ₹"], ["percentage", "By %"]].map(([v, l]) => (
+              {[["equal", "Equally"], ["custom", `Custom ${sym.trim()}`], ["percentage", "By %"]].map(([v, l]) => (
                 <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
                   <RadioGroupItem data-testid={`split-type-${v}`} value={v} /> {l}
                 </label>
@@ -117,7 +119,7 @@ function ExpenseDialog({ trip, myMemberId, expense = null, onClose, onDone }) {
             {form.split_type === "custom" && trip.members.map((m) => (
               <div key={m.member_id} className="flex items-center gap-2">
                 <span className="text-sm flex-1">{m.name}</span>
-                <Input data-testid={`custom-amount-${m.member_id}`} type="number" min="0" placeholder="₹" className="w-28 rounded-xl h-9 bg-white" value={customAmts[m.member_id] || ""} onChange={(e) => setCustomAmts({ ...customAmts, [m.member_id]: e.target.value })} />
+                <Input data-testid={`custom-amount-${m.member_id}`} type="number" min="0" placeholder={sym.trim()} className="w-28 rounded-xl h-9 bg-white" value={customAmts[m.member_id] || ""} onChange={(e) => setCustomAmts({ ...customAmts, [m.member_id]: e.target.value })} />
               </div>
             ))}
             {form.split_type === "percentage" && trip.members.map((m) => (
@@ -314,6 +316,8 @@ export default function TripDetail() {
 
   const memberOf = (mid) => trip.members.find((m) => m.member_id === mid) || { name: "?" };
   const myMember = trip.members.find((m) => m.user_id === user?.id);
+  const fmt = (n) => money(n, trip.currency);
+  const sym = csym(trip.currency);
   const spent = balances?.total_spent || 0;
   const pct = trip.budget_total > 0 ? Math.min((spent / trip.budget_total) * 100, 100) : 0;
 
@@ -423,7 +427,7 @@ export default function TripDetail() {
         <div className="flex items-end justify-between mb-3">
           <div>
             <p className="text-sm text-muted-foreground">Total spent</p>
-            <p className="font-display text-3xl font-bold" data-testid="trip-total-spent">{inr(spent)} <span className="text-base text-muted-foreground font-normal">of {inr(trip.budget_total)}</span></p>
+            <p className="font-display text-3xl font-bold" data-testid="trip-total-spent">{fmt(spent)} <span className="text-base text-muted-foreground font-normal">of {fmt(trip.budget_total)}</span></p>
           </div>
           <Badge className={`border-0 ${pct > 90 ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-800"}`}>{Math.round(pct)}% used</Badge>
         </div>
@@ -435,7 +439,7 @@ export default function TripDetail() {
               const over = budget && amt > budget;
               return (
                 <Badge key={cat} variant="outline" data-testid={`category-chip-${cat}`} className={`capitalize py-1.5 px-3 ${over ? "border-red-400 text-red-700 bg-red-50" : ""}`}>
-                  {cat}: {inr(amt)}{budget ? ` / ${inr(budget)}` : ""}{over ? " — over!" : ""}
+                  {cat}: {fmt(amt)}{budget ? ` / ${fmt(budget)}` : ""}{over ? " — over!" : ""}
                 </Badge>
               );
             })}
@@ -444,9 +448,10 @@ export default function TripDetail() {
       </div>
 
       <Tabs defaultValue="expenses" className="mt-10">
-        <TabsList className="rounded-full h-12 p-1 bg-[#F5EFE5]">
+        <TabsList className="rounded-full h-12 p-1 bg-[#F5EFE5] max-w-full overflow-x-auto justify-start">
           <TabsTrigger data-testid="trip-tab-expenses" value="expenses" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Expenses</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-balances" value="balances" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Balances</TabsTrigger>
+          <TabsTrigger data-testid="trip-tab-chat" value="chat" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Chat</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-members" value="members" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Members</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-memories" value="memories" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Memories</TabsTrigger>
         </TabsList>
@@ -462,7 +467,7 @@ export default function TripDetail() {
                 <p className="font-semibold truncate">{e.description} {e.edited_at && <span className="text-xs text-muted-foreground font-normal">(edited)</span>}</p>
                 <p className="text-sm text-muted-foreground">Paid by {memberOf(e.paid_by).name} · split {e.split_type} · <span className="capitalize">{e.category}</span></p>
               </div>
-              <p className="font-display text-xl font-bold">{inr(e.amount)}</p>
+              <p className="font-display text-xl font-bold">{fmt(e.amount)}</p>
               {(e.created_by === user?.id || trip.organizer_id === user?.id) && (
                 <div className="flex gap-1 shrink-0">
                   <button data-testid="edit-expense-btn" onClick={() => setExpenseDialog({ expense: e })} className="h-8 w-8 rounded-full hover:bg-accent flex items-center justify-center text-muted-foreground transition-colors" aria-label="Edit expense">
@@ -487,7 +492,7 @@ export default function TripDetail() {
                     <div key={m.member_id} data-testid="balance-card" className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
                       <p className="font-semibold">{m.name}</p>
                       <p className={`font-display text-2xl font-bold mt-1 ${net > 0.01 ? "text-emerald-700" : net < -0.01 ? "text-[#C84B1A]" : "text-muted-foreground"}`}>
-                        {net > 0.01 ? `gets back ${inr(net)}` : net < -0.01 ? `owes ${inr(-net)}` : "settled up"}
+                        {net > 0.01 ? `gets back ${fmt(net)}` : net < -0.01 ? `owes ${fmt(-net)}` : "settled up"}
                       </p>
                     </div>
                   );
@@ -509,7 +514,7 @@ export default function TripDetail() {
                         <p className="flex-1 text-sm sm:text-base">
                           <span className="font-bold">{memberOf(s.from_member_id).name}</span> owes{" "}
                           <span className="font-bold">{memberOf(s.to_member_id).name}</span>{" "}
-                          <span className="font-display text-xl font-bold text-[#C84B1A]">{inr(s.amount)}</span>
+                          <span className="font-display text-xl font-bold text-[#C84B1A]">{fmt(s.amount)}</span>
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {iOwe && s.upi_link && (
@@ -543,7 +548,7 @@ export default function TripDetail() {
                   <div className="space-y-2">
                     {balances.settlements.map((st) => (
                       <div key={st.id} data-testid="settlement-history-item" className="bg-white border border-[#EAE3D9] rounded-xl px-4 py-3 flex items-center justify-between text-sm">
-                        <span>{memberOf(st.from_member_id).name} paid {memberOf(st.to_member_id).name} <b>{inr(st.amount)}</b> <span className="text-muted-foreground">via {st.method}</span></span>
+                        <span>{memberOf(st.from_member_id).name} paid {memberOf(st.to_member_id).name} <b>{fmt(st.amount)}</b> <span className="text-muted-foreground">via {st.method}</span></span>
                         <span className="flex items-center gap-3">
                           {st.proof_path && (
                             <button data-testid="view-proof-btn" onClick={() => setProofView(st.id)} className="text-xs font-semibold text-[#0B4F6C] hover:underline flex items-center gap-1">
@@ -561,6 +566,10 @@ export default function TripDetail() {
           )}
         </TabsContent>
 
+        <TabsContent value="chat" className="mt-6">
+          <TripChat tripId={id} myUserId={user?.id} />
+        </TabsContent>
+
         <TabsContent value="members" className="mt-6">
           <div className="space-y-3">
             {trip.members.map((m) => (
@@ -572,7 +581,7 @@ export default function TripDetail() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Bringing</p>
-                  <p className="font-bold">{inr(m.contribution)}</p>
+                  <p className="font-bold">{fmt(m.contribution)}</p>
                 </div>
               </div>
             ))}
@@ -581,7 +590,7 @@ export default function TripDetail() {
           {myMember && (
             <div className="bg-[#FDF3EC] border border-[#EAE3D9] rounded-2xl p-5 mt-6 flex flex-col sm:flex-row gap-3 sm:items-end">
               <div className="space-y-1.5 flex-1 max-w-xs">
-                <Label>How much are you bringing? (₹)</Label>
+                <Label>How much are you bringing? ({sym.trim()})</Label>
                 <Input data-testid="contribution-input" type="number" min="0" placeholder={String(myMember.contribution || 0)} value={contribution} onChange={(e) => setContribution(e.target.value)} className="rounded-xl bg-white" />
               </div>
               <Button data-testid="contribution-save-btn" onClick={saveContribution} className="rounded-full bg-[#0B4F6C] hover:bg-[#083D54]">Save</Button>
@@ -620,7 +629,7 @@ export default function TripDetail() {
           {deleteTarget && (
             <div className="space-y-4">
               <p className="text-sm bg-[#FDF3EC] rounded-xl p-4">
-                <b>{deleteTarget.description}</b> · {inr(deleteTarget.amount)} paid by {memberOf(deleteTarget.paid_by).name}
+                <b>{deleteTarget.description}</b> · {fmt(deleteTarget.amount)} paid by {memberOf(deleteTarget.paid_by).name}
               </p>
               <p className="text-xs text-muted-foreground">Balances will be recalculated for everyone. This can't be undone.</p>
               <div className="flex gap-2">
@@ -639,7 +648,7 @@ export default function TripDetail() {
             <div className="space-y-4">
               <p className="text-sm bg-[#FDF3EC] rounded-xl p-4">
                 <b>{memberOf(settleTarget.from_member_id).name}</b> paid <b>{memberOf(settleTarget.to_member_id).name}</b>{" "}
-                <span className="font-display text-lg font-bold">{inr(settleTarget.amount)}</span>
+                <span className="font-display text-lg font-bold">{fmt(settleTarget.amount)}</span>
               </p>
               <div className="space-y-1.5">
                 <Label>Note (optional)</Label>

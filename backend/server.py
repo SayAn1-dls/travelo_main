@@ -63,6 +63,7 @@ async def startup():
     await db.payment_transactions.create_index("session_id")
     await db.user_sessions.create_index("session_token")
     await db.memories.create_index("trip_id")
+    await db.trip_messages.create_index([("trip_id", 1), ("created_at", 1)])
     await seed_users()
     try:
         await init_storage()

@@ -168,6 +168,7 @@ async def get_recap(token: str):
         "name": trip["name"], "destination": trip["destination"],
         "start_date": trip["start_date"], "end_date": trip["end_date"],
         "members": [m["name"] for m in trip["members"]],
+        "currency": trip.get("currency", "INR"),
         "stats": {"total_spent": balances["total_spent"], "by_category": balances["by_category"],
                   "budget_total": trip.get("budget_total", 0)},
         "memories": [{"id": str(m["_id"]), "kind": m["kind"], "caption": m.get("caption", ""),

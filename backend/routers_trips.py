@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from db import db
 from auth import get_current_user
 from email_service import send_email
-from models import TripCreate, TripMemberIn, ContributionUpdate, ExpenseCreate, SettlementCreate, RemindRequest, utcnow
+from models import TripCreate, TripMemberIn, ContributionUpdate, ExpenseCreate, SettlementCreate, RemindRequest, TripMessageIn, CURRENCIES, csym, utcnow
 
 trips_router = APIRouter(prefix="/trips")
 notifications_router = APIRouter(prefix="/notifications")
@@ -56,6 +56,8 @@ async def get_trip_or_404(trip_id, user):
 
 @trips_router.post("")
 async def create_trip(body: TripCreate, user: dict = Depends(get_current_user)):
+    if body.currency not in CURRENCIES:
+        raise HTTPException(status_code=400, detail="Unsupported currency")
     organizer = await make_member(user.get("name", "Organizer"), user["email"])
     organizer["user_id"] = str(user["_id"])
     members = [organizer]
@@ -68,6 +70,7 @@ async def create_trip(body: TripCreate, user: dict = Depends(get_current_user)):
         "start_date": body.start_date, "end_date": body.end_date,
         "organizer_id": str(user["_id"]), "organizer_member_id": organizer["member_id"],
         "budget_total": body.budget_total, "budget_categories": body.budget_categories,
+        "currency": body.currency,
         "members": members, "invite_code": secrets.token_urlsafe(6),
         "created_at": utcnow(),
     }
@@ -173,6 +176,7 @@ async def sync_budget_alerts(trip):
     trip_id = str(trip["_id"])
     fresh = await db.trips.find_one({"_id": trip["_id"]})
     fired = fresh.get("budget_alerts_fired") or {}
+    sym = csym(fresh.get("currency", "INR"))
     expenses = await db.expenses.find({"trip_id": trip_id}).to_list(1000)
     total = sum(e["amount"] for e in expenses)
     by_cat = {}
@@ -189,10 +193,10 @@ async def sync_budget_alerts(trip):
             to_set[f"budget_alerts_fired.{key}"] = True
             if key == "__total__":
                 alerts.append(("Trip budget crossed",
-                               f"\"{fresh['name']}\": total spend hit ₹{spend:,.0f} of the ₹{budget:,.0f} budget"))
+                               f"\"{fresh['name']}\": total spend hit {sym}{spend:,.0f} of the {sym}{budget:,.0f} budget"))
             else:
                 alerts.append((f"{key.title()} budget crossed",
-                               f"\"{fresh['name']}\": {key} spend hit ₹{spend:,.0f} of the ₹{budget:,.0f} planned"))
+                               f"\"{fresh['name']}\": {key} spend hit {sym}{spend:,.0f} of the {sym}{budget:,.0f} planned"))
         elif not over and fired.get(key):
             to_unset[f"budget_alerts_fired.{key}"] = ""
     if to_set:
@@ -219,10 +223,11 @@ async def add_expense(trip_id: str, body: ExpenseCreate, user: dict = Depends(ge
     }
     result = await db.expenses.insert_one(doc)
     payer = next(m for m in members if m["member_id"] == body.paid_by)
+    sym = csym(trip.get("currency", "INR"))
     for m in members:
         if m.get("user_id") and m["user_id"] != str(user["_id"]):
             await notify(m["user_id"], "expense_added", f"New expense in {trip['name']}",
-                         f"{payer['name']} paid ₹{body.amount:,.0f} for {body.description}",
+                         f"{payer['name']} paid {sym}{body.amount:,.0f} for {body.description}",
                          {"trip_id": trip_id})
     await sync_budget_alerts(trip)
     doc["id"] = str(result.inserted_id)
@@ -266,10 +271,11 @@ async def update_expense(trip_id: str, expense_id: str, body: ExpenseCreate, use
         "edited_by": uid, "edited_at": utcnow(),
     }})
     await sync_budget_alerts(trip)
+    sym = csym(trip.get("currency", "INR"))
     for m in members:
         if m.get("user_id") and m["user_id"] != uid:
             await notify(m["user_id"], "expense_updated", f"Expense updated in {trip['name']}",
-                         f"{user.get('name')} updated \"{body.description}\" — now ₹{body.amount:,.0f}",
+                         f"{user.get('name')} updated \"{body.description}\" — now {sym}{body.amount:,.0f}",
                          {"trip_id": trip_id})
     doc = await db.expenses.find_one({"_id": expense["_id"]})
     doc["id"] = str(doc.pop("_id"))
@@ -285,10 +291,11 @@ async def delete_expense(trip_id: str, expense_id: str, user: dict = Depends(get
         raise HTTPException(status_code=403, detail="Only the person who logged this expense or the organizer can delete it")
     await db.expenses.delete_one({"_id": expense["_id"]})
     await sync_budget_alerts(trip)
+    sym = csym(trip.get("currency", "INR"))
     for m in trip["members"]:
         if m.get("user_id") and m["user_id"] != uid:
             await notify(m["user_id"], "expense_deleted", f"Expense removed in {trip['name']}",
-                         f"{user.get('name')} deleted \"{expense['description']}\" (₹{expense['amount']:,.0f})",
+                         f"{user.get('name')} deleted \"{expense['description']}\" ({sym}{expense['amount']:,.0f})",
                          {"trip_id": trip_id})
     return {"ok": True}
 
@@ -334,6 +341,8 @@ async def compute_balances(trip):
 
 
 async def creditor_upi(trip, to_member_id, amount):
+    if trip.get("currency", "INR") != "INR":
+        return None
     to_m = next((m for m in trip["members"] if m["member_id"] == to_member_id), None)
     if to_m and to_m.get("user_id"):
         u = await db.users.find_one({"_id": ObjectId(to_m["user_id"])})
@@ -370,8 +379,9 @@ async def mark_settled(trip_id: str, body: SettlementCreate, user: dict = Depend
     from_m = next(m for m in trip["members"] if m["member_id"] == body.from_member_id)
     to_m = next(m for m in trip["members"] if m["member_id"] == body.to_member_id)
     if to_m.get("user_id"):
+        sym = csym(trip.get("currency", "INR"))
         await notify(to_m["user_id"], "settlement", "Payment marked as settled",
-                     f"{from_m['name']} settled ₹{body.amount:,.0f} for \"{trip['name']}\"",
+                     f"{from_m['name']} settled {sym}{body.amount:,.0f} for \"{trip['name']}\"",
                      {"trip_id": trip_id})
     doc["id"] = str(result.inserted_id)
     doc.pop("_id", None)
@@ -386,21 +396,50 @@ async def send_reminder(trip_id: str, body: RemindRequest, user: dict = Depends(
     if not from_m or not to_m:
         raise HTTPException(status_code=400, detail="Invalid member")
     link = await creditor_upi(trip, body.to_member_id, body.amount)
+    sym = csym(trip.get("currency", "INR"))
     if from_m.get("user_id"):
-        await notify(from_m["user_id"], "payment_due", f"You owe ₹{body.amount:,.0f}",
-                     f"You owe ₹{body.amount:,.0f} to {to_m['name']} for \"{trip['name']}\"",
+        await notify(from_m["user_id"], "payment_due", f"You owe {sym}{body.amount:,.0f}",
+                     f"You owe {sym}{body.amount:,.0f} to {to_m['name']} for \"{trip['name']}\"",
                      {"trip_id": trip_id, "amount": body.amount, "upi_link": link,
                       "from_member_id": body.from_member_id, "to_member_id": body.to_member_id})
     pay_html = f'<p style="margin:18px 0"><a href="{link}" style="background:#E25822;color:#ffffff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:bold">Pay Now via UPI</a></p>' if link else ""
     await send_email(
         to=from_m["email"],
-        subject=f"You owe ₹{body.amount:,.0f} to {to_m['name']} — {trip['name']}",
+        subject=f"You owe {sym}{body.amount:,.0f} to {to_m['name']} — {trip['name']}",
         html=(f"<p>Hi {from_m['name']},</p>"
-              f"<p>You owe <b>₹{body.amount:,.0f}</b> to <b>{to_m['name']}</b> for the trip "
+              f"<p>You owe <b>{sym}{body.amount:,.0f}</b> to <b>{to_m['name']}</b> for the trip "
               f"<b>{trip['name']}</b> ({trip['destination']}).</p>{pay_html}"
               f"<p>Open Travelo to see the full split and settle up.</p><p>— Travelo</p>"),
     )
     return {"ok": True, "upi_link": link}
+
+
+@trips_router.get("/{trip_id}/messages")
+async def list_messages(trip_id: str, user: dict = Depends(get_current_user)):
+    await get_trip_or_404(trip_id, user)
+    docs = await db.trip_messages.find({"trip_id": trip_id}).sort("created_at", 1).to_list(300)
+    for d in docs:
+        d["id"] = str(d.pop("_id"))
+    return docs
+
+
+@trips_router.post("/{trip_id}/messages")
+async def post_message(trip_id: str, body: TripMessageIn, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    uid, email = str(user["_id"]), user["email"]
+    me = next((m for m in trip["members"] if m.get("user_id") == uid), None) or \
+         next((m for m in trip["members"] if m.get("email") == email), None)
+    doc = {
+        "trip_id": trip_id, "user_id": uid,
+        "member_id": me["member_id"] if me else None,
+        "name": (me or {}).get("name") or user.get("name") or "Member",
+        "text": body.text.strip(),
+        "created_at": utcnow(),
+    }
+    result = await db.trip_messages.insert_one(doc)
+    doc["id"] = str(result.inserted_id)
+    doc.pop("_id", None)
+    return doc
 
 
 @notifications_router.get("")

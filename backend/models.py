@@ -9,6 +9,16 @@ def utcnow():
     return datetime.now(timezone.utc).isoformat()
 
 
+CURRENCIES = {
+    "INR": "₹", "USD": "$", "EUR": "€", "GBP": "£", "AED": "AED ",
+    "SGD": "S$", "THB": "฿", "IDR": "Rp ", "JPY": "¥", "AUD": "A$",
+}
+
+
+def csym(code: str) -> str:
+    return CURRENCIES.get(code, f"{code} ")
+
+
 class BaseDocument(BaseModel):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
     id: Optional[PyObjectId] = Field(default=None, alias="_id")
@@ -96,6 +106,7 @@ class TripCreate(BaseModel):
     end_date: str
     budget_total: float = Field(ge=0)
     budget_categories: dict = {}
+    currency: str = "INR"
     members: List[TripMemberIn] = []
 
 
@@ -130,6 +141,10 @@ class RemindRequest(BaseModel):
     from_member_id: str
     to_member_id: str
     amount: float = Field(gt=0)
+
+
+class TripMessageIn(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
 
 
 class ChatRequest(BaseModel):

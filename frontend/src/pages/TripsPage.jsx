@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import api, { formatApiError, inr } from "@/lib/api";
+import api, { formatApiError, money, csym, CURRENCIES } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UsersThree, Plus, SignIn, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
@@ -15,7 +16,7 @@ const today = new Date().toISOString().split("T")[0];
 
 function CreateTripDialog({ onCreated }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", destination: "", start_date: today, end_date: today, budget_total: "" });
+  const [form, setForm] = useState({ name: "", destination: "", start_date: today, end_date: today, budget_total: "", currency: "INR" });
   const [catBudget, setCatBudget] = useState({});
   const [members, setMembers] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -69,15 +70,28 @@ function CreateTripDialog({ onCreated }) {
               <Input data-testid="trip-end-input" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="rounded-xl" />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Total budget (₹)</Label>
-            <Input data-testid="trip-budget-input" type="number" min="0" placeholder="40000" value={form.budget_total} onChange={(e) => setForm({ ...form, budget_total: e.target.value })} className="rounded-xl" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Currency</Label>
+              <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
+                <SelectTrigger data-testid="trip-currency-select" className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CURRENCIES).map(([code, s]) => (
+                    <SelectItem key={code} value={code} data-testid={`currency-option-${code}`}>{code} — {s.trim()}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Total budget ({csym(form.currency).trim()})</Label>
+              <Input data-testid="trip-budget-input" type="number" min="0" placeholder="40000" value={form.budget_total} onChange={(e) => setForm({ ...form, budget_total: e.target.value })} className="rounded-xl" />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Budget by category (optional)</Label>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORIES.map((c) => (
-                <Input key={c} data-testid={`trip-budget-${c}`} type="number" min="0" placeholder={`${c} ₹`} value={catBudget[c] || ""} onChange={(e) => setCatBudget({ ...catBudget, [c]: e.target.value })} className="rounded-xl" />
+                <Input key={c} data-testid={`trip-budget-${c}`} type="number" min="0" placeholder={`${c} ${csym(form.currency).trim()}`} value={catBudget[c] || ""} onChange={(e) => setCatBudget({ ...catBudget, [c]: e.target.value })} className="rounded-xl" />
               ))}
             </div>
           </div>
@@ -166,7 +180,7 @@ export default function TripsPage() {
                       </div>
                     ))}
                   </div>
-                  <span className="text-sm font-bold ml-auto">{inr(t.budget_total)} budget</span>
+                  <span className="text-sm font-bold ml-auto">{money(t.budget_total, t.currency)} budget</span>
                 </div>
               </Link>
             </motion.div>

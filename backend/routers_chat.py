@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from db import db
 from auth import get_current_user
-from models import ChatRequest, utcnow
+from models import ChatRequest, csym, utcnow
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
 
 chat_router = APIRouter(prefix="/chat")
@@ -36,19 +36,21 @@ async def build_trip_context(trip_id, user):
     except Exception:
         return None
     names = {m["member_id"]: m["name"] for m in trip["members"]}
+    cur = trip.get("currency", "INR")
+    sym = csym(cur)
     budgets = trip.get("budget_categories") or {}
     cat_lines = ", ".join(
-        f"{c} ₹{v:,.0f}" + (f" of ₹{budgets[c]:,.0f} budget" if budgets.get(c) else "")
+        f"{c} {sym}{v:,.0f}" + (f" of {sym}{budgets[c]:,.0f} budget" if budgets.get(c) else "")
         for c, v in balances["by_category"].items()) or "no expenses logged yet"
-    owed = "; ".join(f"{names.get(s['from_member_id'], '?')} owes {names.get(s['to_member_id'], '?')} ₹{s['amount']:,.0f}"
+    owed = "; ".join(f"{names.get(s['from_member_id'], '?')} owes {names.get(s['to_member_id'], '?')} {sym}{s['amount']:,.0f}"
                      for s in balances["suggestions"]) or "everyone is settled up"
     recent = await db.expenses.find({"trip_id": trip_id}).sort("created_at", -1).to_list(8)
-    exp_lines = "; ".join(f"{e['description']} ₹{e['amount']:,.0f} ({e['category']}, paid by {names.get(e['paid_by'], 'someone')})" for e in recent) or "none"
+    exp_lines = "; ".join(f"{e['description']} {sym}{e['amount']:,.0f} ({e['category']}, paid by {names.get(e['paid_by'], 'someone')})" for e in recent) or "none"
     return (
         f"ACTIVE GROUP TRIP: \"{trip['name']}\" to {trip['destination']} ({trip['start_date']} → {trip['end_date']}), "
-        f"members: {', '.join(names.values())}. Total budget ₹{trip.get('budget_total', 0):,.0f}, spent so far ₹{balances['total_spent']:,.0f}. "
+        f"members: {', '.join(names.values())}. Total budget {sym}{trip.get('budget_total', 0):,.0f}, spent so far {sym}{balances['total_spent']:,.0f}. "
         f"Category spend: {cat_lines}. Balances: {owed}. Recent expenses: {exp_lines}. "
-        f"Answer budget and money questions using these exact numbers (INR). If a category or the total is over budget, say so plainly and suggest where to cut back."
+        f"Answer budget and money questions using these exact numbers (currency: {cur}). If a category or the total is over budget, say so plainly and suggest where to cut back."
     )
 
 
