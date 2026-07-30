@@ -29,10 +29,7 @@ export default function ChatWidget() {
 
   useEffect(() => {
     if (!open) return;
-    fetch(`${API}/chat/history/${sessionId}`, {
-      credentials: "include",
-      headers: { Authorization: `Bearer ${localStorage.getItem("travelo_token")}` },
-    })
+    fetch(`${API}/chat/history/${sessionId}`, { credentials: "include" })
       .then((r) => r.json())
       .then((d) => Array.isArray(d) && setMessages(d.map((m) => ({ role: m.role, content: m.content }))))
       .catch(() => {});
@@ -75,7 +72,7 @@ export default function ChatWidget() {
       const res = await fetch(`${API}/chat/stream`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("travelo_token")}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message,
           session_id: sessionId,
@@ -171,7 +168,7 @@ export default function ChatWidget() {
               </div>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div key={`${i}-${m.role}`} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div data-testid={`chat-message-${m.role}`} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-[#FF5A36] text-white rounded-br-sm" : "bg-white border rounded-bl-sm"}`}>
                   {m.content || (streaming && i === messages.length - 1 ? "…" : "")}
                 </div>

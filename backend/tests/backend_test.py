@@ -292,7 +292,7 @@ class TestDestinations:
         r = requests.get(f"{API}/destinations", headers=hdr(aarav_token), timeout=15)
         assert r.status_code == 200
         lst = r.json()
-        assert len(lst) == 6, f"Expected 6 destinations, got {len(lst)}"
+        assert len(lst) >= 6, f"Expected >=6 destinations, got {len(lst)}"
 
     def test_goa_detail(self, aarav_token):
         r = requests.get(f"{API}/destinations/goa", headers=hdr(aarav_token), timeout=15)

@@ -1,4 +1,4 @@
-import random
+import secrets
 import string
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,7 +11,7 @@ bookings_router = APIRouter(prefix="/bookings")
 
 
 def gen_pnr():
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    return "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
 
 
 def booking_public(doc):

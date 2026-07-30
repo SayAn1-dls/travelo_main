@@ -581,7 +581,7 @@ export default function TripDetail() {
                   {balances.suggestions.map((s, i) => {
                     const iOwe = myMember?.member_id === s.from_member_id;
                     return (
-                      <div key={i} data-testid="settlement-suggestion" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div key={`${s.from_member_id}-${s.to_member_id}`} data-testid="settlement-suggestion" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
                         <p className="flex-1 text-sm sm:text-base">
                           <span className="font-bold">{memberOf(s.from_member_id).name}</span> owes{" "}
                           <span className="font-bold">{memberOf(s.to_member_id).name}</span>{" "}

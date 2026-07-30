@@ -5,12 +5,6 @@ const api = axios.create({
   withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
-  const t = localStorage.getItem("travelo_token");
-  if (t) config.headers.Authorization = `Bearer ${t}`;
-  return config;
-});
-
 export function formatApiError(err) {
   const detail = err?.response?.data?.detail;
   if (detail == null) return err?.message || "Something went wrong. Please try again.";

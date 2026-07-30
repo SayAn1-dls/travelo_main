@@ -32,7 +32,7 @@ function CitySelect({ value, onChange, placeholder, testid }) {
 }
 
 function PassengerDialog({ open, onClose, selection, form, user }) {
-  const [passengers, setPassengers] = useState([{ name: user?.name || "", age: 30, gender: "other" }]);
+  const [passengers, setPassengers] = useState([{ _key: crypto.randomUUID(), name: user?.name || "", age: 30, gender: "other" }]);
   const [contact, setContact] = useState({ email: user?.email || "", phone: user?.phone || "" });
   const [paying, setPaying] = useState(false);
   if (!selection) return null;
@@ -48,7 +48,7 @@ function PassengerDialog({ open, onClose, selection, form, user }) {
     try {
       const { data: booking } = await api.post("/bookings", {
         type, item,
-        passengers: passengers.map((p) => ({ ...p, age: Number(p.age) || 30 })),
+        passengers: passengers.map(({ _key, ...p }) => ({ ...p, age: Number(p.age) || 30 })),
         contact_email: contact.email, contact_phone: contact.phone,
         origin: form.origin || null, destination: type === "hotel" ? form.city : form.destination,
         travel_date: form.date, nights: form.nights, rooms: form.rooms,
@@ -81,11 +81,11 @@ function PassengerDialog({ open, onClose, selection, form, user }) {
               <Label>Travellers</Label>
               <div className="flex gap-2">
                 {passengers.length > 1 && <Button size="sm" variant="outline" className="rounded-full h-7" onClick={() => setPassengers((p) => p.slice(0, -1))}>−</Button>}
-                {passengers.length < 6 && <Button data-testid="add-passenger-btn" size="sm" variant="outline" className="rounded-full h-7" onClick={() => setPassengers((p) => [...p, { name: "", age: 30, gender: "other" }])}>+ Add</Button>}
+                {passengers.length < 6 && <Button data-testid="add-passenger-btn" size="sm" variant="outline" className="rounded-full h-7" onClick={() => setPassengers((p) => [...p, { _key: crypto.randomUUID(), name: "", age: 30, gender: "other" }])}>+ Add</Button>}
               </div>
             </div>
             {passengers.map((p, i) => (
-              <div key={i} className="grid grid-cols-[1fr_70px] gap-2">
+              <div key={p._key} className="grid grid-cols-[1fr_70px] gap-2">
                 <Input data-testid={`passenger-name-${i}`} placeholder={`Traveller ${i + 1} name`} value={p.name} onChange={(e) => setP(i, "name", e.target.value)} className="rounded-xl" />
                 <Input data-testid={`passenger-age-${i}`} type="number" min="1" placeholder="Age" value={p.age} onChange={(e) => setP(i, "age", e.target.value)} className="rounded-xl" />
               </div>

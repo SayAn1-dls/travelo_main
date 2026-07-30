@@ -7,7 +7,7 @@ from db import db
 from auth import get_current_user
 from models import CheckoutRequest, csym, utcnow
 
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
+stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 payments_router = APIRouter()

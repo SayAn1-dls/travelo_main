@@ -14,28 +14,24 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
-    localStorage.setItem("travelo_token", data.access_token);
     setUser(data.user);
     return data.user;
   };
 
   const register = async (name, email, password) => {
     const { data } = await api.post("/auth/register", { name, email, password });
-    localStorage.setItem("travelo_token", data.access_token);
     setUser(data.user);
     return data.user;
   };
 
   const googleSession = async (sessionId) => {
     const { data } = await api.post("/auth/google/session", { session_id: sessionId });
-    localStorage.setItem("travelo_token", data.session_token);
     setUser(data.user);
     return data.user;
   };
 
   const logout = async () => {
     await api.post("/auth/logout").catch(() => {});
-    localStorage.removeItem("travelo_token");
     setUser(false);
   };
 

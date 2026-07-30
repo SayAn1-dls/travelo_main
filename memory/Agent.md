@@ -11,7 +11,7 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Auth: Email/password JWT NOW; Google login via Emergent-managed auth (chosen 2026-06, replaces "keys later" plan for Google); Facebook still disabled until user's Meta keys.
 - AI: Emergent LLM key with Claude (claude-sonnet-4-6).
 - Payments: Stripe claimable sandbox (Flow A) — user chose "Yes, use Stripe test mode".
-- Maps: user gave GOOGLE_MAPS_API_KEY "AIzaSyAavrN-VFmqCAoznSTaSEgjuHLkAmguFFc" (labelled demo) — stored in backend/.env; UI uses Leaflet/OSM (reliable, keyless); Google Places can be wired later.
+- Maps: user gave a GOOGLE_MAPS_API_KEY (labelled demo) — stored ONLY in backend/.env (redacted here per code-quality audit); UI uses Leaflet/OSM (reliable, keyless); Google Places can be wired later.
 - Notifications: in-app + UPI deep links; EMAIL system built with console provider (logs + db.email_log) — SendGrid activates when user supplies SENDGRID_API_KEY (set EMAIL_PROVIDER=sendgrid).
 - Never fabricate/hardcode production API keys.
 

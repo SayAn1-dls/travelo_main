@@ -190,7 +190,7 @@ export default function RecapPage() {
             </p>
             <div className="mt-8 space-y-3">
               {slide.items.slice(0, 6).map((it, i) => (
-                <div key={i} className="bg-white/10 rounded-2xl px-5 py-3 flex items-center gap-4">
+                <div key={it.id || `${it.time}-${it.title}-${i}`} className="bg-white/10 rounded-2xl px-5 py-3 flex items-center gap-4">
                   <span className={`font-bold text-sm w-12 shrink-0 ${it.time ? "text-[#FFB49B]" : "text-white/30"}`}>{it.time || "—"}</span>
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{it.title}</p>
@@ -288,8 +288,8 @@ export default function RecapPage() {
           </p>
         )}
         <div className="flex gap-1.5 flex-wrap justify-center max-w-md">
-          {slides.map((_, i) => (
-            <button key={i} onClick={() => setIdx(i)} className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${i === idx ? "w-6 bg-[#FFB49B]" : "w-1.5 bg-white/30"}`} aria-label={`Slide ${i + 1}`} />
+          {slides.map((s, i) => (
+            <button key={`${s.kind}-${i}`} onClick={() => setIdx(i)} className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${i === idx ? "w-6 bg-[#FFB49B]" : "w-1.5 bg-white/30"}`} aria-label={`Slide ${i + 1}`} />
           ))}
         </div>
       </footer>

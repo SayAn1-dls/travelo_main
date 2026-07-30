@@ -29,7 +29,7 @@ function CreateTripDialog({ onCreated }) {
         ...form,
         budget_total: Number(form.budget_total) || 0,
         budget_categories: Object.fromEntries(Object.entries(catBudget).map(([k, v]) => [k, Number(v) || 0])),
-        members: members.filter((m) => m.email.trim()),
+        members: members.filter((m) => m.email.trim()).map(({ _key, ...m }) => m),
       });
       toast.success("Trip created");
       setOpen(false);
@@ -98,10 +98,10 @@ function CreateTripDialog({ onCreated }) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Group members (by email)</Label>
-              <Button data-testid="add-member-row-btn" size="sm" variant="outline" className="rounded-full h-7" onClick={() => setMembers([...members, { name: "", email: "" }])}>+ Add</Button>
+              <Button data-testid="add-member-row-btn" size="sm" variant="outline" className="rounded-full h-7" onClick={() => setMembers([...members, { _key: crypto.randomUUID(), name: "", email: "" }])}>+ Add</Button>
             </div>
             {members.map((m, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={m._key} className="flex gap-2">
                 <Input data-testid={`member-name-${i}`} placeholder="Name" value={m.name} onChange={(e) => setMembers(members.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} className="rounded-xl" />
                 <Input data-testid={`member-email-${i}`} placeholder="email@example.com" value={m.email} onChange={(e) => setMembers(members.map((x, j) => (j === i ? { ...x, email: e.target.value } : x)))} className="rounded-xl" />
                 <Button size="icon" variant="ghost" onClick={() => setMembers(members.filter((_, j) => j !== i))}><Trash size={16} /></Button>

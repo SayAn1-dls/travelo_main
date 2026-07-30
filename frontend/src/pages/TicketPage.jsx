@@ -67,7 +67,7 @@ export default function TicketPage() {
           <div className="mt-5">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Travellers</p>
             {booking.passengers.map((p, i) => (
-              <p key={i} className="text-sm font-medium">{i + 1}. {p.name} {p.age ? `(${p.age})` : ""}</p>
+              <p key={`${i}-${p.name}`} className="text-sm font-medium">{i + 1}. {p.name} {p.age ? `(${p.age})` : ""}</p>
             ))}
           </div>
 
@@ -78,7 +78,7 @@ export default function TicketPage() {
             </div>
             <div className="flex gap-[2px]">
               {booking.pnr.split("").map((c, i) => (
-                <div key={i} className="w-1 bg-[#1A1A1A]" style={{ height: `${20 + (c.charCodeAt(0) % 22)}px` }} />
+                <div key={`${i}-${c}`} className="w-1 bg-[#1A1A1A]" style={{ height: `${20 + (c.charCodeAt(0) % 22)}px` }} />
               ))}
             </div>
           </div>

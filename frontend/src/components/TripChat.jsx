@@ -102,7 +102,7 @@ export default function TripChat({ tripId, myUserId }) {
                     {m.kind === "settle" && m.data?.suggestions?.length > 0 && (
                       <div className="mt-3 space-y-2 text-left" data-testid="settle-nudge-list">
                         {m.data.suggestions.map((s, i) => (
-                          <div key={i} data-testid="settle-nudge-row" className="bg-white/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
+                          <div key={`${s.from_name}-${s.to_name}-${i}`} data-testid="settle-nudge-row" className="bg-white/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
                             <p className="text-xs flex-1">
                               <b>{s.from_name}</b> owes <b>{s.to_name}</b> · <span className="font-bold text-[#FFB49B]">{money(s.amount, m.data.currency)}</span>
                             </p>
