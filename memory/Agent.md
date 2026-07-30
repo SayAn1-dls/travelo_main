@@ -44,6 +44,13 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Memory Slideshow: POST /api/trips/{id}/recap/share → stable share_token on trip; PUBLIC GET /api/recap/{token} (+/image/{memory_id}); RecapPage at public route /recap/:token — auto-advancing slideshow (title → memories → stats), play/pause/dots; "Play recap" + "Share link" banner in Memories tab.
 - Spending Alerts: add_expense fires budget_alert notification to ALL registered members exactly when a category budget or budget_total is crossed (no duplicates on later expenses); over-budget category chips styled red with "— over!".
 
+## Implemented (2026-06 iter 4, testing-agent PASSED 11/11 backend + frontend 100%, iteration_4)
+- Expense Editing: PUT/DELETE /api/trips/{tid}/expenses/{eid} — creator or organizer only (403 otherwise); edited_at marker; ExpenseDialog reused for edit (key-remount is load-bearing); delete confirm dialog.
+- Alert flag map: trips.budget_alerts_fired ({category|__total__: true}) via sync_budget_alerts() on every expense add/edit/delete — fires once per crossing, clears when spend drops under, refires on re-crossing.
+- Recap Music & Transitions: Web Audio synthesized ambient chords (createAmbient in RecapPage, no audio asset), music toggle btn; framer-motion AnimatePresence slide transitions keyed by idx.
+- Recap Link Revoke: POST /api/trips/{tid}/recap/revoke (organizer-only 403) $unsets share_token; old links 404; re-share issues new token; revoke btn organizer-only in Memories banner.
+- Cleaned up TEST_-prefixed trips from testing runs.
+
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).
 - P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; recap token revoke endpoint; budget-alert suppression map if expense edit/delete endpoints are ever added; optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
