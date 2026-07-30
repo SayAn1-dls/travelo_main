@@ -309,9 +309,12 @@ export default function TripDetail() {
   const [proofView, setProofView] = useState(null);
   const [activeTab, setActiveTab] = useState("expenses");
   const [chatUnread, setChatUnread] = useState(0);
+  const [notFound, setNotFound] = useState(false);
 
   const load = useCallback(() => {
-    api.get(`/trips/${id}`).then((r) => setTrip(r.data)).catch(() => {});
+    api.get(`/trips/${id}`).then((r) => setTrip(r.data)).catch((e) => {
+      if (e?.response?.status === 404 || e?.response?.status === 400) setNotFound(true);
+    });
     api.get(`/trips/${id}/expenses`).then((r) => setExpenses(r.data)).catch(() => {});
     api.get(`/trips/${id}/balances`).then((r) => setBalances(r.data)).catch(() => {});
   }, [id]);
@@ -324,6 +327,14 @@ export default function TripDetail() {
     return () => clearInterval(t);
   }, [id]);
 
+  if (notFound)
+    return (
+      <div className="max-w-5xl mx-auto px-5 py-24 text-center" data-testid="trip-not-found">
+        <p className="font-display text-3xl font-bold">Trip not found</p>
+        <p className="text-muted-foreground mt-2 text-sm">It may have been deleted, or the link is wrong.</p>
+        <Button onClick={() => navigate("/trips")} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A] mt-6" data-testid="back-to-trips-btn">Back to your trips</Button>
+      </div>
+    );
   if (!trip) return <div className="max-w-5xl mx-auto px-5 py-20 text-center text-muted-foreground">Loading trip…</div>;
 
   const memberOf = (mid) => trip.members.find((m) => m.member_id === mid) || { name: "?" };

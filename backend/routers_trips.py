@@ -489,7 +489,11 @@ async def post_message(trip_id: str, body: TripMessageIn, user: dict = Depends(g
             existing = await db.notifications.find_one({
                 "user_id": m["user_id"], "type": "chat_message",
                 "data.trip_id": trip_id, "read": False})
-            if not existing:
+            if existing:
+                await db.notifications.update_one(
+                    {"_id": existing["_id"]},
+                    {"$set": {"message": f"{doc['name']}: {text[:80]}", "created_at": utcnow()}})
+            else:
                 await notify(m["user_id"], "chat_message", f"New messages in {trip['name']}",
                              f"{doc['name']}: {text[:80]}", {"trip_id": trip_id})
     return doc

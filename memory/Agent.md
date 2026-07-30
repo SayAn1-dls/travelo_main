@@ -57,9 +57,15 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Recap Download: lib/recapExport.js — exportImages (canvas-rendered PNG per slide → jszip .zip) + exportVideo (canvas.captureStream + MediaRecorder → .webm, 3s/slide fade transitions); download menu + progress indicator on RecapPage. Guarded drawSlide/negative-index race post-test.
 - Cleaned all TEST_ trips from DB.
 
+## Implemented (2026-06 iter 6, testing-agent PASSED 10/10 backend + frontend 100%, iteration_6)
+- Trip Archive/Delete: POST /trips/{id}/archive|unarchive + DELETE /trips/{id} (organizer-only via require_organizer, 403 else); delete cascades expenses/settlements/trip_messages/chat_reads, soft-deletes memories, trip doc removed LAST; frontend: DotsThreeVertical menu on TripDetail (archive toggle + delete confirm dialog), Archived badge, collapsible "Archived trips" section on TripsPage.
+- Chat Notifications: db.chat_reads (unique trip_id+user_id) tracks last_read_at; GET /trips/{id}/messages/unread + POST /messages/read (also marks chat notifications read); unread badge on Chat tab (10s poll in TripDetail) + "N new" badge on trip cards (list_trips returns unread_chat); deduped in-app "New messages in {trip}" notification — one unread per trip per user, message/timestamp refreshed on newer msgs, cleared when chat opened (TripChat POSTs read on each load).
+- Recap Sharing Card: GET /api/recap/{token}/share — public HTML with OG meta + redirect to /recap/{token}; GET /api/recap/{token}/og.png — PIL 1200x630 card (first trip photo bg w/ gradient, else teal; Playfair/DMSans variable TTFs in backend/assets/fonts); Share-link button copies the /share URL.
+- TripDetail 404 "Trip not found" state for deleted/invalid trip ids.
+
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).
-- P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; chat pagination (`?since=` cursor — currently capped at last 300 msgs) + incremental polling; DELETE /api/trips (organizer-only) so test/abandoned trips can be removed; optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
+- P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; chat pagination (`?since=` cursor — currently capped at last 300 msgs) + incremental polling; storage sweeper for files of hard-deleted trips (memories only soft-deleted); optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
 
 ## Decision Log
 - Bearer token + cookies dual auth → preview proxy cookie quirks can't break auth.
@@ -69,6 +75,7 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Claude model: claude-sonnet-4-6 (playbook recommended for anthropic).
 - Trip chat via 4s polling (not websockets/SSE) → simple, works through k8s ingress, adequate for small groups.
 - Recap video is client-rendered WebM (canvas+MediaRecorder) → no server ffmpeg/storage cost; image set zipped client-side with jszip.
+- Recap social preview: share link points at backend /api/recap/{token}/share (HTML w/ OG tags + instant redirect) because the SPA can't serve per-recap meta tags to crawlers; og.png generated server-side with PIL.
 
 ## Dead-Ends (Do NOT Retry)
 - Object storage direct URL https://integrations.emergentagent.com/objstore → 401 "Invalid emergent key" in this env; MUST use INTEGRATION_PROXY_URL base (storage.py auto-resolves).
