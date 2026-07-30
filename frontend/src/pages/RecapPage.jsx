@@ -5,7 +5,7 @@ import api, { money } from "@/lib/api";
 import BlobImage from "@/components/BlobImage";
 import { exportImages, exportVideo, downloadBlob } from "@/lib/recapExport";
 import { toast } from "sonner";
-import { AirplaneTilt, CaretLeft, CaretRight, Pause, Play, X, Quotes, UsersThree, Wallet, Images, MusicNotes, SpeakerSlash, DownloadSimple, FilmSlate, FileZip } from "@phosphor-icons/react";
+import { AirplaneTilt, CaretLeft, CaretRight, Pause, Play, X, Quotes, UsersThree, Wallet, Images, MusicNotes, SpeakerSlash, DownloadSimple, FilmSlate, FileZip, WhatsappLogo } from "@phosphor-icons/react";
 
 function createAmbient() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -82,6 +82,12 @@ export default function RecapPage() {
   const [dlOpen, setDlOpen] = useState(false);
   const [exporting, setExporting] = useState(null);
   const ambientRef = useRef(null);
+
+  const shareWhatsApp = () => {
+    const url = `${window.location.origin}/api/recap/${token}/share`;
+    const text = `The story of our ${recap.destination} trip — watch our "${recap.name}" recap: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  };
 
   const runExport = async (type) => {
     setDlOpen(false);
@@ -230,6 +236,9 @@ export default function RecapPage() {
           <button data-testid="recap-next-btn" onClick={next} className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"><CaretRight size={18} /></button>
           <button data-testid="recap-music-btn" onClick={toggleMusic} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${musicOn ? "bg-[#F9B384] text-[#0B4F6C]" : "bg-white/10 hover:bg-white/25"}`} aria-label="Toggle ambient music">
             {musicOn ? <MusicNotes size={18} weight="fill" /> : <SpeakerSlash size={18} />}
+          </button>
+          <button data-testid="recap-whatsapp-btn" onClick={shareWhatsApp} className="h-11 w-11 rounded-full bg-[#25D366] hover:bg-[#1EBE5A] flex items-center justify-center transition-colors" aria-label="Share on WhatsApp">
+            <WhatsappLogo size={20} weight="fill" />
           </button>
           <div className="relative">
             <button data-testid="recap-download-btn" onClick={() => setDlOpen(!dlOpen)} disabled={!!exporting} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${dlOpen ? "bg-[#F9B384] text-[#0B4F6C]" : "bg-white/10 hover:bg-white/25"} disabled:opacity-50`} aria-label="Download recap">

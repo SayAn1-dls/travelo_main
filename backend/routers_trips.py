@@ -1,5 +1,6 @@
 import uuid
 import secrets
+from datetime import datetime
 from urllib.parse import quote
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +8,7 @@ from pydantic import BaseModel
 from db import db
 from auth import get_current_user
 from email_service import send_email
-from models import TripCreate, TripMemberIn, ContributionUpdate, ExpenseCreate, SettlementCreate, RemindRequest, TripMessageIn, CURRENCIES, csym, utcnow
+from models import TripCreate, TripMemberIn, ContributionUpdate, ExpenseCreate, SettlementCreate, RemindRequest, TripMessageIn, ReactionIn, ItineraryItemIn, CURRENCIES, csym, utcnow
 
 trips_router = APIRouter(prefix="/trips")
 notifications_router = APIRouter(prefix="/notifications")
@@ -109,7 +110,7 @@ async def unarchive_trip(trip_id: str, user: dict = Depends(get_current_user)):
 async def delete_trip(trip_id: str, user: dict = Depends(get_current_user)):
     trip = await get_trip_or_404(trip_id, user)
     require_organizer(trip, user)
-    for coll in (db.expenses, db.settlements, db.trip_messages, db.chat_reads):
+    for coll in (db.expenses, db.settlements, db.trip_messages, db.chat_reads, db.itinerary_items):
         await coll.delete_many({"trip_id": trip_id})
     await db.memories.update_many({"trip_id": trip_id}, {"$set": {"is_deleted": True}})
     await db.trips.delete_one({"_id": trip["_id"]})
@@ -522,6 +523,113 @@ async def mark_chat_read(trip_id: str, user: dict = Depends(get_current_user)):
     await db.notifications.update_many(
         {"user_id": uid, "type": "chat_message", "data.trip_id": trip_id, "read": False},
         {"$set": {"read": True}})
+    return {"ok": True}
+
+
+ALLOWED_REACTIONS = ["❤️", "👍", "😂", "🎉", "😮"]
+
+
+@trips_router.post("/{trip_id}/messages/{message_id}/react")
+async def react_message(trip_id: str, message_id: str, body: ReactionIn, user: dict = Depends(get_current_user)):
+    await get_trip_or_404(trip_id, user)
+    if body.emoji not in ALLOWED_REACTIONS:
+        raise HTTPException(status_code=400, detail="Unsupported reaction")
+    try:
+        mid = ObjectId(message_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid message id")
+    msg = await db.trip_messages.find_one({"_id": mid, "trip_id": trip_id})
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    uid = str(user["_id"])
+    reactions = msg.get("reactions") or {}
+    users = reactions.get(body.emoji, [])
+    if uid in users:
+        users.remove(uid)
+    else:
+        users.append(uid)
+    if users:
+        reactions[body.emoji] = users
+    else:
+        reactions.pop(body.emoji, None)
+    await db.trip_messages.update_one({"_id": mid}, {"$set": {"reactions": reactions}})
+    return {"ok": True, "reactions": reactions}
+
+
+def validate_itinerary_dates(body):
+    try:
+        datetime.strptime(body.date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Date must be YYYY-MM-DD")
+    if body.time:
+        try:
+            datetime.strptime(body.time, "%H:%M")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Time must be HH:MM")
+
+
+async def get_itinerary_item_or_404(trip_id, item_id):
+    try:
+        doc = await db.itinerary_items.find_one({"_id": ObjectId(item_id), "trip_id": trip_id})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid item id")
+    if not doc:
+        raise HTTPException(status_code=404, detail="Itinerary item not found")
+    return doc
+
+
+@trips_router.get("/{trip_id}/itinerary")
+async def list_itinerary(trip_id: str, user: dict = Depends(get_current_user)):
+    await get_trip_or_404(trip_id, user)
+    docs = await db.itinerary_items.find({"trip_id": trip_id}).sort([("date", 1), ("time", 1)]).to_list(500)
+    for d in docs:
+        d["id"] = str(d.pop("_id"))
+    return docs
+
+
+@trips_router.post("/{trip_id}/itinerary")
+async def add_itinerary_item(trip_id: str, body: ItineraryItemIn, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    validate_itinerary_dates(body)
+    uid = str(user["_id"])
+    me = next((m for m in trip["members"] if m.get("user_id") == uid), None)
+    doc = {
+        "trip_id": trip_id, "date": body.date, "time": body.time,
+        "title": body.title.strip(), "place": body.place.strip(), "notes": body.notes.strip(),
+        "created_by": uid, "member_name": me["name"] if me else user.get("name", "Member"),
+        "created_at": utcnow(),
+    }
+    result = await db.itinerary_items.insert_one(doc)
+    doc["id"] = str(result.inserted_id)
+    doc.pop("_id", None)
+    return doc
+
+
+@trips_router.put("/{trip_id}/itinerary/{item_id}")
+async def update_itinerary_item(trip_id: str, item_id: str, body: ItineraryItemIn, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    item = await get_itinerary_item_or_404(trip_id, item_id)
+    uid = str(user["_id"])
+    if item["created_by"] != uid and trip["organizer_id"] != uid:
+        raise HTTPException(status_code=403, detail="Only the person who added this or the organizer can edit it")
+    validate_itinerary_dates(body)
+    await db.itinerary_items.update_one({"_id": item["_id"]}, {"$set": {
+        "date": body.date, "time": body.time, "title": body.title.strip(),
+        "place": body.place.strip(), "notes": body.notes.strip(),
+    }})
+    doc = await db.itinerary_items.find_one({"_id": item["_id"]})
+    doc["id"] = str(doc.pop("_id"))
+    return doc
+
+
+@trips_router.delete("/{trip_id}/itinerary/{item_id}")
+async def delete_itinerary_item(trip_id: str, item_id: str, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    item = await get_itinerary_item_or_404(trip_id, item_id)
+    uid = str(user["_id"])
+    if item["created_by"] != uid and trip["organizer_id"] != uid:
+        raise HTTPException(status_code=403, detail="Only the person who added this or the organizer can delete it")
+    await db.itinerary_items.delete_one({"_id": item["_id"]})
     return {"ok": True}
 
 

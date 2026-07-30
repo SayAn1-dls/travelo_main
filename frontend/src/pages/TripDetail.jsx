@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import BlobImage from "@/components/BlobImage";
 import TripChat from "@/components/TripChat";
+import TripItinerary from "@/components/TripItinerary";
 import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash, Play, LinkSimple, PencilSimple, LinkBreak, DotsThreeVertical, Archive } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
@@ -515,6 +516,7 @@ export default function TripDetail() {
         <TabsList className="rounded-full h-12 p-1 bg-[#F5EFE5] max-w-full overflow-x-auto justify-start">
           <TabsTrigger data-testid="trip-tab-expenses" value="expenses" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Expenses</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-balances" value="balances" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Balances</TabsTrigger>
+          <TabsTrigger data-testid="trip-tab-itinerary" value="itinerary" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Itinerary</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-chat" value="chat" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">
             Chat
             {chatUnread > 0 && (
@@ -633,6 +635,10 @@ export default function TripDetail() {
               )}
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="itinerary" className="mt-6">
+          <TripItinerary trip={trip} userId={user?.id} isOrganizer={isOrganizer} />
         </TabsContent>
 
         <TabsContent value="chat" className="mt-6">

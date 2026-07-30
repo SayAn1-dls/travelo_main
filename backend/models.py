@@ -147,6 +147,18 @@ class TripMessageIn(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
 
 
+class ReactionIn(BaseModel):
+    emoji: str
+
+
+class ItineraryItemIn(BaseModel):
+    date: str
+    time: str = ""
+    title: str = Field(min_length=1, max_length=200)
+    place: str = Field(default="", max_length=200)
+    notes: str = Field(default="", max_length=1000)
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     session_id: str = "general"
