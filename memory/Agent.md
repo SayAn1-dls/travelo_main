@@ -8,11 +8,11 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Non-negotiables: no hardcoded secrets, /api prefix, booking provider abstraction for future real APIs (Amadeus/IRCTC), PCI via Stripe Checkout only.
 
 ## User Preferences & Never-Dos
-- Auth: Email/password JWT NOW; OAuth structure ready for user's own Google/Facebook keys LATER (buttons disabled in UI until keys supplied).
+- Auth: Email/password JWT NOW; Google login via Emergent-managed auth (chosen 2026-06, replaces "keys later" plan for Google); Facebook still disabled until user's Meta keys.
 - AI: Emergent LLM key with Claude (claude-sonnet-4-6).
 - Payments: Stripe claimable sandbox (Flow A) — user chose "Yes, use Stripe test mode".
 - Maps: user gave GOOGLE_MAPS_API_KEY "AIzaSyAavrN-VFmqCAoznSTaSEgjuHLkAmguFFc" (labelled demo) — stored in backend/.env; UI uses Leaflet/OSM (reliable, keyless); Google Places can be wired later.
-- Notifications: in-app + UPI deep links now; email/push (SendGrid/FCM) later.
+- Notifications: in-app + UPI deep links; EMAIL system built with console provider (logs + db.email_log) — SendGrid activates when user supplies SENDGRID_API_KEY (set EMAIL_PROVIDER=sendgrid).
 - Never fabricate/hardcode production API keys.
 
 ## Architecture & Tech
@@ -23,13 +23,24 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Chat: SSE streaming /api/chat/stream, history in db.chat_messages (per user+session; session = "general" or "dest-{slug}"), Nominatim reverse geocode, Claude sonnet-4-6 via emergentintegrations.
 - Payments: Stripe sandbox (acct_1Ty43fSQ5IbQI3xl), dynamic price_data in INR, purposes: booking|settlement; webhook /api/stripe/webhook; status poll with Stripe-direct fallback; apply_success idempotent (booking→confirmed / settlement→recorded+notification). Tax: tries automatic_tax, falls back gracefully (_tax_supported flag).
 - Design: Playfair Display + DM Sans; palette terracotta #E25822 / teal #0B4F6C / beige #FDFBF7; glass navbar; grain overlay class.
+- Google auth: Emergent-managed. POST /api/auth/google/session exchanges #session_id → session_token stored in db.user_sessions (user_id = str of users._id, expires_at ISO +7d) + httpOnly cookie; get_current_user: JWT first, falls back to session lookup on InvalidTokenError. Frontend: AppRoutes hash detection → AuthCallback (useRef guard); AuthContext skips /me when hash has session_id.
+- Object storage: storage.py resolves base — tries integrations.emergentagent.com then INTEGRATION_PROXY_URL/objstore (proxy is the working route in this env; direct URL 401s). Uses EMERGENT_LLM_KEY. Soft-delete only.
+- Memories: db.memories (photo w/ storage_path | note), endpoints in routers_memories.py; images served via authed GET /api/memories/{id}/image, frontend BlobImage fetches as blob with Bearer.
+- Settlement proof: proof_path on settlement doc; upload POST /api/trips/{tid}/settlements/{sid}/proof; view GET /api/settlements/{sid}/proof.
+- Email: email_service.send_email → console log + db.email_log (provider from EMAIL_PROVIDER env); remind endpoint emails debtor (works for non-registered members too).
 
 ## Implemented (2026-06, testing-agent PASSED 100% backend 23/23 + all frontend flows, iteration_1)
 - Full MVP: auth (register/login/me/refresh/profile+UPI), booking search/create/pay flow (Stripe redirect verified), e-ticket page (print→PDF), bookings history, destinations hub w/ Leaflet map + transport tabs + cab deep links, group trips (create/join/members/contributions/expenses equal-custom-percentage/balances/settlements/reminders), in-app notifications w/ UPI Pay Now, Tara chat widget w/ geo consent + SSE streaming (Claude verified), Stripe checkout for bookings + settlements, landing page.
 - Destination images swapped to context-matched Unsplash photos for Goa/Bali/Jaipur (HEAD-checked 200).
 
+## Implemented (2026-06 iter 2, testing-agent PASSED 9/9 new + 23/23 regression, iteration_2)
+- Google login (Emergent-managed): enabled Google button, AuthCallback hash flow, session tokens coexist with JWT.
+- Email reminders: console provider + db.email_log; "you owe ₹X" email with UPI pay button on remind; non-registered members reminded via email too.
+- Trip Memories tab: photo uploads (object storage) + notes, delete by creator/organizer, BlobImage authed rendering.
+- Payment proof: settle dialog with optional screenshot upload; Proof viewer in settlement history.
+
 ## Backlog (P0/P1/P2) & Next Tasks
-- P1: Real Google/Facebook OAuth once user supplies keys; email (SendGrid) + push (FCM) notifications; payment proof upload on settlements.
+- P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).
 - P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
 
 ## Decision Log
@@ -40,7 +51,7 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Claude model: claude-sonnet-4-6 (playbook recommended for anthropic).
 
 ## Dead-Ends (Do NOT Retry)
-- (none yet)
+- Object storage direct URL https://integrations.emergentagent.com/objstore → 401 "Invalid emergent key" in this env; MUST use INTEGRATION_PROXY_URL base (storage.py auto-resolves).
 
 ## Gotchas & Learnings
 - Stripe sandbox job_id 684e0fee-ea17-479d-b145-bdb964b0ec8b; onboarding_url shared with user for claiming.
