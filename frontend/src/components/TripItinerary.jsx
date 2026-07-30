@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, MapPin, Clock, PencilSimple, Trash, CalendarBlank } from "@phosphor-icons/react";
+import { Plus, MapPin, Clock, PencilSimple, Trash, CalendarBlank, Receipt } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const dayList = (start, end) => {
@@ -94,7 +94,7 @@ function ItineraryDialog({ trip, days, item, defaultDate, onClose, onDone }) {
   );
 }
 
-export default function TripItinerary({ trip, userId, isOrganizer }) {
+export default function TripItinerary({ trip, userId, isOrganizer, onLogExpense }) {
   const [items, setItems] = useState([]);
   const [dialog, setDialog] = useState(null);
 
@@ -162,16 +162,21 @@ export default function TripItinerary({ trip, userId, isOrganizer }) {
                         {it.notes && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{it.notes}</p>}
                         <p className="text-[11px] text-muted-foreground/70 mt-1.5">added by {it.member_name}</p>
                       </div>
-                      {(it.created_by === userId || isOrganizer) && (
-                        <div className="flex gap-1 shrink-0 self-start">
-                          <button data-testid="itinerary-edit-btn" onClick={() => setDialog({ item: it })} className="h-7 w-7 rounded-full hover:bg-accent flex items-center justify-center text-muted-foreground transition-colors" aria-label="Edit plan">
-                            <PencilSimple size={13} />
-                          </button>
-                          <button data-testid="itinerary-delete-btn" onClick={() => del(it)} className="h-7 w-7 rounded-full hover:bg-red-50 hover:text-red-600 flex items-center justify-center text-muted-foreground transition-colors" aria-label="Delete plan">
-                            <Trash size={13} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex gap-1 shrink-0 self-start">
+                        <button data-testid="itinerary-expense-btn" onClick={() => onLogExpense(it)} title="Log an expense for this plan" className="h-7 px-2 rounded-full hover:bg-[#FDF3EC] flex items-center gap-1 text-[11px] font-semibold text-[#E25822] transition-colors" aria-label="Log expense for this plan">
+                          <Receipt size={13} weight="duotone" /> Log expense
+                        </button>
+                        {(it.created_by === userId || isOrganizer) && (
+                          <>
+                            <button data-testid="itinerary-edit-btn" onClick={() => setDialog({ item: it })} className="h-7 w-7 rounded-full hover:bg-accent flex items-center justify-center text-muted-foreground transition-colors" aria-label="Edit plan">
+                              <PencilSimple size={13} />
+                            </button>
+                            <button data-testid="itinerary-delete-btn" onClick={() => del(it)} className="h-7 w-7 rounded-full hover:bg-red-50 hover:text-red-600 flex items-center justify-center text-muted-foreground transition-colors" aria-label="Delete plan">
+                              <Trash size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UsersThree, Plus, SignIn, Trash, Archive, CaretDown, ChatsCircle } from "@phosphor-icons/react";
+import { UsersThree, Plus, SignIn, Trash, Archive, CaretDown, ChatsCircle, AirplaneTilt } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["stay", "food", "transport", "activities"];
@@ -117,13 +117,32 @@ function CreateTripDialog({ onCreated }) {
   );
 }
 
+const tripCountdown = (t) => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const s = new Date(`${t.start_date}T00:00:00`);
+  const e = new Date(`${t.end_date}T00:00:00`);
+  if (now < s) {
+    const d = Math.round((s - now) / 86400000);
+    return { label: d === 1 ? "Tomorrow!" : `${d} days to go`, kind: "upcoming" };
+  }
+  if (now <= e) return { label: "On trip now", kind: "live" };
+  return null;
+};
+
 function TripCard({ trip: t, index: i }) {
+  const cd = tripCountdown(t);
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
       <Link to={`/trips/${t.id}`} data-testid="trip-card" className="block bg-white border border-[#EAE3D9] rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-display text-xl font-bold">{t.name}</h3>
-          <div className="flex gap-1.5 shrink-0">
+          <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
+            {cd && !t.archived && (
+              <Badge data-testid="trip-countdown-badge" className={`border-0 gap-1 ${cd.kind === "live" ? "bg-emerald-600 text-white" : "bg-[#0B4F6C] text-white"}`}>
+                <AirplaneTilt size={12} weight="fill" /> {cd.label}
+              </Badge>
+            )}
             {t.unread_chat > 0 && (
               <Badge data-testid="trip-chat-unread-badge" className="bg-[#E25822] text-white border-0 gap-1">
                 <ChatsCircle size={12} weight="fill" /> {t.unread_chat} new

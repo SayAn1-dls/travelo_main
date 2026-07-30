@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { money } from "@/lib/api";
 import BlobImage from "@/components/BlobImage";
-import { exportImages, exportVideo, downloadBlob } from "@/lib/recapExport";
+import { exportImages, exportVideo, downloadBlob, buildItinerarySlides } from "@/lib/recapExport";
 import { toast } from "sonner";
 import { AirplaneTilt, CaretLeft, CaretRight, Pause, Play, X, Quotes, UsersThree, Wallet, Images, MusicNotes, SpeakerSlash, DownloadSimple, FilmSlate, FileZip, WhatsappLogo } from "@phosphor-icons/react";
 
@@ -122,7 +122,7 @@ export default function RecapPage() {
 
   const slides = useMemo(() => {
     if (!recap) return [];
-    return [{ kind: "title" }, ...recap.memories, { kind: "stats" }];
+    return [{ kind: "title" }, ...buildItinerarySlides(recap), ...recap.memories, { kind: "stats" }];
   }, [recap]);
 
   const next = useCallback(() => setIdx((i) => (i + 1) % Math.max(slides.length, 1)), [slides.length]);
@@ -178,6 +178,27 @@ export default function RecapPage() {
             <h1 className="font-display text-4xl sm:text-6xl font-bold mt-4 leading-tight">{recap.name}</h1>
             <p className="text-white/80 mt-4 text-lg">{recap.destination} · {recap.start_date} → {recap.end_date}</p>
             <p className="text-white/60 mt-2 text-sm">with {recap.members.join(" · ")}</p>
+          </div>
+        )}
+
+        {slide.kind === "itinerary" && (
+          <div className="max-w-2xl w-full" data-testid="recap-slide-itinerary">
+            <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#F9B384] text-center">The plan</p>
+            <h2 className="font-display text-3xl sm:text-5xl font-bold mt-3 text-center">Day {slide.day}</h2>
+            <p className="text-white/60 text-sm text-center mt-1">
+              {new Date(`${slide.date}T00:00:00`).toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}
+            </p>
+            <div className="mt-8 space-y-3">
+              {slide.items.map((it, i) => (
+                <div key={i} className="bg-white/10 rounded-2xl px-5 py-3 flex items-center gap-4">
+                  <span className={`font-bold text-sm w-12 shrink-0 ${it.time ? "text-[#F9B384]" : "text-white/30"}`}>{it.time || "—"}</span>
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{it.title}</p>
+                    {it.place && <p className="text-xs text-white/60 truncate">{it.place}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

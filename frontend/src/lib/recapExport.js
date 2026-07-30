@@ -97,6 +97,42 @@ function drawSlide(ctx, slide, recap, images, cur) {
     ctx.font = "18px 'DM Sans', sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.fillText(`— ${slide.member_name}`, cx, 296 + lines.length * 54 + 34);
+  } else if (slide.kind === "itinerary") {
+    ctx.fillStyle = "#F9B384";
+    ctx.font = "600 20px 'DM Sans', sans-serif";
+    ctx.fillText("T H E   P L A N", cx, 128);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 54px 'Playfair Display', serif";
+    ctx.fillText(`Day ${slide.day}`, cx, 200);
+    ctx.font = "20px 'DM Sans', sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.fillText(new Date(`${slide.date}T00:00:00`).toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" }), cx, 238);
+    const rows = slide.items.slice(0, 5);
+    rows.forEach((it, i) => {
+      const y = 286 + i * 72;
+      ctx.fillStyle = "rgba(255,255,255,0.1)";
+      if (roundedPath(ctx, cx - 420, y, 840, 60, 16)) ctx.fill();
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#F9B384";
+      ctx.font = "700 20px 'DM Sans', sans-serif";
+      ctx.fillText(it.time || "—", cx - 390, y + 37);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "600 22px 'DM Sans', sans-serif";
+      const title = wrap(ctx, it.title, it.place ? 480 : 700, 1)[0];
+      ctx.fillText(title, cx - 310, y + 37);
+      if (it.place) {
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = "17px 'DM Sans', sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(wrap(ctx, it.place, 210, 1)[0], cx + 390, y + 37);
+      }
+      ctx.textAlign = "center";
+    });
+    if (slide.items.length > 5) {
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "17px 'DM Sans', sans-serif";
+      ctx.fillText(`+ ${slide.items.length - 5} more plans`, cx, 286 + 5 * 72 + 12);
+    }
   } else {
     ctx.fillStyle = "#F9B384";
     ctx.font = "600 20px 'DM Sans', sans-serif";
@@ -139,7 +175,19 @@ function makeCanvas() {
   return c;
 }
 
-const slidesOf = (recap) => [{ kind: "title" }, ...recap.memories, { kind: "stats" }];
+const slidesOf = (recap) => [{ kind: "title" }, ...buildItinerarySlides(recap), ...recap.memories, { kind: "stats" }];
+
+export function buildItinerarySlides(recap) {
+  const items = recap.itinerary || [];
+  const byDate = {};
+  items.forEach((i) => { (byDate[i.date] = byDate[i.date] || []).push(i); });
+  return Object.keys(byDate).sort().map((date) => ({
+    kind: "itinerary",
+    date,
+    day: Math.max(1, Math.round((new Date(`${date}T00:00:00`) - new Date(`${recap.start_date}T00:00:00`)) / 86400000) + 1),
+    items: byDate[date].slice(0, 6),
+  }));
+}
 
 export async function exportImages(recap, token, cur, onProgress) {
   await document.fonts.ready;

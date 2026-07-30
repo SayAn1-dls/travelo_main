@@ -22,12 +22,12 @@ import { toast } from "sonner";
 
 const CATEGORIES = ["stay", "food", "transport", "activities", "other"];
 
-function ExpenseDialog({ trip, myMemberId, expense = null, onClose, onDone }) {
+function ExpenseDialog({ trip, myMemberId, expense = null, prefill = null, onClose, onDone }) {
   const sym = csym(trip.currency);
   const [form, setForm] = useState(() =>
     expense
       ? { description: expense.description, amount: String(expense.amount), category: expense.category, paid_by: expense.paid_by, split_type: expense.split_type }
-      : { description: "", amount: "", category: "food", paid_by: myMemberId || "", split_type: "equal" }
+      : { description: prefill?.description || "", amount: "", category: prefill?.category || "food", paid_by: myMemberId || "", split_type: "equal" }
   );
   const [selected, setSelected] = useState(() =>
     expense && expense.split_type === "equal" ? expense.splits.map((s) => s.member_id) : trip.members.map((m) => m.member_id)
@@ -638,7 +638,12 @@ export default function TripDetail() {
         </TabsContent>
 
         <TabsContent value="itinerary" className="mt-6">
-          <TripItinerary trip={trip} userId={user?.id} isOrganizer={isOrganizer} />
+          <TripItinerary
+            trip={trip}
+            userId={user?.id}
+            isOrganizer={isOrganizer}
+            onLogExpense={(it) => setExpenseDialog({ expense: null, key: `plan-${it.id}`, prefill: { description: it.title, category: "activities" } })}
+          />
         </TabsContent>
 
         <TabsContent value="chat" className="mt-6">
@@ -689,10 +694,11 @@ export default function TripDetail() {
 
       {expenseDialog && (
         <ExpenseDialog
-          key={expenseDialog.expense?.id || "new"}
+          key={expenseDialog.expense?.id || expenseDialog.key || "new"}
           trip={trip}
           myMemberId={myMember?.member_id}
           expense={expenseDialog.expense}
+          prefill={expenseDialog.prefill}
           onClose={() => setExpenseDialog(null)}
           onDone={() => { setExpenseDialog(null); load(); }}
         />

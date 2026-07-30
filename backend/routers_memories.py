@@ -169,6 +169,7 @@ async def get_recap(token: str):
     trip = await trip_by_share_token(token)
     balances = await compute_balances(trip)
     memories = await db.memories.find({"trip_id": str(trip["_id"]), "is_deleted": False}).sort("created_at", 1).to_list(300)
+    itinerary = await db.itinerary_items.find({"trip_id": str(trip["_id"])}).sort([("date", 1), ("time", 1)]).to_list(500)
     return {
         "name": trip["name"], "destination": trip["destination"],
         "start_date": trip["start_date"], "end_date": trip["end_date"],
@@ -176,6 +177,8 @@ async def get_recap(token: str):
         "currency": trip.get("currency", "INR"),
         "stats": {"total_spent": balances["total_spent"], "by_category": balances["by_category"],
                   "budget_total": trip.get("budget_total", 0)},
+        "itinerary": [{"date": i["date"], "time": i.get("time", ""), "title": i["title"], "place": i.get("place", "")}
+                      for i in itinerary],
         "memories": [{"id": str(m["_id"]), "kind": m["kind"], "caption": m.get("caption", ""),
                       "note": m.get("note"), "member_name": m["member_name"], "created_at": m["created_at"]}
                      for m in memories],
