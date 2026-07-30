@@ -81,6 +81,10 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 ## Implemented (2026-06 iter 10, testing-agent frontend regression 100%, iteration_10)
 - Full UI reskin (user request: travel-feeling fonts + attractive professional colors, UI-only): global hex swap via sed across src (excl. components/ui), index.css fonts/vars/glass, tailwind fontFamily, new unsplash hero (Landing) + side image (Auth), recap canvas + OG card fonts updated. Fixed pre-existing hydration warning (Badge inside <p>) on Members tab.
 
+## Implemented (2026-06 iter 11, testing-agent PASSED 15/15 backend + frontend 100%, iteration_11)
+- Explore Glow-Up: destinations_data.py grown 6→17 (added Agra, Leh, Paris, Tokyo, Santorini, Dubai, Bangkok, Singapore, Phuket, Rome, Istanbul — all images URL-verified, contextually checked); ExplorePage.jsx rewritten: bento grid (featured 2x2 first card, every 7th-ish wide), region chips (India 7/Asia 5/Europe 4/Middle East 1), search + count + empty state, plan-trip CTA.
+- Settle-Up Nudge: maybe_post_recap also posts second system message kind "settle" (data.suggestions rows w/ from/to names, amount, upi_link via creditor_upi, data.currency) when balances have suggestions; skipped when settled. TripChat renders settle rows + "Pay via UPI" buttons (settle-nudge-* testids).
+
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).
 - P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; chat pagination (`?since=` cursor — currently capped at last 300 msgs) + incremental polling; storage sweeper for files of hard-deleted trips (memories only soft-deleted); optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
