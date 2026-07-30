@@ -1,8 +1,73 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import api, { inr } from "@/lib/api";
 import BlobImage from "@/components/BlobImage";
-import { AirplaneTilt, CaretLeft, CaretRight, Pause, Play, X, Quotes, UsersThree, Wallet, Images } from "@phosphor-icons/react";
+import { AirplaneTilt, CaretLeft, CaretRight, Pause, Play, X, Quotes, UsersThree, Wallet, Images, MusicNotes, SpeakerSlash } from "@phosphor-icons/react";
+
+function createAmbient() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new Ctx();
+  const master = ctx.createGain();
+  master.gain.value = 0;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 850;
+  filter.connect(master);
+  master.connect(ctx.destination);
+  const chords = [
+    [261.63, 329.63, 392.0, 493.88],
+    [220.0, 261.63, 329.63, 415.3],
+    [174.61, 220.0, 261.63, 349.23],
+    [196.0, 246.94, 293.66, 392.0],
+  ];
+  let voices = [];
+  let chordIdx = 0;
+  let interval = null;
+  const playChord = () => {
+    const now = ctx.currentTime;
+    voices.forEach((v) => {
+      v.gain.gain.cancelScheduledValues(now);
+      v.gain.gain.setValueAtTime(v.gain.gain.value, now);
+      v.gain.gain.linearRampToValueAtTime(0, now + 2.5);
+      v.osc.stop(now + 2.6);
+    });
+    voices = chords[chordIdx % chords.length].map((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = i % 2 ? "sine" : "triangle";
+      osc.frequency.value = f;
+      osc.detune.value = (i - 1.5) * 5;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.12, now + 3);
+      osc.connect(gain);
+      gain.connect(filter);
+      osc.start(now);
+      return { osc, gain };
+    });
+    chordIdx += 1;
+  };
+  return {
+    start() {
+      ctx.resume();
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 1.5);
+      playChord();
+      clearInterval(interval);
+      interval = setInterval(playChord, 9000);
+    },
+    stop() {
+      clearInterval(interval);
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
+    },
+    dispose() {
+      clearInterval(interval);
+      try { ctx.close(); } catch {}
+    },
+  };
+}
 
 export default function RecapPage() {
   const { token } = useParams();
@@ -11,6 +76,20 @@ export default function RecapPage() {
   const [error, setError] = useState(false);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [musicOn, setMusicOn] = useState(false);
+  const ambientRef = useRef(null);
+
+  const toggleMusic = () => {
+    if (!musicOn) {
+      if (!ambientRef.current) ambientRef.current = createAmbient();
+      ambientRef.current.start();
+    } else {
+      ambientRef.current?.stop();
+    }
+    setMusicOn(!musicOn);
+  };
+
+  useEffect(() => () => ambientRef.current?.dispose(), []);
 
   useEffect(() => {
     api.get(`/recap/${token}`).then((r) => setRecap(r.data)).catch(() => setError(true));
@@ -59,6 +138,15 @@ export default function RecapPage() {
       </header>
 
       <main className="relative z-10 flex-1 flex items-center justify-center px-5 sm:px-12 pb-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 26, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -18, scale: 0.99 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+            className="w-full flex items-center justify-center"
+          >
         {slide.kind === "title" && (
           <div className="text-center max-w-2xl" data-testid="recap-slide-title">
             <p className="uppercase tracking-[0.3em] text-xs font-semibold text-[#F9B384]">The story of</p>
@@ -110,6 +198,8 @@ export default function RecapPage() {
             {topCategory && <p className="text-white/70 text-sm mt-8">Biggest spend: <b className="capitalize">{topCategory[0]}</b> at {inr(topCategory[1])}</p>}
           </div>
         )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <footer className="relative z-10 flex flex-col items-center gap-4 pb-8">
@@ -119,6 +209,9 @@ export default function RecapPage() {
             {playing ? <Pause size={20} weight="fill" /> : <Play size={20} weight="fill" />}
           </button>
           <button data-testid="recap-next-btn" onClick={next} className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"><CaretRight size={18} /></button>
+          <button data-testid="recap-music-btn" onClick={toggleMusic} className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${musicOn ? "bg-[#F9B384] text-[#0B4F6C]" : "bg-white/10 hover:bg-white/25"}`} aria-label="Toggle ambient music">
+            {musicOn ? <MusicNotes size={18} weight="fill" /> : <SpeakerSlash size={18} />}
+          </button>
         </div>
         <div className="flex gap-1.5 flex-wrap justify-center max-w-md">
           {slides.map((_, i) => (

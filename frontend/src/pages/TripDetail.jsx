@@ -9,22 +9,31 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import BlobImage from "@/components/BlobImage";
-import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash, Play, LinkSimple } from "@phosphor-icons/react";
+import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash, Play, LinkSimple, PencilSimple, LinkBreak } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["stay", "food", "transport", "activities", "other"];
 
-function AddExpenseDialog({ trip, myMemberId, onAdded }) {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ description: "", amount: "", category: "food", paid_by: myMemberId || "", split_type: "equal" });
-  const [selected, setSelected] = useState(trip.members.map((m) => m.member_id));
-  const [customAmts, setCustomAmts] = useState({});
-  const [percents, setPercents] = useState({});
+function ExpenseDialog({ trip, myMemberId, expense = null, onClose, onDone }) {
+  const [form, setForm] = useState(() =>
+    expense
+      ? { description: expense.description, amount: String(expense.amount), category: expense.category, paid_by: expense.paid_by, split_type: expense.split_type }
+      : { description: "", amount: "", category: "food", paid_by: myMemberId || "", split_type: "equal" }
+  );
+  const [selected, setSelected] = useState(() =>
+    expense && expense.split_type === "equal" ? expense.splits.map((s) => s.member_id) : trip.members.map((m) => m.member_id)
+  );
+  const [customAmts, setCustomAmts] = useState(() =>
+    expense && expense.split_type === "custom" ? Object.fromEntries(expense.splits.map((s) => [s.member_id, String(s.amount)])) : {}
+  );
+  const [percents, setPercents] = useState(() =>
+    expense && expense.split_type === "percentage" ? Object.fromEntries(expense.splits.map((s) => [s.member_id, ((s.amount / expense.amount) * 100).toFixed(2)])) : {}
+  );
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {
@@ -41,13 +50,14 @@ function AddExpenseDialog({ trip, myMemberId, onAdded }) {
     }
     setSaving(true);
     try {
-      await api.post(`/trips/${trip.id}/expenses`, { ...form, amount, splits });
-      toast.success("Expense added");
-      setOpen(false);
-      setForm({ description: "", amount: "", category: "food", paid_by: myMemberId || "", split_type: "equal" });
-      setCustomAmts({});
-      setPercents({});
-      onAdded();
+      if (expense) {
+        await api.put(`/trips/${trip.id}/expenses/${expense.id}`, { ...form, amount, splits });
+        toast.success("Expense updated — balances recalculated");
+      } else {
+        await api.post(`/trips/${trip.id}/expenses`, { ...form, amount, splits });
+        toast.success("Expense added");
+      }
+      onDone();
     } catch (e) {
       toast.error(formatApiError(e));
     }
@@ -55,14 +65,9 @@ function AddExpenseDialog({ trip, myMemberId, onAdded }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button data-testid="add-expense-btn" className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
-          <Plus size={17} className="mr-1" /> Add expense
-        </Button>
-      </DialogTrigger>
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" data-testid="add-expense-dialog">
-        <DialogHeader><DialogTitle className="font-display text-2xl">Log an expense</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="font-display text-2xl">{expense ? "Edit expense" : "Log an expense"}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5 col-span-2">
@@ -123,7 +128,7 @@ function AddExpenseDialog({ trip, myMemberId, onAdded }) {
             ))}
           </div>
           <Button data-testid="expense-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-11">
-            {saving ? "Adding…" : "Add expense"}
+            {saving ? "Saving…" : expense ? "Save changes" : "Add expense"}
           </Button>
         </div>
       </DialogContent>
@@ -131,7 +136,7 @@ function AddExpenseDialog({ trip, myMemberId, onAdded }) {
   );
 }
 
-function MemoriesTab({ trip, userId }) {
+function MemoriesTab({ trip, userId, isOrganizer }) {
   const [memories, setMemories] = useState([]);
   const [note, setNote] = useState("");
   const [caption, setCaption] = useState("");
@@ -154,6 +159,15 @@ function MemoriesTab({ trip, userId }) {
       const t = await getShareToken();
       await navigator.clipboard.writeText(`${window.location.origin}/recap/${t}`);
       toast.success("Share link copied — anyone with it can view the recap");
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const revokeShare = async () => {
+    try {
+      await api.post(`/trips/${trip.id}/recap/revoke`);
+      toast.success("Share link disabled — old links no longer work");
     } catch (e) {
       toast.error(formatApiError(e));
     }
@@ -216,6 +230,11 @@ function MemoriesTab({ trip, userId }) {
           <Button data-testid="copy-recap-link-btn" onClick={copyShare} variant="outline" className="rounded-full bg-white/10 border-white/40 text-white hover:bg-white hover:text-[#1A1A1A] transition-colors">
             <LinkSimple size={15} className="mr-1.5" /> Share link
           </Button>
+          {isOrganizer && (
+            <Button data-testid="revoke-recap-link-btn" onClick={revokeShare} variant="ghost" className="rounded-full text-white/70 hover:text-white hover:bg-white/15">
+              <LinkBreak size={15} className="mr-1.5" /> Revoke
+            </Button>
+          )}
         </div>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
@@ -276,6 +295,8 @@ export default function TripDetail() {
   const [balances, setBalances] = useState(null);
   const [contribution, setContribution] = useState("");
   const [newMember, setNewMember] = useState({ name: "", email: "" });
+  const [expenseDialog, setExpenseDialog] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [settleTarget, setSettleTarget] = useState(null);
   const [settleNote, setSettleNote] = useState("");
   const [proofFile, setProofFile] = useState(null);
@@ -317,6 +338,17 @@ export default function TripDetail() {
         trip_id: id, from_member_id: s.from_member_id, to_member_id: s.to_member_id,
       });
       window.location.href = data.checkout_url;
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const confirmDeleteExpense = async () => {
+    try {
+      await api.delete(`/trips/${id}/expenses/${deleteTarget.id}`);
+      toast.success("Expense deleted — balances recalculated");
+      setDeleteTarget(null);
+      load();
     } catch (e) {
       toast.error(formatApiError(e));
     }
@@ -381,7 +413,9 @@ export default function TripDetail() {
           <Button data-testid="copy-invite-btn" onClick={copyInvite} variant="outline" className="rounded-full">
             <Copy size={16} className="mr-1.5" /> Invite code: {trip.invite_code}
           </Button>
-          <AddExpenseDialog trip={trip} myMemberId={myMember?.member_id} onAdded={load} />
+          <Button data-testid="add-expense-btn" onClick={() => setExpenseDialog({ expense: null })} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+            <Plus size={17} className="mr-1" /> Add expense
+          </Button>
         </div>
       </div>
 
@@ -425,10 +459,20 @@ export default function TripDetail() {
                 <Receipt size={22} weight="duotone" className="text-[#E25822]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate">{e.description}</p>
+                <p className="font-semibold truncate">{e.description} {e.edited_at && <span className="text-xs text-muted-foreground font-normal">(edited)</span>}</p>
                 <p className="text-sm text-muted-foreground">Paid by {memberOf(e.paid_by).name} · split {e.split_type} · <span className="capitalize">{e.category}</span></p>
               </div>
               <p className="font-display text-xl font-bold">{inr(e.amount)}</p>
+              {(e.created_by === user?.id || trip.organizer_id === user?.id) && (
+                <div className="flex gap-1 shrink-0">
+                  <button data-testid="edit-expense-btn" onClick={() => setExpenseDialog({ expense: e })} className="h-8 w-8 rounded-full hover:bg-accent flex items-center justify-center text-muted-foreground transition-colors" aria-label="Edit expense">
+                    <PencilSimple size={15} />
+                  </button>
+                  <button data-testid="delete-expense-btn" onClick={() => setDeleteTarget(e)} className="h-8 w-8 rounded-full hover:bg-red-50 hover:text-red-600 flex items-center justify-center text-muted-foreground transition-colors" aria-label="Delete expense">
+                    <Trash size={15} />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </TabsContent>
@@ -555,9 +599,38 @@ export default function TripDetail() {
         </TabsContent>
 
         <TabsContent value="memories" className="mt-6">
-          <MemoriesTab trip={trip} userId={user?.id} />
+          <MemoriesTab trip={trip} userId={user?.id} isOrganizer={trip.organizer_id === user?.id} />
         </TabsContent>
       </Tabs>
+
+      {expenseDialog && (
+        <ExpenseDialog
+          key={expenseDialog.expense?.id || "new"}
+          trip={trip}
+          myMemberId={myMember?.member_id}
+          expense={expenseDialog.expense}
+          onClose={() => setExpenseDialog(null)}
+          onDone={() => { setExpenseDialog(null); load(); }}
+        />
+      )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <DialogContent data-testid="delete-expense-dialog">
+          <DialogHeader><DialogTitle className="font-display text-2xl">Delete this expense?</DialogTitle></DialogHeader>
+          {deleteTarget && (
+            <div className="space-y-4">
+              <p className="text-sm bg-[#FDF3EC] rounded-xl p-4">
+                <b>{deleteTarget.description}</b> · {inr(deleteTarget.amount)} paid by {memberOf(deleteTarget.paid_by).name}
+              </p>
+              <p className="text-xs text-muted-foreground">Balances will be recalculated for everyone. This can't be undone.</p>
+              <div className="flex gap-2">
+                <Button data-testid="confirm-delete-expense-btn" onClick={confirmDeleteExpense} className="flex-1 rounded-full bg-red-600 hover:bg-red-700 text-white">Delete expense</Button>
+                <Button variant="outline" className="flex-1 rounded-full" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!settleTarget} onOpenChange={(v) => !v && setSettleTarget(null)}>
         <DialogContent data-testid="settle-dialog">

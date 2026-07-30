@@ -143,6 +143,15 @@ async def create_recap_share(trip_id: str, user: dict = Depends(get_current_user
     return {"token": token}
 
 
+@memories_router.post("/trips/{trip_id}/recap/revoke")
+async def revoke_recap_share(trip_id: str, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    if trip["organizer_id"] != str(user["_id"]):
+        raise HTTPException(status_code=403, detail="Only the organizer can revoke the share link")
+    await db.trips.update_one({"_id": trip["_id"]}, {"$unset": {"share_token": ""}})
+    return {"ok": True}
+
+
 async def trip_by_share_token(token: str):
     trip = await db.trips.find_one({"share_token": token})
     if not trip:

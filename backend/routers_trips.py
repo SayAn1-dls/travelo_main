@@ -168,6 +168,43 @@ def build_splits(amount, split_type, splits_in, members):
     raise HTTPException(status_code=400, detail="Invalid split type")
 
 
+async def sync_budget_alerts(trip):
+    """Fires budget_alert notifications exactly once per crossing; clears flags when spend drops back under."""
+    trip_id = str(trip["_id"])
+    fresh = await db.trips.find_one({"_id": trip["_id"]})
+    fired = fresh.get("budget_alerts_fired") or {}
+    expenses = await db.expenses.find({"trip_id": trip_id}).to_list(1000)
+    total = sum(e["amount"] for e in expenses)
+    by_cat = {}
+    for e in expenses:
+        by_cat[e["category"]] = by_cat.get(e["category"], 0) + e["amount"]
+    budgets = fresh.get("budget_categories") or {}
+    checks = [(cat, by_cat.get(cat, 0), b) for cat, b in budgets.items() if b]
+    if fresh.get("budget_total"):
+        checks.append(("__total__", total, fresh["budget_total"]))
+    to_set, to_unset, alerts = {}, {}, []
+    for key, spend, budget in checks:
+        over = spend > budget
+        if over and not fired.get(key):
+            to_set[f"budget_alerts_fired.{key}"] = True
+            if key == "__total__":
+                alerts.append(("Trip budget crossed",
+                               f"\"{fresh['name']}\": total spend hit ₹{spend:,.0f} of the ₹{budget:,.0f} budget"))
+            else:
+                alerts.append((f"{key.title()} budget crossed",
+                               f"\"{fresh['name']}\": {key} spend hit ₹{spend:,.0f} of the ₹{budget:,.0f} planned"))
+        elif not over and fired.get(key):
+            to_unset[f"budget_alerts_fired.{key}"] = ""
+    if to_set:
+        await db.trips.update_one({"_id": trip["_id"]}, {"$set": to_set})
+    if to_unset:
+        await db.trips.update_one({"_id": trip["_id"]}, {"$unset": to_unset})
+    for title, msg in alerts:
+        for m in fresh["members"]:
+            if m.get("user_id"):
+                await notify(m["user_id"], "budget_alert", title, msg, {"trip_id": trip_id})
+
+
 @trips_router.post("/{trip_id}/expenses")
 async def add_expense(trip_id: str, body: ExpenseCreate, user: dict = Depends(get_current_user)):
     trip = await get_trip_or_404(trip_id, user)
@@ -187,22 +224,7 @@ async def add_expense(trip_id: str, body: ExpenseCreate, user: dict = Depends(ge
             await notify(m["user_id"], "expense_added", f"New expense in {trip['name']}",
                          f"{payer['name']} paid ₹{body.amount:,.0f} for {body.description}",
                          {"trip_id": trip_id})
-    expenses_after = await db.expenses.find({"trip_id": trip_id}).to_list(1000)
-    total_after = sum(e["amount"] for e in expenses_after)
-    cat_after = sum(e["amount"] for e in expenses_after if e["category"] == body.category)
-    alerts = []
-    cat_budget = (trip.get("budget_categories") or {}).get(body.category) or 0
-    if cat_budget and cat_after > cat_budget and cat_after - body.amount <= cat_budget:
-        alerts.append((f"{body.category.title()} budget crossed",
-                       f"\"{trip['name']}\": {body.category} spend hit ₹{cat_after:,.0f} of the ₹{cat_budget:,.0f} planned"))
-    budget_total = trip.get("budget_total") or 0
-    if budget_total and total_after > budget_total and total_after - body.amount <= budget_total:
-        alerts.append(("Trip budget crossed",
-                       f"\"{trip['name']}\": total spend hit ₹{total_after:,.0f} of the ₹{budget_total:,.0f} budget"))
-    for title, msg in alerts:
-        for m in members:
-            if m.get("user_id"):
-                await notify(m["user_id"], "budget_alert", title, msg, {"trip_id": trip_id})
+    await sync_budget_alerts(trip)
     doc["id"] = str(result.inserted_id)
     doc.pop("_id", None)
     return doc
@@ -215,6 +237,60 @@ async def list_expenses(trip_id: str, user: dict = Depends(get_current_user)):
     for d in docs:
         d["id"] = str(d.pop("_id"))
     return docs
+
+
+async def get_expense_or_404(trip_id: str, expense_id: str):
+    try:
+        doc = await db.expenses.find_one({"_id": ObjectId(expense_id), "trip_id": trip_id})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid expense id")
+    if not doc:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    return doc
+
+
+@trips_router.put("/{trip_id}/expenses/{expense_id}")
+async def update_expense(trip_id: str, expense_id: str, body: ExpenseCreate, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    expense = await get_expense_or_404(trip_id, expense_id)
+    uid = str(user["_id"])
+    if expense["created_by"] != uid and trip["organizer_id"] != uid:
+        raise HTTPException(status_code=403, detail="Only the person who logged this expense or the organizer can edit it")
+    members = trip["members"]
+    if body.paid_by not in {m["member_id"] for m in members}:
+        raise HTTPException(status_code=400, detail="Payer is not a trip member")
+    splits = build_splits(body.amount, body.split_type, body.splits, members)
+    await db.expenses.update_one({"_id": expense["_id"]}, {"$set": {
+        "description": body.description, "amount": round(body.amount, 2), "category": body.category,
+        "paid_by": body.paid_by, "split_type": body.split_type, "splits": splits,
+        "edited_by": uid, "edited_at": utcnow(),
+    }})
+    await sync_budget_alerts(trip)
+    for m in members:
+        if m.get("user_id") and m["user_id"] != uid:
+            await notify(m["user_id"], "expense_updated", f"Expense updated in {trip['name']}",
+                         f"{user.get('name')} updated \"{body.description}\" — now ₹{body.amount:,.0f}",
+                         {"trip_id": trip_id})
+    doc = await db.expenses.find_one({"_id": expense["_id"]})
+    doc["id"] = str(doc.pop("_id"))
+    return doc
+
+
+@trips_router.delete("/{trip_id}/expenses/{expense_id}")
+async def delete_expense(trip_id: str, expense_id: str, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    expense = await get_expense_or_404(trip_id, expense_id)
+    uid = str(user["_id"])
+    if expense["created_by"] != uid and trip["organizer_id"] != uid:
+        raise HTTPException(status_code=403, detail="Only the person who logged this expense or the organizer can delete it")
+    await db.expenses.delete_one({"_id": expense["_id"]})
+    await sync_budget_alerts(trip)
+    for m in trip["members"]:
+        if m.get("user_id") and m["user_id"] != uid:
+            await notify(m["user_id"], "expense_deleted", f"Expense removed in {trip['name']}",
+                         f"{user.get('name')} deleted \"{expense['description']}\" (₹{expense['amount']:,.0f})",
+                         {"trip_id": trip_id})
+    return {"ok": True}
 
 
 async def compute_balances(trip):
