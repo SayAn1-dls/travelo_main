@@ -14,6 +14,8 @@ from routers_destinations import destinations_router
 from routers_trips import trips_router, notifications_router
 from routers_chat import chat_router
 from routers_payments import payments_router
+from routers_memories import memories_router
+from storage import init_storage
 
 app = FastAPI(title="Travelo API")
 
@@ -32,6 +34,7 @@ api_router.include_router(trips_router)
 api_router.include_router(notifications_router)
 api_router.include_router(chat_router)
 api_router.include_router(payments_router)
+api_router.include_router(memories_router)
 
 app.include_router(api_router)
 
@@ -58,7 +61,14 @@ async def startup():
     await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
     await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
     await db.payment_transactions.create_index("session_id")
+    await db.user_sessions.create_index("session_token")
+    await db.memories.create_index("trip_id")
     await seed_users()
+    try:
+        await init_storage()
+        logger.info("Object storage initialized")
+    except Exception as e:
+        logger.error(f"Storage init failed: {e}")
     logger.info("Travelo startup complete")
 
 

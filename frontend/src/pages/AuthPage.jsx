@@ -56,14 +56,23 @@ export default function AuthPage() {
           </p>
 
           <div className="grid grid-cols-2 gap-3 mt-8">
-            <Button data-testid="auth-google-btn" variant="outline" className="rounded-xl h-11" disabled onClick={() => {}} title="Add your Google OAuth keys to enable">
+            <Button
+              data-testid="auth-google-btn"
+              variant="outline"
+              className="rounded-xl h-11"
+              onClick={() => {
+                // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+                const redirectUrl = window.location.origin + "/dashboard";
+                window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+              }}
+            >
               <GoogleLogo size={18} className="mr-2" /> Google
             </Button>
             <Button data-testid="auth-facebook-btn" variant="outline" className="rounded-xl h-11" disabled title="Add your Facebook OAuth keys to enable">
               <FacebookLogo size={18} className="mr-2" /> Facebook
             </Button>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-2 text-center">Social login activates once you add your Google / Meta OAuth credentials.</p>
+          <p className="text-[11px] text-muted-foreground mt-2 text-center">Facebook login activates once you add your Meta OAuth credentials.</p>
 
           <div className="flex items-center gap-3 my-6">
             <div className="h-px bg-border flex-1" />

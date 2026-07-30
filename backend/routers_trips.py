@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from db import db
 from auth import get_current_user
+from email_service import send_email
 from models import TripCreate, TripMemberIn, ContributionUpdate, ExpenseCreate, SettlementCreate, RemindRequest, utcnow
 
 trips_router = APIRouter(prefix="/trips")
@@ -292,13 +293,21 @@ async def send_reminder(trip_id: str, body: RemindRequest, user: dict = Depends(
     to_m = next((m for m in trip["members"] if m["member_id"] == body.to_member_id), None)
     if not from_m or not to_m:
         raise HTTPException(status_code=400, detail="Invalid member")
-    if not from_m.get("user_id"):
-        raise HTTPException(status_code=400, detail=f"{from_m['name']} hasn't joined Travelo yet")
     link = await creditor_upi(trip, body.to_member_id, body.amount)
-    await notify(from_m["user_id"], "payment_due", f"You owe ₹{body.amount:,.0f}",
-                 f"You owe ₹{body.amount:,.0f} to {to_m['name']} for \"{trip['name']}\"",
-                 {"trip_id": trip_id, "amount": body.amount, "upi_link": link,
-                  "from_member_id": body.from_member_id, "to_member_id": body.to_member_id})
+    if from_m.get("user_id"):
+        await notify(from_m["user_id"], "payment_due", f"You owe ₹{body.amount:,.0f}",
+                     f"You owe ₹{body.amount:,.0f} to {to_m['name']} for \"{trip['name']}\"",
+                     {"trip_id": trip_id, "amount": body.amount, "upi_link": link,
+                      "from_member_id": body.from_member_id, "to_member_id": body.to_member_id})
+    pay_html = f'<p style="margin:18px 0"><a href="{link}" style="background:#E25822;color:#ffffff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:bold">Pay Now via UPI</a></p>' if link else ""
+    await send_email(
+        to=from_m["email"],
+        subject=f"You owe ₹{body.amount:,.0f} to {to_m['name']} — {trip['name']}",
+        html=(f"<p>Hi {from_m['name']},</p>"
+              f"<p>You owe <b>₹{body.amount:,.0f}</b> to <b>{to_m['name']}</b> for the trip "
+              f"<b>{trip['name']}</b> ({trip['destination']}).</p>{pay_html}"
+              f"<p>Open Travelo to see the full split and settle up.</p><p>— Travelo</p>"),
+    )
     return {"ok": True, "upi_link": link}
 
 

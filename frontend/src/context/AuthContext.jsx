@@ -7,6 +7,8 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    // Skip /me check while returning from OAuth — AuthCallback establishes the session first
+    if (window.location.hash?.includes("session_id=")) return;
     api.get("/auth/me").then((r) => setUser(r.data)).catch(() => setUser(false));
   }, []);
 
@@ -24,6 +26,13 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const googleSession = async (sessionId) => {
+    const { data } = await api.post("/auth/google/session", { session_id: sessionId });
+    localStorage.setItem("travelo_token", data.session_token);
+    setUser(data.user);
+    return data.user;
+  };
+
   const logout = async () => {
     await api.post("/auth/logout").catch(() => {});
     localStorage.removeItem("travelo_token");
@@ -36,7 +45,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, refreshMe }}>
+    <AuthContext.Provider value={{ user, login, register, googleSession, logout, refreshMe }}>
       {children}
     </AuthContext.Provider>
   );

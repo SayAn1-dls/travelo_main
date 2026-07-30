@@ -1,5 +1,5 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
@@ -15,6 +15,7 @@ import DestinationHub from "@/pages/DestinationHub";
 import TripsPage from "@/pages/TripsPage";
 import TripDetail from "@/pages/TripDetail";
 import { PaymentSuccess, PaymentCancel } from "@/pages/PaymentStatus";
+import AuthCallback from "@/pages/AuthCallback";
 
 function ProtectedLayout() {
   const { user } = useAuth();
@@ -34,26 +35,35 @@ function ProtectedLayout() {
   );
 }
 
+function AppRoutes() {
+  const location = useLocation();
+  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+  if (location.hash?.includes("session_id=")) return <AuthCallback />;
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route element={<ProtectedLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/book" element={<BookingPage />} />
+        <Route path="/bookings" element={<BookingsHistory />} />
+        <Route path="/ticket/:id" element={<TicketPage />} />
+        <Route path="/explore" element={<ExplorePage />} />
+        <Route path="/destinations/:slug" element={<DestinationHub />} />
+        <Route path="/trips" element={<TripsPage />} />
+        <Route path="/trips/:id" element={<TripDetail />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/cancel" element={<PaymentCancel />} />
+      </Route>
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route element={<ProtectedLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/book" element={<BookingPage />} />
-            <Route path="/bookings" element={<BookingsHistory />} />
-            <Route path="/ticket/:id" element={<TicketPage />} />
-            <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/destinations/:slug" element={<DestinationHub />} />
-            <Route path="/trips" element={<TripsPage />} />
-            <Route path="/trips/:id" element={<TripDetail />} />
-            <Route path="/payment/success" element={<PaymentSuccess />} />
-            <Route path="/payment/cancel" element={<PaymentCancel />} />
-          </Route>
-        </Routes>
+        <AppRoutes />
         <Toaster position="top-center" richColors />
       </BrowserRouter>
     </AuthProvider>

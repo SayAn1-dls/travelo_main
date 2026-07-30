@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError, inr } from "@/lib/api";
@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle } from "@phosphor-icons/react";
+import { Textarea } from "@/components/ui/textarea";
+import BlobImage from "@/components/BlobImage";
+import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["stay", "food", "transport", "activities", "other"];
@@ -129,6 +131,108 @@ function AddExpenseDialog({ trip, myMemberId, onAdded }) {
   );
 }
 
+function MemoriesTab({ trip, userId }) {
+  const [memories, setMemories] = useState([]);
+  const [note, setNote] = useState("");
+  const [caption, setCaption] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  const load = useCallback(() => {
+    api.get(`/trips/${trip.id}/memories`).then((r) => setMemories(r.data)).catch(() => {});
+  }, [trip.id]);
+  useEffect(() => { load(); }, [load]);
+
+  const uploadPhoto = async (file) => {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("caption", caption);
+    setUploading(true);
+    try {
+      await api.post(`/trips/${trip.id}/memories/photo`, fd);
+      setCaption("");
+      toast.success("Photo added to trip memories");
+      load();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const addNote = async () => {
+    if (!note.trim()) return;
+    try {
+      await api.post(`/trips/${trip.id}/memories/note`, { text: note.trim() });
+      setNote("");
+      load();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const del = async (mid) => {
+    try {
+      await api.delete(`/memories/${mid}`);
+      load();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  return (
+    <div>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
+          <p className="font-semibold flex items-center gap-2 mb-3"><Camera size={20} weight="duotone" className="text-[#E25822]" /> Add a photo</p>
+          <Input data-testid="memory-caption-input" placeholder="Caption (optional)" value={caption} onChange={(e) => setCaption(e.target.value)} className="rounded-xl" />
+          <input ref={fileRef} data-testid="memory-file-input" type="file" accept="image/*" className="hidden" onChange={(e) => uploadPhoto(e.target.files?.[0])} />
+          <Button data-testid="memory-upload-btn" onClick={() => fileRef.current?.click()} disabled={uploading} variant="outline" className="rounded-full mt-3">
+            {uploading ? "Uploading…" : "Choose photo & upload"}
+          </Button>
+        </div>
+        <div className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
+          <p className="font-semibold flex items-center gap-2 mb-3"><NotePencil size={20} weight="duotone" className="text-[#0B4F6C]" /> Add a note</p>
+          <Textarea data-testid="memory-note-input" placeholder="Sunset at Palolem was unreal…" value={note} onChange={(e) => setNote(e.target.value)} className="rounded-xl" rows={2} />
+          <Button data-testid="memory-note-btn" onClick={addNote} variant="outline" className="rounded-full mt-3">Add note</Button>
+        </div>
+      </div>
+
+      {memories.length === 0 ? (
+        <p className="text-muted-foreground text-sm py-10 text-center">No memories yet — add the first photo or note from your trip.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          {memories.map((m) => (
+            <div key={m.id} data-testid="memory-card" className="bg-white border border-[#EAE3D9] rounded-2xl overflow-hidden group relative">
+              {m.kind === "photo" ? (
+                <>
+                  <BlobImage path={`/memories/${m.id}/image`} alt={m.caption || "Trip memory"} className="w-full h-48 object-cover" />
+                  <div className="p-4">
+                    {m.caption && <p className="text-sm font-medium">{m.caption}</p>}
+                    <p className="text-xs text-muted-foreground mt-1">by {m.member_name}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="p-5 bg-[#FDF3EC] h-full">
+                  <NotePencil size={18} weight="duotone" className="text-[#0B4F6C]" />
+                  <p className="text-sm mt-2 whitespace-pre-wrap">{m.note}</p>
+                  <p className="text-xs text-muted-foreground mt-3">— {m.member_name}</p>
+                </div>
+              )}
+              {m.created_by === userId && (
+                <button data-testid="memory-delete-btn" onClick={() => del(m.id)} className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Trash size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TripDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -137,6 +241,11 @@ export default function TripDetail() {
   const [balances, setBalances] = useState(null);
   const [contribution, setContribution] = useState("");
   const [newMember, setNewMember] = useState({ name: "", email: "" });
+  const [settleTarget, setSettleTarget] = useState(null);
+  const [settleNote, setSettleNote] = useState("");
+  const [proofFile, setProofFile] = useState(null);
+  const [settling, setSettling] = useState(false);
+  const [proofView, setProofView] = useState(null);
 
   const load = useCallback(() => {
     api.get(`/trips/${id}`).then((r) => setTrip(r.data)).catch(() => {});
@@ -178,14 +287,30 @@ export default function TripDetail() {
     }
   };
 
-  const markSettled = async (s) => {
+  const confirmSettle = async () => {
+    setSettling(true);
     try {
-      await api.post(`/trips/${id}/settlements`, { ...s, method: "upi", note: "Marked settled manually" });
+      const { data: st } = await api.post(`/trips/${id}/settlements`, {
+        from_member_id: settleTarget.from_member_id,
+        to_member_id: settleTarget.to_member_id,
+        amount: settleTarget.amount,
+        method: "upi",
+        note: settleNote || "Marked settled manually",
+      });
+      if (proofFile) {
+        const fd = new FormData();
+        fd.append("file", proofFile);
+        await api.post(`/trips/${id}/settlements/${st.id}/proof`, fd);
+      }
       toast.success("Marked as settled");
+      setSettleTarget(null);
+      setSettleNote("");
+      setProofFile(null);
       load();
     } catch (e) {
       toast.error(formatApiError(e));
     }
+    setSettling(false);
   };
 
   const saveContribution = async () => {
@@ -253,6 +378,7 @@ export default function TripDetail() {
           <TabsTrigger data-testid="trip-tab-expenses" value="expenses" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Expenses</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-balances" value="balances" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Balances</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-members" value="members" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Members</TabsTrigger>
+          <TabsTrigger data-testid="trip-tab-memories" value="memories" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Memories</TabsTrigger>
         </TabsList>
 
         <TabsContent value="expenses" className="mt-6 space-y-3">
@@ -321,7 +447,7 @@ export default function TripDetail() {
                               <BellRinging size={15} className="mr-1.5" /> Remind
                             </Button>
                           )}
-                          <Button data-testid="settle-mark-btn" onClick={() => markSettled(s)} size="sm" variant="ghost" className="rounded-full text-muted-foreground">
+                          <Button data-testid="settle-mark-btn" onClick={() => setSettleTarget(s)} size="sm" variant="ghost" className="rounded-full text-muted-foreground">
                             Mark settled
                           </Button>
                         </div>
@@ -338,7 +464,14 @@ export default function TripDetail() {
                     {balances.settlements.map((st) => (
                       <div key={st.id} data-testid="settlement-history-item" className="bg-white border border-[#EAE3D9] rounded-xl px-4 py-3 flex items-center justify-between text-sm">
                         <span>{memberOf(st.from_member_id).name} paid {memberOf(st.to_member_id).name} <b>{inr(st.amount)}</b> <span className="text-muted-foreground">via {st.method}</span></span>
-                        <CheckCircle size={18} weight="duotone" className="text-emerald-600" />
+                        <span className="flex items-center gap-3">
+                          {st.proof_path && (
+                            <button data-testid="view-proof-btn" onClick={() => setProofView(st.id)} className="text-xs font-semibold text-[#0B4F6C] hover:underline flex items-center gap-1">
+                              <Camera size={14} /> Proof
+                            </button>
+                          )}
+                          <CheckCircle size={18} weight="duotone" className="text-emerald-600" />
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -384,7 +517,44 @@ export default function TripDetail() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="memories" className="mt-6">
+          <MemoriesTab trip={trip} userId={user?.id} />
+        </TabsContent>
       </Tabs>
+
+      <Dialog open={!!settleTarget} onOpenChange={(v) => !v && setSettleTarget(null)}>
+        <DialogContent data-testid="settle-dialog">
+          <DialogHeader><DialogTitle className="font-display text-2xl">Mark as settled</DialogTitle></DialogHeader>
+          {settleTarget && (
+            <div className="space-y-4">
+              <p className="text-sm bg-[#FDF3EC] rounded-xl p-4">
+                <b>{memberOf(settleTarget.from_member_id).name}</b> paid <b>{memberOf(settleTarget.to_member_id).name}</b>{" "}
+                <span className="font-display text-lg font-bold">{inr(settleTarget.amount)}</span>
+              </p>
+              <div className="space-y-1.5">
+                <Label>Note (optional)</Label>
+                <Input data-testid="settle-note-input" placeholder="Paid via GPay" value={settleNote} onChange={(e) => setSettleNote(e.target.value)} className="rounded-xl" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Payment proof screenshot (optional)</Label>
+                <Input data-testid="settle-proof-input" type="file" accept="image/*" onChange={(e) => setProofFile(e.target.files?.[0] || null)} className="rounded-xl" />
+                {proofFile && <p className="text-xs text-muted-foreground">Attached: {proofFile.name}</p>}
+              </div>
+              <Button data-testid="settle-confirm-btn" onClick={confirmSettle} disabled={settling} className="w-full rounded-full bg-[#E25822] hover:bg-[#C84B1A] h-11">
+                {settling ? "Saving…" : "Confirm settlement"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!proofView} onOpenChange={(v) => !v && setProofView(null)}>
+        <DialogContent data-testid="proof-dialog" className="max-w-lg">
+          <DialogHeader><DialogTitle className="font-display text-2xl">Payment proof</DialogTitle></DialogHeader>
+          {proofView && <BlobImage path={`/settlements/${proofView}/proof`} alt="Payment proof" className="w-full rounded-xl max-h-[60vh] object-contain" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
