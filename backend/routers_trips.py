@@ -84,13 +84,55 @@ async def create_trip(body: TripCreate, user: dict = Depends(get_current_user)):
     return trip_public(doc)
 
 
+def require_organizer(trip, user):
+    if trip["organizer_id"] != str(user["_id"]):
+        raise HTTPException(status_code=403, detail="Only the organizer can do this")
+
+
+@trips_router.post("/{trip_id}/archive")
+async def archive_trip(trip_id: str, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    require_organizer(trip, user)
+    await db.trips.update_one({"_id": trip["_id"]}, {"$set": {"archived": True}})
+    return {"ok": True, "archived": True}
+
+
+@trips_router.post("/{trip_id}/unarchive")
+async def unarchive_trip(trip_id: str, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    require_organizer(trip, user)
+    await db.trips.update_one({"_id": trip["_id"]}, {"$set": {"archived": False}})
+    return {"ok": True, "archived": False}
+
+
+@trips_router.delete("/{trip_id}")
+async def delete_trip(trip_id: str, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    require_organizer(trip, user)
+    for coll in (db.expenses, db.settlements, db.trip_messages, db.chat_reads):
+        await coll.delete_many({"trip_id": trip_id})
+    await db.memories.update_many({"trip_id": trip_id}, {"$set": {"is_deleted": True}})
+    await db.trips.delete_one({"_id": trip["_id"]})
+    for m in trip["members"]:
+        if m.get("user_id") and m["user_id"] != str(user["_id"]):
+            await notify(m["user_id"], "trip_deleted", "Trip deleted",
+                         f"\"{trip['name']}\" was deleted by the organizer", {})
+    return {"ok": True}
+
+
 @trips_router.get("")
 async def list_trips(user: dict = Depends(get_current_user)):
     docs = await db.trips.find({"$or": [
         {"members.user_id": str(user["_id"])},
         {"members.email": user["email"]},
     ]}).sort("created_at", -1).to_list(100)
-    return [trip_public(d) for d in docs]
+    uid = str(user["_id"])
+    out = []
+    for d in docs:
+        t = trip_public(d)
+        t["unread_chat"] = await unread_count(t["id"], uid)
+        out.append(t)
+    return out
 
 
 class JoinRequest(BaseModel):
@@ -442,7 +484,41 @@ async def post_message(trip_id: str, body: TripMessageIn, user: dict = Depends(g
     result = await db.trip_messages.insert_one(doc)
     doc["id"] = str(result.inserted_id)
     doc.pop("_id", None)
+    for m in trip["members"]:
+        if m.get("user_id") and m["user_id"] != uid:
+            existing = await db.notifications.find_one({
+                "user_id": m["user_id"], "type": "chat_message",
+                "data.trip_id": trip_id, "read": False})
+            if not existing:
+                await notify(m["user_id"], "chat_message", f"New messages in {trip['name']}",
+                             f"{doc['name']}: {text[:80]}", {"trip_id": trip_id})
     return doc
+
+
+async def unread_count(trip_id, uid):
+    read = await db.chat_reads.find_one({"trip_id": trip_id, "user_id": uid})
+    q = {"trip_id": trip_id, "user_id": {"$ne": uid}}
+    if read:
+        q["created_at"] = {"$gt": read["last_read_at"]}
+    return await db.trip_messages.count_documents(q)
+
+
+@trips_router.get("/{trip_id}/messages/unread")
+async def chat_unread(trip_id: str, user: dict = Depends(get_current_user)):
+    await get_trip_or_404(trip_id, user)
+    return {"count": await unread_count(trip_id, str(user["_id"]))}
+
+
+@trips_router.post("/{trip_id}/messages/read")
+async def mark_chat_read(trip_id: str, user: dict = Depends(get_current_user)):
+    await get_trip_or_404(trip_id, user)
+    uid = str(user["_id"])
+    await db.chat_reads.update_one({"trip_id": trip_id, "user_id": uid},
+                                   {"$set": {"last_read_at": utcnow()}}, upsert=True)
+    await db.notifications.update_many(
+        {"user_id": uid, "type": "chat_message", "data.trip_id": trip_id, "read": False},
+        {"$set": {"read": True}})
+    return {"ok": True}
 
 
 @notifications_router.get("")

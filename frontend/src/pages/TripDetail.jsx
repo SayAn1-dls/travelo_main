@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import BlobImage from "@/components/BlobImage";
 import TripChat from "@/components/TripChat";
-import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash, Play, LinkSimple, PencilSimple, LinkBreak } from "@phosphor-icons/react";
+import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash, Play, LinkSimple, PencilSimple, LinkBreak, DotsThreeVertical, Archive } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["stay", "food", "transport", "activities", "other"];
@@ -159,8 +160,8 @@ function MemoriesTab({ trip, userId, isOrganizer }) {
   const copyShare = async () => {
     try {
       const t = await getShareToken();
-      await navigator.clipboard.writeText(`${window.location.origin}/recap/${t}`);
-      toast.success("Share link copied — anyone with it can view the recap");
+      await navigator.clipboard.writeText(`${window.location.origin}/api/recap/${t}/share`);
+      toast.success("Share link copied — it shows a rich preview card on WhatsApp & socials");
     } catch (e) {
       toast.error(formatApiError(e));
     }
@@ -292,6 +293,7 @@ function MemoriesTab({ trip, userId, isOrganizer }) {
 export default function TripDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [trip, setTrip] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState(null);
@@ -299,11 +301,14 @@ export default function TripDetail() {
   const [newMember, setNewMember] = useState({ name: "", email: "" });
   const [expenseDialog, setExpenseDialog] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteTripOpen, setDeleteTripOpen] = useState(false);
   const [settleTarget, setSettleTarget] = useState(null);
   const [settleNote, setSettleNote] = useState("");
   const [proofFile, setProofFile] = useState(null);
   const [settling, setSettling] = useState(false);
   const [proofView, setProofView] = useState(null);
+  const [activeTab, setActiveTab] = useState("expenses");
+  const [chatUnread, setChatUnread] = useState(0);
 
   const load = useCallback(() => {
     api.get(`/trips/${id}`).then((r) => setTrip(r.data)).catch(() => {});
@@ -312,10 +317,18 @@ export default function TripDetail() {
   }, [id]);
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    const fetchUnread = () => api.get(`/trips/${id}/messages/unread`).then((r) => setChatUnread(r.data.count)).catch(() => {});
+    fetchUnread();
+    const t = setInterval(fetchUnread, 10000);
+    return () => clearInterval(t);
+  }, [id]);
+
   if (!trip) return <div className="max-w-5xl mx-auto px-5 py-20 text-center text-muted-foreground">Loading trip…</div>;
 
   const memberOf = (mid) => trip.members.find((m) => m.member_id === mid) || { name: "?" };
   const myMember = trip.members.find((m) => m.user_id === user?.id);
+  const isOrganizer = trip.organizer_id === user?.id;
   const fmt = (n) => money(n, trip.currency);
   const sym = csym(trip.currency);
   const spent = balances?.total_spent || 0;
@@ -394,6 +407,26 @@ export default function TripDetail() {
     }
   };
 
+  const toggleArchive = async () => {
+    try {
+      await api.post(`/trips/${id}/${trip.archived ? "unarchive" : "archive"}`);
+      toast.success(trip.archived ? "Trip unarchived" : "Trip archived — find it under Archived on your trips page");
+      load();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const confirmDeleteTrip = async () => {
+    try {
+      await api.delete(`/trips/${id}`);
+      toast.success("Trip deleted");
+      navigate("/trips");
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
   const addMember = async () => {
     if (!newMember.email.trim()) return;
     try {
@@ -411,7 +444,10 @@ export default function TripDetail() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#E25822] mb-2">{trip.destination} · {trip.start_date} → {trip.end_date}</p>
-          <h1 className="font-display text-4xl sm:text-5xl font-bold" data-testid="trip-title">{trip.name}</h1>
+          <h1 className="font-display text-4xl sm:text-5xl font-bold" data-testid="trip-title">
+            {trip.name}
+            {trip.archived && <Badge variant="outline" data-testid="trip-archived-badge" className="ml-3 align-middle text-amber-700 border-amber-300 font-sans">Archived</Badge>}
+          </h1>
         </div>
         <div className="flex gap-2">
           <Button data-testid="copy-invite-btn" onClick={copyInvite} variant="outline" className="rounded-full">
@@ -420,6 +456,23 @@ export default function TripDetail() {
           <Button data-testid="add-expense-btn" onClick={() => setExpenseDialog({ expense: null })} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
             <Plus size={17} className="mr-1" /> Add expense
           </Button>
+          {isOrganizer && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button data-testid="trip-menu-btn" variant="outline" size="icon" className="rounded-full shrink-0" aria-label="Trip options">
+                  <DotsThreeVertical size={18} weight="bold" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem data-testid="trip-archive-btn" onClick={toggleArchive} className="cursor-pointer">
+                  <Archive size={15} className="mr-2" /> {trip.archived ? "Unarchive trip" : "Archive trip"}
+                </DropdownMenuItem>
+                <DropdownMenuItem data-testid="trip-delete-btn" onClick={() => setDeleteTripOpen(true)} className="cursor-pointer text-red-600 focus:text-red-600">
+                  <Trash size={15} className="mr-2" /> Delete trip
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -447,11 +500,16 @@ export default function TripDetail() {
         )}
       </div>
 
-      <Tabs defaultValue="expenses" className="mt-10">
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v === "chat") setChatUnread(0); }} className="mt-10">
         <TabsList className="rounded-full h-12 p-1 bg-[#F5EFE5] max-w-full overflow-x-auto justify-start">
           <TabsTrigger data-testid="trip-tab-expenses" value="expenses" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Expenses</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-balances" value="balances" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Balances</TabsTrigger>
-          <TabsTrigger data-testid="trip-tab-chat" value="chat" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Chat</TabsTrigger>
+          <TabsTrigger data-testid="trip-tab-chat" value="chat" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">
+            Chat
+            {chatUnread > 0 && (
+              <span data-testid="chat-unread-badge" className="ml-1.5 h-5 min-w-5 px-1 rounded-full bg-[#E25822] text-white text-[10px] inline-flex items-center justify-center font-bold">{chatUnread}</span>
+            )}
+          </TabsTrigger>
           <TabsTrigger data-testid="trip-tab-members" value="members" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Members</TabsTrigger>
           <TabsTrigger data-testid="trip-tab-memories" value="memories" className="rounded-full px-6 h-10 data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white">Memories</TabsTrigger>
         </TabsList>
@@ -608,7 +666,7 @@ export default function TripDetail() {
         </TabsContent>
 
         <TabsContent value="memories" className="mt-6">
-          <MemoriesTab trip={trip} userId={user?.id} isOrganizer={trip.organizer_id === user?.id} />
+          <MemoriesTab trip={trip} userId={user?.id} isOrganizer={isOrganizer} />
         </TabsContent>
       </Tabs>
 
@@ -622,6 +680,22 @@ export default function TripDetail() {
           onDone={() => { setExpenseDialog(null); load(); }}
         />
       )}
+
+      <Dialog open={deleteTripOpen} onOpenChange={setDeleteTripOpen}>
+        <DialogContent data-testid="delete-trip-dialog">
+          <DialogHeader><DialogTitle className="font-display text-2xl">Delete this trip?</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm bg-red-50 border border-red-100 rounded-xl p-4">
+              <b>{trip.name}</b> and everything in it — expenses, balances, chat, memories and settlement history — will be permanently deleted for all {trip.members.length} members.
+            </p>
+            <p className="text-xs text-muted-foreground">If you just want it out of the way, archive it instead — nothing gets lost.</p>
+            <div className="flex gap-2">
+              <Button data-testid="confirm-delete-trip-btn" onClick={confirmDeleteTrip} className="flex-1 rounded-full bg-red-600 hover:bg-red-700 text-white">Delete forever</Button>
+              <Button variant="outline" className="flex-1 rounded-full" onClick={() => setDeleteTripOpen(false)}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <DialogContent data-testid="delete-expense-dialog">

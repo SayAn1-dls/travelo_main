@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UsersThree, Plus, SignIn, Trash } from "@phosphor-icons/react";
+import { UsersThree, Plus, SignIn, Trash, Archive, CaretDown, ChatsCircle } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["stay", "food", "transport", "activities"];
@@ -117,9 +117,41 @@ function CreateTripDialog({ onCreated }) {
   );
 }
 
+function TripCard({ trip: t, index: i }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+      <Link to={`/trips/${t.id}`} data-testid="trip-card" className="block bg-white border border-[#EAE3D9] rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-display text-xl font-bold">{t.name}</h3>
+          <div className="flex gap-1.5 shrink-0">
+            {t.unread_chat > 0 && (
+              <Badge data-testid="trip-chat-unread-badge" className="bg-[#E25822] text-white border-0 gap-1">
+                <ChatsCircle size={12} weight="fill" /> {t.unread_chat} new
+              </Badge>
+            )}
+            <Badge variant="outline" className="border-[#0B4F6C] text-[#0B4F6C]">{t.members.length} members</Badge>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">{t.destination} · {t.start_date} → {t.end_date}</p>
+        <div className="flex items-center gap-2 mt-4">
+          <div className="flex -space-x-2">
+            {t.members.slice(0, 4).map((m) => (
+              <div key={m.member_id} className="h-8 w-8 rounded-full bg-[#E8DCC4] border-2 border-white flex items-center justify-center text-xs font-bold text-[#1A1A1A]">
+                {m.name.charAt(0).toUpperCase()}
+              </div>
+            ))}
+          </div>
+          <span className="text-sm font-bold ml-auto">{money(t.budget_total, t.currency)} budget</span>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
 export default function TripsPage() {
   const [trips, setTrips] = useState(null);
   const [code, setCode] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const navigate = useNavigate();
 
   const load = () => api.get("/trips").then((r) => setTrips(r.data)).catch(() => setTrips([]));
@@ -163,29 +195,29 @@ export default function TripsPage() {
           <p className="text-white/75 mt-2 max-w-md mx-auto text-sm">Create a travel plan, invite your crew, set a budget and let Travelo handle the money math.</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-5 mt-10">
-          {trips.map((t, i) => (
-            <motion.div key={t.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Link to={`/trips/${t.id}`} data-testid="trip-card" className="block bg-white border border-[#EAE3D9] rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300">
-                <div className="flex items-start justify-between">
-                  <h3 className="font-display text-xl font-bold">{t.name}</h3>
-                  <Badge variant="outline" className="border-[#0B4F6C] text-[#0B4F6C] shrink-0">{t.members.length} members</Badge>
+        <>
+          <div className="grid sm:grid-cols-2 gap-5 mt-10">
+            {trips.filter((t) => !t.archived).map((t, i) => <TripCard key={t.id} trip={t} index={i} />)}
+          </div>
+          {trips.filter((t) => t.archived).length > 0 && (
+            <div className="mt-12">
+              <button
+                data-testid="toggle-archived-btn"
+                onClick={() => setShowArchived(!showArchived)}
+                className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Archive size={17} weight="duotone" />
+                Archived trips ({trips.filter((t) => t.archived).length})
+                <CaretDown size={14} className={`transition-transform duration-200 ${showArchived ? "rotate-180" : ""}`} />
+              </button>
+              {showArchived && (
+                <div className="grid sm:grid-cols-2 gap-5 mt-4 opacity-75" data-testid="archived-trips-section">
+                  {trips.filter((t) => t.archived).map((t, i) => <TripCard key={t.id} trip={t} index={i} />)}
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">{t.destination} · {t.start_date} → {t.end_date}</p>
-                <div className="flex items-center gap-2 mt-4">
-                  <div className="flex -space-x-2">
-                    {t.members.slice(0, 4).map((m) => (
-                      <div key={m.member_id} className="h-8 w-8 rounded-full bg-[#E8DCC4] border-2 border-white flex items-center justify-center text-xs font-bold text-[#1A1A1A]">
-                        {m.name.charAt(0).toUpperCase()}
-                      </div>
-                    ))}
-                  </div>
-                  <span className="text-sm font-bold ml-auto">{money(t.budget_total, t.currency)} budget</span>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -23,6 +23,7 @@ export default function TripChat({ tripId, myUserId }) {
     try {
       const r = await api.get(`/trips/${tripId}/messages`);
       setMessages(r.data);
+      api.post(`/trips/${tripId}/messages/read`).catch(() => {});
     } catch {}
   }, [tripId]);
 

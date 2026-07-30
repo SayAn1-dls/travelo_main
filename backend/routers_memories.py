@@ -1,8 +1,13 @@
+import io
+import html as html_mod
 import uuid
 import secrets
+from pathlib import Path
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response, Request
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+from PIL import Image, ImageDraw, ImageFont
 from db import db
 from auth import get_current_user
 from models import utcnow
@@ -188,3 +193,122 @@ async def recap_image(token: str, memory_id: str):
         raise HTTPException(status_code=404, detail="Image not found")
     data, ctype = await get_object(doc["storage_path"])
     return Response(content=data, media_type=doc.get("content_type") or ctype)
+
+
+FONT_DIR = Path(__file__).parent / "assets" / "fonts"
+
+
+def _font(name, size, axes=None):
+    try:
+        f = ImageFont.truetype(str(FONT_DIR / name), size)
+        if axes:
+            try:
+                f.set_variation_by_axes(axes)
+            except Exception:
+                pass
+        return f
+    except Exception:
+        return ImageFont.load_default(size)
+
+
+async def build_og_card(trip):
+    W, H = 1200, 630
+    base = Image.new("RGB", (W, H), (11, 79, 108))
+    photo = await db.memories.find_one({"trip_id": str(trip["_id"]), "kind": "photo", "is_deleted": False})
+    if photo and photo.get("storage_path"):
+        try:
+            data, _ = await get_object(photo["storage_path"])
+            p = Image.open(io.BytesIO(data)).convert("RGB")
+            scale = max(W / p.width, H / p.height)
+            p = p.resize((max(W, round(p.width * scale)), max(H, round(p.height * scale))))
+            left, top = (p.width - W) // 2, (p.height - H) // 2
+            base = p.crop((left, top, left + W, top + H))
+        except Exception:
+            pass
+    mask = Image.linear_gradient("L").resize((W, H)).point(lambda v: 70 + int(v * 0.62))
+    dark = Image.new("RGB", (W, H), (7, 38, 53))
+    base = Image.composite(dark, base, mask)
+
+    draw = ImageDraw.Draw(base)
+    accent = (249, 179, 132)
+    small = _font("DMSans.ttf", 26, [14, 700])
+    big = _font("PlayfairDisplay-Bold.ttf", 84, [800])
+    med = _font("DMSans.ttf", 32, [14, 500])
+    pillf = _font("DMSans.ttf", 24, [14, 700])
+
+    draw.text((70, 62), "T R A V E L O   R E C A P", font=small, fill=accent)
+
+    lines, line = [], ""
+    for w in str(trip["name"]).split():
+        t = f"{line} {w}".strip()
+        if draw.textlength(t, font=big) > 1060 and line:
+            lines.append(line)
+            line = w
+        else:
+            line = t
+    if line:
+        lines.append(line)
+    lines = lines[:2]
+    y = 330 if len(lines) == 1 else 240
+    for l in lines:
+        draw.text((70, y), l, font=big, fill=(255, 255, 255))
+        y += 102
+    draw.text((70, y + 10), f"{trip['destination']}  ·  {trip['start_date']} → {trip['end_date']}", font=med, fill=(240, 240, 240))
+
+    label = "Watch the recap"
+    tw = draw.textlength(label, font=pillf)
+    px, py = 70, y + 74
+    pw = int(tw) + 96
+    draw.rounded_rectangle((px, py, px + pw, py + 56), radius=28, fill=(226, 88, 34))
+    draw.polygon([(px + 34, py + 18), (px + 34, py + 38), (px + 52, py + 28)], fill=(255, 255, 255))
+    draw.text((px + 64, py + 13), label, font=pillf, fill=(255, 255, 255))
+    return base
+
+
+@memories_router.get("/recap/{token}/og.png")
+async def recap_og(token: str):
+    trip = await trip_by_share_token(token)
+    img = await build_og_card(trip)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return Response(content=buf.getvalue(), media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+@memories_router.get("/recap/{token}/share")
+async def recap_share_page(token: str, request: Request):
+    trip = await trip_by_share_token(token)
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    origin = f"https://{host}"
+    mem_count = await db.memories.count_documents({"trip_id": str(trip["_id"]), "is_deleted": False})
+    name = html_mod.escape(trip["name"])
+    desc = html_mod.escape(
+        f"{trip['destination']} · {trip['start_date']} → {trip['end_date']} · "
+        f"{mem_count} memories with {len(trip['members'])} travellers. Tap to watch the recap."
+    )
+    target = f"{origin}/recap/{token}"
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{name} — Travelo recap</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Travelo">
+<meta property="og:title" content="{name} — trip recap">
+<meta property="og:description" content="{desc}">
+<meta property="og:image" content="{origin}/api/recap/{token}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="{origin}/api/recap/{token}/share">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{name} — trip recap">
+<meta name="twitter:description" content="{desc}">
+<meta name="twitter:image" content="{origin}/api/recap/{token}/og.png">
+<meta http-equiv="refresh" content="0;url={target}">
+</head>
+<body style="background:#0B4F6C;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+<script>location.replace("{target}")</script>
+<p>Opening recap… <a href="{target}" style="color:#F9B384">tap here</a> if nothing happens.</p>
+</body>
+</html>"""
+    return HTMLResponse(page)
