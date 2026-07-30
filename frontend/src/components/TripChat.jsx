@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import api, { formatApiError } from "@/lib/api";
+import api, { formatApiError, money } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PaperPlaneRight, ChatsCircle, FilmSlate } from "@phosphor-icons/react";
@@ -98,6 +98,22 @@ export default function TripChat({ tripId, myUserId }) {
                       >
                         Watch the recap
                       </a>
+                    )}
+                    {m.kind === "settle" && m.data?.suggestions?.length > 0 && (
+                      <div className="mt-3 space-y-2 text-left" data-testid="settle-nudge-list">
+                        {m.data.suggestions.map((s, i) => (
+                          <div key={i} data-testid="settle-nudge-row" className="bg-white/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
+                            <p className="text-xs flex-1">
+                              <b>{s.from_name}</b> owes <b>{s.to_name}</b> · <span className="font-bold text-[#FFB49B]">{money(s.amount, m.data.currency)}</span>
+                            </p>
+                            {s.upi_link && (
+                              <a data-testid="settle-nudge-pay-link" href={s.upi_link} className="bg-[#FF5A36] hover:bg-[#E64322] text-white text-[11px] font-bold rounded-full px-3 py-1.5 transition-colors shrink-0">
+                                Pay via UPI
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
                     <p className="text-[10px] text-white/60 mt-2">{fmtTime(m.created_at)}</p>
                   </div>

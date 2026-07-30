@@ -1,0 +1,25 @@
+{
+  "summary": "Iteration 11 (Explore Glow-Up + Settle-Up Nudge) tested end-to-end. Backend: 15/15 pytest cases pass in /app/backend/tests/test_iter11_features.py — GET /api/destinations returns exactly 17 items each with slug/name/country/tagline/image/best_time; GET /api/destinations/{slug} works for all 11 new slugs (paris, tokyo, santorini, dubai, bangkok, singapore, phuket, rome, istanbul, agra, leh) with 5 attractions + hubs + transport each; a wrapped trip (past end_date) with an unequal expense (Aarav paid 6,000 INR split equally) auto-posts BOTH a recap system message AND a settle system message (kind='settle') containing data.currency='INR' and data.suggestions=[{from_name:'Meera...', to_name:'Aarav...', amount:3000, upi_link:'upi://pay?pa=aarav@upi&pn=Aarav%20Sharma&am=3000.00&cu=INR'}]; idempotent across repeat GETs by both organizer and other member (still exactly 1 recap + 1 settle system msg); a wrapped trip with no expenses posts recap but NOT settle. Frontend: logged in as aarav@test.com, /explore renders 17 cards with 0 broken images (17/17 imgs naturalWidth>0); featured first card is 598x608 with 'Explore Goa' pill; region filter chips work — All=17, India=7, Asia=5, Europe=4, Middle East=1 (spec said India=8/Asia=4 but actual data is India=7/Asia=5, see note below); search 'tokyo' → 1 card; search 'zzzzznope' → 0 cards and [data-testid=explore-empty] visible; clicking [data-testid=explore-destination-paris] navigates to /destinations/paris which renders map iframe + Attractions + Transport content without pageerrors; [data-testid=explore-plan-trip-cta] navigates to /trips. Trip chat on TEST_SettleNudge (6a6bb9f90b53262b0c90168d) shows the recap dark card followed by the settle dark card [data-testid=settle-nudge-list] with one row [data-testid=settle-nudge-row] 'Meera owes Aarav Sharma · ₹3,000' and [data-testid=settle-nudge-pay-link] href='upi://pay?pa=aarav@upi&pn=Aarav%20Sharma&am=3000.00&cu=INR' text='Pay via UPI'. Recap link (a[href*='/recap/']) also present in the recap system card. Screenshot confirms both dark navy cards with coral CTAs stack cleanly above the chat input. No pageerrors on /explore, /destinations/paris, or the trip chat.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter11_features.py",
+    "/app/test_reports/pytest/iter11.xml"
+  ],
+  "action_items": [
+    "SPEC-vs-DATA discrepancy (not a bug, just a doc mismatch): review_request said /explore region counts would be India~8, Asia=4 — actual is India=7 (Goa, Rishikesh, Jaipur, Manali, Kochi, Agra, Leh) and Asia=5 (Bali, Tokyo, Bangkok, Singapore, Phuket). Total is still 17 and Europe=4 / MiddleEast=1 match. Either add one more India destination (e.g. reclassify Bali? — unlikely, or add Varanasi/Udaipur) OR update the acceptance criteria to India=7/Asia=5. No functional bug; treating as informational."
+  ],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/backend/tests/test_iter11_features.py"],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% on all reviewed flows (explore cards+filters+search+empty+destination hub+CTA, settle nudge UI + UPI deep link, recap card co-existence)"},
+  "seed_data_creation": "3 TEST_ trips created and cleaned up (auto-teardown via pytest fixture): TEST_Iter11_Settle_A, TEST_Iter11_Settled_NoDebt, plus one implicit from expense creation. Existing fixture TEST_SettleNudge (6a6bb9f90b53262b0c90168d) preserved for FE verification.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "aarav@test.com / Pass@123 (upi_vpa aarav@upi), meera@test.com / Pass@123",
+  "context_for_next_testing_agent": "Iteration 11 (Explore 17-card glow-up + Settle-Up Nudge) is clean. Backend suite lives at /app/backend/tests/test_iter11_features.py — parametrized over all 11 new destination slugs. Fixture trip 6a6bb9f90b53262b0c90168d already has recap+settle messages; UPI link format is upi://pay?pa={vpa}&pn={payee}&am={amount}.2f&cu=INR. Region breakdown that FE actually produces: All=17, India=7, Asia=5, Europe=4, MiddleEast=1. If main agent decides India should be 8, they need to update destinations_data.py.",
+  "rca_of_the_issue": "No defects. Only note: the review_request's expected filter counts (India=8, Asia=4) do not match the destinations_data.py content (India=7 including Goa/Rishikesh/Jaipur/Manali/Kochi/Agra/Leh; Asia=5 including Bali/Tokyo/Bangkok/Singapore/Phuket). The FE correctly derives regions from country field; total is 17."
+}

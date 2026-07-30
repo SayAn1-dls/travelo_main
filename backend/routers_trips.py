@@ -661,6 +661,23 @@ async def maybe_post_recap(trip):
                 await notify(m["user_id"], "recap_ready", "Your trip recap is ready",
                              f"\"{trip['name']}\" has ended — the recap was just posted in the trip chat",
                              {"trip_id": str(trip["_id"])})
+        balances = await compute_balances(trip)
+        if balances["suggestions"]:
+            names = {m["member_id"]: m["name"] for m in trip["members"]}
+            rows = []
+            for s in balances["suggestions"]:
+                link = await creditor_upi(trip, s["to_member_id"], s["amount"])
+                rows.append({"from_member_id": s["from_member_id"], "to_member_id": s["to_member_id"],
+                             "from_name": names.get(s["from_member_id"], "?"),
+                             "to_name": names.get(s["to_member_id"], "?"),
+                             "amount": s["amount"], "upi_link": link})
+            await db.trip_messages.insert_one({
+                "trip_id": str(trip["_id"]), "user_id": None, "member_id": None,
+                "name": "Travelo", "system": True, "kind": "settle",
+                "text": "And the money math — here's who owes whom to close the books:",
+                "data": {"suggestions": rows, "currency": trip.get("currency", "INR")},
+                "created_at": utcnow(),
+            })
     except Exception:
         await db.trips.update_one({"_id": trip["_id"]}, {"$set": {"recap_auto_posted": False}})
         raise
