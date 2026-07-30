@@ -185,7 +185,7 @@ export function buildItinerarySlides(recap) {
     kind: "itinerary",
     date,
     day: Math.max(1, Math.round((new Date(`${date}T00:00:00`) - new Date(`${recap.start_date}T00:00:00`)) / 86400000) + 1),
-    items: byDate[date].slice(0, 6),
+    items: byDate[date],
   }));
 }
 

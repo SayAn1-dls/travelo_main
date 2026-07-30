@@ -68,6 +68,11 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - Trip Itinerary: db.itinerary_items CRUD — GET/POST /trips/{tid}/itinerary, PUT/DELETE /{item_id} (creator-or-organizer, 403 else), date YYYY-MM-DD + optional HH:MM validated, sorted date+time; TripItinerary.jsx tab (between Balances and Chat): Day N sections spanning trip dates, timeline cards w/ time chip/place/notes, per-day "+ add here", dialog add/edit; delete_trip cascade includes itinerary_items.
 - Recap WhatsApp Share: recap-whatsapp-btn on RecapPage footer → wa.me/?text= with /api/recap/{token}/share link (synchronous window.open — keep it that way for popup blockers).
 
+## Implemented (2026-06 iter 8, testing-agent PASSED 6/6 backend + frontend 100%, iteration_8)
+- Itinerary In Recap: get_recap returns itinerary[]; buildItinerarySlides() in recapExport.js (shared by RecapPage + downloads) inserts "Day N — The plan" slides between title and memories; canvas drawSlide handles itinerary kind; >6 items/day shows "+N more" (no silent truncation).
+- Expense From Plan: itinerary-expense-btn on every itinerary item (all members) → ExpenseDialog prefill prop (description=item title, category=activities), key `plan-{item.id}` for remount.
+- Trip Countdown: tripCountdown() in TripsPage — "N days to go"/"Tomorrow!" (teal) upcoming, "On trip now" (green) during, none past/archived.
+
 ## Backlog (P0/P1/P2) & Next Tasks
 - P1: Facebook OAuth once user supplies Meta keys; SendGrid activation (set SENDGRID_API_KEY + EMAIL_PROVIDER=sendgrid); push notifications (FCM).
 - P2: Google Places live data for Destination Hub; PDF ticket via server-side lib; rate limiting beyond auth lockout; refunds UI; chat pagination (`?since=` cursor — currently capped at last 300 msgs) + incremental polling; storage sweeper for files of hard-deleted trips (memories only soft-deleted); optional polish from test report: shadcn Calendar for date picker, DialogDescription a11y, explicit CORS origins for production.
@@ -90,3 +95,4 @@ Build "Travelo" — a full-stack, production-grade travel ecosystem: plan, book,
 - react-leaflet v5 requires React 19 (OK here); default marker icons broken under webpack → custom divIcon pins used.
 - FastAPI 422 detail is an array → formatApiError in lib/api.js handles it.
 - rAF timestamp can be earlier than performance.now() captured just before → clamp frame index with Math.max(0, …) in canvas render loops (caused intermittent drawSlide undefined in recapExport.js).
+- Parallel search_replace calls on the SAME file can race and silently drop one edit despite "successful" result — verify with grep after batches that touch one file multiple times.

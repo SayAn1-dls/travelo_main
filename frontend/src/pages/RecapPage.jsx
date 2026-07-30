@@ -189,7 +189,7 @@ export default function RecapPage() {
               {new Date(`${slide.date}T00:00:00`).toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}
             </p>
             <div className="mt-8 space-y-3">
-              {slide.items.map((it, i) => (
+              {slide.items.slice(0, 6).map((it, i) => (
                 <div key={i} className="bg-white/10 rounded-2xl px-5 py-3 flex items-center gap-4">
                   <span className={`font-bold text-sm w-12 shrink-0 ${it.time ? "text-[#F9B384]" : "text-white/30"}`}>{it.time || "—"}</span>
                   <div className="min-w-0">
@@ -198,6 +198,9 @@ export default function RecapPage() {
                   </div>
                 </div>
               ))}
+              {slide.items.length > 6 && (
+                <p className="text-center text-white/55 text-sm">+ {slide.items.length - 6} more plans</p>
+              )}
             </div>
           </div>
         )}
