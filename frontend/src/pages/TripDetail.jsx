@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError, inr } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import BlobImage from "@/components/BlobImage";
-import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash } from "@phosphor-icons/react";
+import { Plus, Copy, Receipt, HandCoins, BellRinging, CreditCard, CheckCircle, Camera, NotePencil, Trash, Play, LinkSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["stay", "food", "transport", "activities", "other"];
@@ -137,6 +137,27 @@ function MemoriesTab({ trip, userId }) {
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
+  const navigate = useNavigate();
+
+  const getShareToken = async () => (await api.post(`/trips/${trip.id}/recap/share`)).data.token;
+
+  const playRecap = async () => {
+    try {
+      navigate(`/recap/${await getShareToken()}`);
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const copyShare = async () => {
+    try {
+      const t = await getShareToken();
+      await navigator.clipboard.writeText(`${window.location.origin}/recap/${t}`);
+      toast.success("Share link copied — anyone with it can view the recap");
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
 
   const load = useCallback(() => {
     api.get(`/trips/${trip.id}/memories`).then((r) => setMemories(r.data)).catch(() => {});
@@ -183,6 +204,20 @@ function MemoriesTab({ trip, userId }) {
 
   return (
     <div>
+      <div className="bg-[#0B4F6C] text-white rounded-2xl p-5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden grain">
+        <div>
+          <p className="font-display text-lg font-bold">Trip recap slideshow</p>
+          <p className="text-sm text-white/75">Relive the photos & notes as a story — and share it with anyone.</p>
+        </div>
+        <div className="flex gap-2 shrink-0 relative z-10">
+          <Button data-testid="play-recap-btn" onClick={playRecap} className="rounded-full bg-[#E25822] hover:bg-[#C84B1A]">
+            <Play size={15} className="mr-1.5" weight="fill" /> Play recap
+          </Button>
+          <Button data-testid="copy-recap-link-btn" onClick={copyShare} variant="outline" className="rounded-full bg-white/10 border-white/40 text-white hover:bg-white hover:text-[#1A1A1A] transition-colors">
+            <LinkSimple size={15} className="mr-1.5" /> Share link
+          </Button>
+        </div>
+      </div>
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-white border border-[#EAE3D9] rounded-2xl p-5">
           <p className="font-semibold flex items-center gap-2 mb-3"><Camera size={20} weight="duotone" className="text-[#E25822]" /> Add a photo</p>
@@ -363,9 +398,10 @@ export default function TripDetail() {
           <div className="flex flex-wrap gap-2 mt-4">
             {Object.entries(balances.by_category).map(([cat, amt]) => {
               const budget = trip.budget_categories?.[cat];
+              const over = budget && amt > budget;
               return (
-                <Badge key={cat} variant="outline" className="capitalize py-1.5 px-3">
-                  {cat}: {inr(amt)}{budget ? ` / ${inr(budget)}` : ""}
+                <Badge key={cat} variant="outline" data-testid={`category-chip-${cat}`} className={`capitalize py-1.5 px-3 ${over ? "border-red-400 text-red-700 bg-red-50" : ""}`}>
+                  {cat}: {inr(amt)}{budget ? ` / ${inr(budget)}` : ""}{over ? " — over!" : ""}
                 </Badge>
               );
             })}

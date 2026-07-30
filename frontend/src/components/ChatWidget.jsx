@@ -17,7 +17,9 @@ export default function ChatWidget() {
   const bottomRef = useRef(null);
   const location = useLocation();
   const destination = location.pathname.startsWith("/destinations/") ? location.pathname.split("/")[2] : null;
-  const sessionId = destination ? `dest-${destination}` : "general";
+  const tripMatch = location.pathname.match(/^\/trips\/([a-f0-9]{24})$/i);
+  const tripId = tripMatch ? tripMatch[1] : null;
+  const sessionId = tripId ? `trip-${tripId}` : destination ? `dest-${destination}` : "general";
 
   useEffect(() => {
     const handler = () => setOpen(true);
@@ -80,6 +82,7 @@ export default function ChatWidget() {
           lat: coords?.lat,
           lng: coords?.lng,
           destination: destination || undefined,
+          trip_id: tripId || undefined,
         }),
       });
       const reader = res.body.getReader();
@@ -137,7 +140,7 @@ export default function ChatWidget() {
           <div className="bg-[#0B4F6C] text-white px-5 py-4">
             <p className="font-display text-lg font-bold flex items-center gap-2"><Compass size={20} weight="duotone" /> Tara — your travel assistant</p>
             <p className="text-xs text-white/70 flex items-center gap-1 mt-0.5">
-              <MapPin size={12} /> {city ? `Near ${city}` : destination ? `Exploring ${destination}` : geoState === "granted" ? "Locating you…" : "Location off"}
+              <MapPin size={12} /> {tripId ? "Watching your trip budget" : city ? `Near ${city}` : destination ? `Exploring ${destination}` : geoState === "granted" ? "Locating you…" : "Location off"}
             </p>
           </div>
 
@@ -157,7 +160,10 @@ export default function ChatWidget() {
             {messages.length === 0 && (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Ask me anything about your trip:</p>
-                {["Best places to roam near me", "Hidden local spots worth visiting", "Where should I eat tonight?"].map((q) => (
+                {(tripId
+                  ? ["How are we doing on budget?", "Who owes whom right now?", "What's worth doing next on this trip?"]
+                  : ["Best places to roam near me", "Hidden local spots worth visiting", "Where should I eat tonight?"]
+                ).map((q) => (
                   <button key={q} data-testid="chat-suggestion" onClick={() => send(q)} className="block w-full text-left text-sm bg-white border rounded-xl px-4 py-2.5 hover:border-[#E25822] transition-colors">
                     {q}
                   </button>

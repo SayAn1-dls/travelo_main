@@ -1,7 +1,7 @@
 import os
 import json
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from db import db
 from auth import get_current_user
@@ -28,6 +28,30 @@ async def reverse_geocode(lat, lng):
         return None
 
 
+async def build_trip_context(trip_id, user):
+    from routers_trips import get_trip_or_404, compute_balances
+    try:
+        trip = await get_trip_or_404(trip_id, user)
+    except HTTPException:
+        return None
+    balances = await compute_balances(trip)
+    names = {m["member_id"]: m["name"] for m in trip["members"]}
+    budgets = trip.get("budget_categories") or {}
+    cat_lines = ", ".join(
+        f"{c} ₹{v:,.0f}" + (f" of ₹{budgets[c]:,.0f} budget" if budgets.get(c) else "")
+        for c, v in balances["by_category"].items()) or "no expenses logged yet"
+    owed = "; ".join(f"{names.get(s['from_member_id'], '?')} owes {names.get(s['to_member_id'], '?')} ₹{s['amount']:,.0f}"
+                     for s in balances["suggestions"]) or "everyone is settled up"
+    recent = await db.expenses.find({"trip_id": trip_id}).sort("created_at", -1).to_list(8)
+    exp_lines = "; ".join(f"{e['description']} ₹{e['amount']:,.0f} ({e['category']}, paid by {names.get(e['paid_by'], 'someone')})" for e in recent) or "none"
+    return (
+        f"ACTIVE GROUP TRIP: \"{trip['name']}\" to {trip['destination']} ({trip['start_date']} → {trip['end_date']}), "
+        f"members: {', '.join(names.values())}. Total budget ₹{trip.get('budget_total', 0):,.0f}, spent so far ₹{balances['total_spent']:,.0f}. "
+        f"Category spend: {cat_lines}. Balances: {owed}. Recent expenses: {exp_lines}. "
+        f"Answer budget and money questions using these exact numbers (INR). If a category or the total is over budget, say so plainly and suggest where to cut back."
+    )
+
+
 @chat_router.post("/stream")
 async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user)):
     uid = str(user["_id"])
@@ -40,6 +64,10 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
         context_lines.append(f"The user is currently in or near: {city}. Tailor recommendations to this area.")
     if body.destination:
         context_lines.append(f"The user is planning/on a trip to: {body.destination}.")
+    if body.trip_id:
+        trip_ctx = await build_trip_context(body.trip_id, user)
+        if trip_ctx:
+            context_lines.append(trip_ctx)
 
     history = await db.chat_messages.find({"user_id": uid, "session_id": body.session_id}).sort("created_at", -1).to_list(12)
     history.reverse()

@@ -139,6 +139,7 @@ class ChatRequest(BaseModel):
     lng: Optional[float] = None
     city: Optional[str] = None
     destination: Optional[str] = None
+    trip_id: Optional[str] = None
 
 
 class CheckoutRequest(BaseModel):

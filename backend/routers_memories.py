@@ -1,11 +1,12 @@
 import uuid
+import secrets
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
 from pydantic import BaseModel, Field
 from db import db
 from auth import get_current_user
 from models import utcnow
-from routers_trips import get_trip_or_404
+from routers_trips import get_trip_or_404, compute_balances
 from storage import put_object, get_object, APP_NAME
 
 memories_router = APIRouter()
@@ -130,3 +131,50 @@ async def settlement_proof(settlement_id: str, user: dict = Depends(get_current_
         raise HTTPException(status_code=404, detail="No proof uploaded")
     data, ctype = await get_object(settlement["proof_path"])
     return Response(content=data, media_type=settlement.get("proof_content_type") or ctype)
+
+
+@memories_router.post("/trips/{trip_id}/recap/share")
+async def create_recap_share(trip_id: str, user: dict = Depends(get_current_user)):
+    trip = await get_trip_or_404(trip_id, user)
+    token = trip.get("share_token")
+    if not token:
+        token = secrets.token_urlsafe(8)
+        await db.trips.update_one({"_id": trip["_id"]}, {"$set": {"share_token": token}})
+    return {"token": token}
+
+
+async def trip_by_share_token(token: str):
+    trip = await db.trips.find_one({"share_token": token})
+    if not trip:
+        raise HTTPException(status_code=404, detail="This recap link is invalid")
+    return trip
+
+
+@memories_router.get("/recap/{token}")
+async def get_recap(token: str):
+    trip = await trip_by_share_token(token)
+    balances = await compute_balances(trip)
+    memories = await db.memories.find({"trip_id": str(trip["_id"]), "is_deleted": False}).sort("created_at", 1).to_list(300)
+    return {
+        "name": trip["name"], "destination": trip["destination"],
+        "start_date": trip["start_date"], "end_date": trip["end_date"],
+        "members": [m["name"] for m in trip["members"]],
+        "stats": {"total_spent": balances["total_spent"], "by_category": balances["by_category"],
+                  "budget_total": trip.get("budget_total", 0)},
+        "memories": [{"id": str(m["_id"]), "kind": m["kind"], "caption": m.get("caption", ""),
+                      "note": m.get("note"), "member_name": m["member_name"], "created_at": m["created_at"]}
+                     for m in memories],
+    }
+
+
+@memories_router.get("/recap/{token}/image/{memory_id}")
+async def recap_image(token: str, memory_id: str):
+    trip = await trip_by_share_token(token)
+    try:
+        doc = await db.memories.find_one({"_id": ObjectId(memory_id), "trip_id": str(trip["_id"]), "is_deleted": False})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid memory id")
+    if not doc or not doc.get("storage_path"):
+        raise HTTPException(status_code=404, detail="Image not found")
+    data, ctype = await get_object(doc["storage_path"])
+    return Response(content=data, media_type=doc.get("content_type") or ctype)

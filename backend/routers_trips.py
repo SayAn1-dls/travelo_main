@@ -187,6 +187,22 @@ async def add_expense(trip_id: str, body: ExpenseCreate, user: dict = Depends(ge
             await notify(m["user_id"], "expense_added", f"New expense in {trip['name']}",
                          f"{payer['name']} paid ₹{body.amount:,.0f} for {body.description}",
                          {"trip_id": trip_id})
+    expenses_after = await db.expenses.find({"trip_id": trip_id}).to_list(1000)
+    total_after = sum(e["amount"] for e in expenses_after)
+    cat_after = sum(e["amount"] for e in expenses_after if e["category"] == body.category)
+    alerts = []
+    cat_budget = (trip.get("budget_categories") or {}).get(body.category) or 0
+    if cat_budget and cat_after > cat_budget and cat_after - body.amount <= cat_budget:
+        alerts.append((f"{body.category.title()} budget crossed",
+                       f"\"{trip['name']}\": {body.category} spend hit ₹{cat_after:,.0f} of the ₹{cat_budget:,.0f} planned"))
+    budget_total = trip.get("budget_total") or 0
+    if budget_total and total_after > budget_total and total_after - body.amount <= budget_total:
+        alerts.append(("Trip budget crossed",
+                       f"\"{trip['name']}\": total spend hit ₹{total_after:,.0f} of the ₹{budget_total:,.0f} budget"))
+    for title, msg in alerts:
+        for m in members:
+            if m.get("user_id"):
+                await notify(m["user_id"], "budget_alert", title, msg, {"trip_id": trip_id})
     doc["id"] = str(result.inserted_id)
     doc.pop("_id", None)
     return doc

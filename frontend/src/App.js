@@ -16,6 +16,7 @@ import TripsPage from "@/pages/TripsPage";
 import TripDetail from "@/pages/TripDetail";
 import { PaymentSuccess, PaymentCancel } from "@/pages/PaymentStatus";
 import AuthCallback from "@/pages/AuthCallback";
+import RecapPage from "@/pages/RecapPage";
 
 function ProtectedLayout() {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/recap/:token" element={<RecapPage />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/book" element={<BookingPage />} />
