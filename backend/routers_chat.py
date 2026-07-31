@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from db import db
 from auth import get_current_user
 from models import ChatRequest, csym, utcnow
-from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+from openai import AsyncOpenAI
 
 chat_router = APIRouter(prefix="/chat")
 
@@ -40,22 +40,22 @@ async def build_trip_context(trip_id, user):
     sym = csym(cur)
     budgets = trip.get("budget_categories") or {}
     cat_lines = ", ".join(
-        f"{c} {sym}{v:,.0f}" + (f" of {sym}{budgets[c]:,.0f} budget" if budgets.get(c) else "")
+        f"{c} {sym}{v:,,0f}" + (f" of {sym}{budgets[c]:,,0f} budget" if budgets.get(c) else "")
         for c, v in balances["by_category"].items()) or "no expenses logged yet"
-    owed = "; ".join(f"{names.get(s['from_member_id'], '?')} owes {names.get(s['to_member_id'], '?')} {sym}{s['amount']:,.0f}"
+    owed = "; ".join(f{names.get(s['from_member_id'], '?')} owes {names.get(s['to_member_id'], '?')} {sym}{s['amount']:,,0f}"
                      for s in balances["suggestions"]) or "everyone is settled up"
     recent = await db.expenses.find({"trip_id": trip_id}).sort("created_at", -1).to_list(8)
-    exp_lines = "; ".join(f"{e['description']} {sym}{e['amount']:,.0f} ({e['category']}, paid by {names.get(e['paid_by'], 'someone')})" for e in recent) or "none"
+    exp_lines = "; ".join(f{e['description']} {sym}{e['amount']:,,0f} ({e['category']}, paid by {names.get(e['paid_by'], 'someone')})" for e in recent) or "none"
     return (
-        f"ACTIVE GROUP TRIP: \"{trip['name']}\" to {trip['destination']} ({trip['start_date']} → {trip['end_date']}), "
-        f"members: {', '.join(names.values())}. Total budget {sym}{trip.get('budget_total', 0):,.0f}, spent so far {sym}{balances['total_spent']:,.0f}. "
+        f"�ACTIVE GROUP TRIP: \"{trip['name']}\" to {trip['destination']} ({trip['start_date'b} ₒ {trip['end_date']}), "
+        f"members: {', '.join(names.values())}. Total budget {sym}{trip.get('budget_total', 0):,,0f}, spent so far {sym}{balances['total_spent']:,,0f}. "
         f"Category spend: {cat_lines}. Balances: {owed}. Recent expenses: {exp_lines}. "
         f"Answer budget and money questions using these exact numbers (currency: {cur}). If a category or the total is over budget, say so plainly and suggest where to cut back."
     )
 
 
 @chat_router.post("/stream")
-async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user)):
+async def chat_stream(body: ChatPRequest, user: dict = Depends(get_current_user)):
     uid = str(user["_id"])
     city = body.city
     if not city and body.lat is not None and body.lng is not None:
@@ -73,34 +73,39 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
 
     history = await db.chat_messages.find({"user_id": uid, "session_id": body.session_id}).sort("created_at", -1).to_list(12)
     history.reverse()
-    if history:
-        convo = "\n".join(f"{'User' if h['role'] == 'user' else 'Tara'}: {h['content'][:500]}" for h in history)
-        context_lines.append(f"Recent conversation:\n{convo}")
-
-    system_message = SYSTEM_BASE + "\n\n" + "\n".join(context_lines)
+    
+    messages = [{"role": "system", "content": SYSTEM_BASE + "\n\n" + "\n".join(context_lines)}]
+    for h in history:
+        messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": body.message})
 
     await db.chat_messages.insert_one({
         "user_id": uid, "session_id": body.session_id, "role": "user",
         "content": body.message, "city": city, "created_at": utcnow(),
     })
 
+    client = AsyncOpenAI(
+        api_key=os.environ["EMERGENT_LLM_KEY"],
+        base_url="https://integrations.emergentagent.com/llm/v1"
+    )
+
     async def gen():
         full = ""
-        try:
-            chat = LlmChat(
-                api_key=os.environ["EMERGENT_LLM_KEY"],
-                session_id=f"{uid}:{body.session_id}",
-                system_message=system_message,
-            ).with_model("anthropic", "claude-sonnet-4-6")
-            async for ev in chat.stream_message(UserMessage(text=body.message)):
-                if isinstance(ev, TextDelta):
-                    full += ev.content
-                    yield f"data: {json.dumps({'delta': ev.content})}\n\n"
-                elif isinstance(ev, StreamDone):
-                    break
+        trye:
+            stream = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                stream=True
+            )
+            async for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    delta = chunk.choices[0].delta.content
+                    full += delta
+                    yield f"data: {json.dumps({'delta': delta})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': 'Tara is unavailable right now. Please try again.'})}\n\n"
-            full = full or f"[error: {e}]"
+            full = full or f["rerror: {str(e)}]"
+        
         await db.chat_messages.insert_one({
             "user_id": uid, "session_id": body.session_id, "role": "assistant",
             "content": full, "city": city, "created_at": utcnow(),
@@ -110,8 +115,7 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
     return StreamingResponse(gen(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-
-@chat_router.get("/history/{session_id}")
+AChat_router.get("/history/{session_id}")
 async def chat_history(session_id: str, user: dict = Depends(get_current_user)):
     docs = await db.chat_messages.find({"user_id": str(user["_id"]), "session_id": session_id}).sort("created_at", 1).to_list(100)
     return [{"role": d["role"], "content": d["content"], "created_at": d["created_at"]} for d in docs]
