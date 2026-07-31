@@ -112,37 +112,37 @@ Real-time destination cards with imagery, travel tips, and booking hooks. Discov
 
 ---
 
-## ����️ System Architecture
+## 🏗️ System Architecture
 
 ```mermaid
 graph TB
-    subgraph CLIENT["🖥️ CLIENT LAYER — React + TailwindCSS"]
-        A[🏠 Landing Page] --> B[🗺️ Trip Planner]
-        A --> C[💸 Capital Ledger]
-        A --> D[🤖 Tara AI Chat]
-        A --> E[🌍 Destination Hub]
-        A --> F[🎟️ Booking Engine]
+    subgraph CLIENT["CLIENT LAYER — React + TailwindCSS"]
+        A[Landing Page] --> B[Trip Planner]
+        A --> C[Capital Ledger]
+        A --> D[Tara AI Chat]
+        A --> E[Destination Hub]
+        A --> F[Booking Engine]
     end
 
-    subgraph GATEWAY["⚡ API GATEWAY — FastAPI + Python"]
-        G[🔐 Auth Router<br/>JWT + Google OAuth]
-        H[🗺️ Trips Router]
-        I[💸 Payments Router<br/>Min-Cash-Flow]
-        J[🤖 Chat Router<br/>GPT-4o]
-        K[✈️ Bookings Router]
-        L[📍 Destinations Router]
+    subgraph GATEWAY["API GATEWAY — FastAPI + Python"]
+        G[Auth Router - JWT + OAuth]
+        H[Trips Router]
+        I[Payments Router - Min-Cash-Flow]
+        J[Chat Router - GPT-4o]
+        K[Bookings Router]
+        L[Destinations Router]
     end
 
-    subgraph DATA["🗄️ DATA LAYER — MongoDB Atlas"]
-        M[(👤 Users Collection)]
-        N[(🗺️ Trips Collection)]
-        O[(💰 Payments Collection)]
-        P[(🎟️ Bookings Collection)]
+    subgraph DATA["DATA LAYER — MongoDB Atlas"]
+        M[(Users Collection)]
+        N[(Trips Collection)]
+        O[(Payments Collection)]
+        P[(Bookings Collection)]
     end
 
-    subgraph AI["🧠 AI INTELLIGENCE LAYER"]
-        Q[🤖 OpenAI GPT-4o<br/>via Emergent Gateway]
-        R[📊 Trip Intelligence<br/>Context Engine]
+    subgraph AI["AI INTELLIGENCE LAYER"]
+        Q[OpenAI GPT-4o]
+        R[Trip Intelligence Engine]
     end
 
     CLIENT -->|HTTPS REST| GATEWAY
@@ -155,10 +155,10 @@ graph TB
     Q --> R
     R --> J
 
-    style CLIENT fill:#0A0A0A,stroke:#FF4500,stroke-width:2px,color:#EAFF00
-    style GATEWAY fill:#0A0A0A,stroke:#EAFF00,stroke-width:2px,color:#FF4500
-    style DATA fill:#0A0A0A,stroke:#FF4500,stroke-width:2px,color:#fff
-    style AI fill:#0A0A0A,stroke:#EAFF00,stroke-width:2px,color:#FF4500
+    style CLIENT fill:#1a0000,stroke:#FF4500,stroke-width:2px,color:#EAFF00
+    style GATEWAY fill:#1a1a00,stroke:#EAFF00,stroke-width:2px,color:#FF4500
+    style DATA fill:#001a00,stroke:#FF4500,stroke-width:2px,color:#fff
+    style AI fill:#00001a,stroke:#EAFF00,stroke-width:2px,color:#FF4500
 ```
 
 <br/>
@@ -169,12 +169,12 @@ graph TB
 
 ```mermaid
 flowchart LR
-    A[💳 Group Expenses\nRecorded] --> B{⚙️ Build\nDebt Graph}
-    B --> C[📊 Calculate\nNet Balances]
-    C --> D{🔍 Min-Cash-Flow\nOptimization}
-    D --> E[✅ Minimum\nTransaction Set]
-    E --> F[🔔 Notify\nAll Members]
-    F --> G[💰 Settlement\nComplete]
+    A[Group Expenses Recorded] --> B{Build Debt Graph}
+    B --> C[Calculate Net Balances]
+    C --> D{Min-Cash-Flow Optimization}
+    D --> E[Minimum Transaction Set]
+    E --> F[Notify All Members]
+    F --> G[Settlement Complete]
 
     style A fill:#FF4500,stroke:#0A0A0A,color:#fff
     style D fill:#EAFF00,stroke:#0A0A0A,color:#000
@@ -372,7 +372,7 @@ travelo_main/
 <div align="center">
 
 | Layer | Platform | Status |
-|-------|----------|--------|
+|-------|----------|---------|
 | 🖥️ **Frontend** | Vercel Edge Network | ![Deployed](https://img.shields.io/badge/Deployed-Vercel-000?style=for-the-badge&logo=vercel&labelColor=0A0A0A) |
 | ⚡ **Backend API** | Vercel Serverless Functions | ![Deployed](https://img.shields.io/badge/Deployed-Vercel-000?style=for-the-badge&logo=vercel&labelColor=0A0A0A) |
 | 🗄️ **Database** | MongoDB Atlas (M0 Free Tier) | ![Live](https://img.shields.io/badge/Live-MongoDB%20Atlas-00C853?style=for-the-badge&logo=mongodb&labelColor=0A0A0A) |
