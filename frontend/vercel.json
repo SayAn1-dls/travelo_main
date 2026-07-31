@@ -3,7 +3,6 @@
   "framework": "create-react-app",
   "buildCommand": "yarn build",
   "outputDirectory": "build",
-  "nodeVersion": "20.x",
   "env": {
     "CI": "false",
     "GENERATE_SOURCEMAP": "false"
