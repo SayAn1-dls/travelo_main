@@ -140,10 +140,17 @@
     "+*/readdirp/picomatch": "2.3.2",
     "**/jest-util/picomatch": "2.3.2",
     "**/tinyglobby/picomatch": "4.0.4",
-    "ajv": "^8.0.0"
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2",
+    "schema-utils": "3.1.1"
   },
   "packageManager": "yarn@1.22.22+sha512a6b2f7906b721bba3d67d4aff083df04dad64c399707841b133b3b4bfd625e24255f26525fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "engines": {
     "node": "22.x"
+  },
+  "overrides": {
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2",
+    "schema-utils": "3.1.1"
   }
 }
