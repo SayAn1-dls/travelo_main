@@ -1,135 +1,97 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import api, { inr } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AirplaneTilt, Train, Buildings, UsersThree, ArrowRight, Ticket, MapTrifold } from "@phosphor-icons/react";
-
-const typeIcon = { flight: AirplaneTilt, train: Train, hotel: Buildings };
+import { motion } from "framer-motion";
+import { Plus, AirplaneTilt, ArrowRight, Wallet, MapTrifold, Clock, Sparkle } from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [bookings, setBookings] = useState([]);
-  const [trips, setTrips] = useState([]);
-  const [destinations, setDestinations] = useState([]);
-
-  useEffect(() => {
-    api.get("/bookings").then((r) => setBookings(r.data)).catch(() => {});
-    api.get("/trips").then((r) => setTrips(r.data)).catch(() => {});
-    api.get("/destinations").then((r) => setDestinations(r.data)).catch(() => {});
-  }, []);
-
-  const confirmed = bookings.filter((b) => b.status === "confirmed");
-  const firstName = (user?.name || "traveller").split(" ")[0];
-  const activeTrip = trips[0];
 
   return (
-    <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-2">Your travel HQ</p>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold" data-testid="dashboard-welcome">
-          Welcome back, {firstName}.
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          {activeTrip ? <>Continue planning your <Link to={`/trips/${activeTrip.id}`} className="text-[#0A2540] font-semibold hover:underline">{activeTrip.destination} trip</Link>.</> : "Where are we off to next?"}
-        </p>
-      </motion.div>
+    <div className="min-h-screen pt-32 px-6 pb-20 bg-[#F9F8F6]">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-16">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center">
+              <Sparkle weight="fill" className="text-[#FF5A36] animate-pulse" size={24} />
+            </div>
+            <p className="text-[#FF5A36] font-black uppercase tracking-[0.2em] text-xs">Operational Portal active</p>
+          </motion.div>
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-6xl md:text-7xl font-black text-[#0A2540] tracking-tight">
+            Hey, <span className="text-[#FF5A36]">{user?.name?.split(' ')[0]}!</span>
+          </motion.h1>
+          <p className="text-slate-400 text-xl font-semibold mt-4">Where's the squad heading next?</p>
+        </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10">
-        {[
-          { label: "Book a journey", to: "/book", icon: AirplaneTilt, testid: "quick-book" },
-          { label: "Plan group trip", to: "/trips", icon: UsersThree, testid: "quick-trips" },
-          { label: "Explore destinations", to: "/explore", icon: MapTrifold, testid: "quick-explore" },
-          { label: "My bookings", to: "/bookings", icon: Ticket, testid: "quick-bookings" },
-        ].map((q, i) => (
-          <motion.div key={q.to + q.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }}>
-            <Link to={q.to} data-testid={`dashboard-${q.testid}`} className="group bg-white border border-[#E5E4E0] rounded-2xl p-5 flex flex-col gap-3 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300 h-full">
-              <q.icon size={28} weight="duotone" className="text-[#FF5A36]" />
-              <span className="font-semibold text-sm">{q.label}</span>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          {/* Main Action Card */}
+          <motion.div 
+            whileHover={{ scale: 1.01 }}
+            className="md:col-span-8 bg-white p-12 rounded-[3.5rem] shadow-2xl shadow-black/[0.03] border border-slate-100 relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF5A36] blur-[120px] opacity-10 group-hover:opacity-20 transition-opacity" />
+            <h2 className="text-4xl font-black text-[#0A2540] mb-6">Start a new expedition</h2>
+            <p className="text-slate-500 text-lg font-semibold max-w-md mb-10 leading-relaxed">
+              Logistics, split-bills, and itinerary — all handled by AI while you focus on the vibes.
+            </p>
+            <Link to="/trips" className="no-underline">
+              <button className="bg-[#FF5A36] hover:bg-[#FF451A] text-white px-10 py-5 rounded-3xl font-black text-lg shadow-xl shadow-orange-500/30 transition-all active:scale-95 flex items-center gap-3">
+                <Plus size={24} weight="bold" /> NEW TRAVEL PLAN
+              </button>
             </Link>
           </motion.div>
-        ))}
-      </div>
 
-      <div className="grid lg:grid-cols-2 gap-8 mt-12">
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-2xl font-bold">Upcoming journeys</h2>
-            <Link to="/bookings" className="text-sm text-[#0A2540] font-semibold hover:underline">View all</Link>
+          {/* Side Stats */}
+          <div className="md:col-span-4 flex flex-col gap-8">
+            <div className="bg-[#0A2540] p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+              <div className="relative z-10">
+                <p className="text-white/50 font-black uppercase tracking-widest text-[10px] mb-2">Group Balance</p>
+                <h3 className="text-4xl font-black mb-6">₹12,450.00</h3>
+                <button className="w-full bg-white/10 hover:bg-white/20 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest border border-white/10 transition-colors">
+                  View Ledger
+                </button>
+              </div>
+              <Wallet size={120} weight="duotone" className="absolute -bottom-10 -right-10 text-white/5" />
+            </div>
+
+            <div className="bg-emerald-500 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+              <div className="relative z-10">
+                <p className="text-white/30 font-black uppercase tracking-widest text-[10px] mb-2">Next Destination</p>
+                <h3 className="text-4xl font-black mb-6">Goa, IN</h3>
+                <div className="flex items-center gap-2 text-white/70 font-bold text-sm">
+                  <Clock size={18} weight="bold" /> 14 Days to launch
+                </div>
+              </div>
+              <AirplaneTilt size={120} weight="duotone" className="absolute -bottom-10 -right-10 text-black/5" />
+            </div>
           </div>
-          {confirmed.length === 0 ? (
-            <div className="bg-white border border-dashed border-[#E5E4E0] rounded-2xl p-10 text-center">
-              <p className="text-muted-foreground text-sm">No confirmed bookings yet.</p>
-              <Button asChild data-testid="dashboard-empty-book-btn" className="mt-4 rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
-                <Link to="/book">Search flights, trains & hotels <ArrowRight size={16} className="ml-1" /></Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {confirmed.slice(0, 3).map((b) => {
-                const Icon = typeIcon[b.type] || AirplaneTilt;
-                return (
-                  <Link key={b.id} to={`/ticket/${b.id}`} data-testid="dashboard-booking-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-shadow block">
-                    <div className="h-12 w-12 rounded-xl bg-[#FFF1EC] flex items-center justify-center shrink-0">
-                      <Icon size={24} weight="duotone" className="text-[#FF5A36]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{b.type === "hotel" ? b.item.name : `${b.origin} → ${b.destination}`}</p>
-                      <p className="text-sm text-muted-foreground">{b.travel_date} · PNR {b.pnr}</p>
-                    </div>
-                    <span className="font-bold">{inr(b.amount)}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-2xl font-bold">Your trips</h2>
-            <Link to="/trips" className="text-sm text-[#0A2540] font-semibold hover:underline">View all</Link>
-          </div>
-          {trips.length === 0 ? (
-            <div className="bg-[#0A2540] text-white rounded-2xl p-10 relative overflow-hidden grain">
-              <UsersThree size={32} weight="duotone" className="text-[#FFB49B]" />
-              <p className="font-display text-xl font-bold mt-3">Travelling with friends?</p>
-              <p className="text-white/75 text-sm mt-1">Create a travel plan: shared budget, split expenses, zero awkward math.</p>
-              <Button asChild data-testid="dashboard-empty-trip-btn" className="mt-5 rounded-full bg-[#FF5A36] hover:bg-[#E64322]">
-                <Link to="/trips">Create a trip</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {trips.slice(0, 3).map((t) => (
-                <Link key={t.id} to={`/trips/${t.id}`} data-testid="dashboard-trip-card" className="bg-white border border-[#E5E4E0] rounded-2xl p-5 hover:shadow-md transition-shadow block">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold">{t.name}</p>
-                    <Badge variant="outline" className="border-[#0A2540] text-[#0A2540]">{t.members.length} members</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">{t.destination} · {t.start_date} → {t.end_date}</p>
-                  <p className="text-sm mt-2">Budget <span className="font-bold">{inr(t.budget_total)}</span></p>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      <section className="mt-14">
-        <h2 className="font-display text-2xl font-bold mb-4">Keep exploring</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {destinations.map((d) => (
-            <Link key={d.slug} to={`/destinations/${d.slug}`} data-testid={`dashboard-destination-${d.slug}`} className="group relative rounded-xl overflow-hidden h-32">
-              <img src={d.image} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-              <p className="absolute bottom-2.5 left-3 text-white font-display font-bold">{d.name}</p>
-            </Link>
-          ))}
         </div>
-      </section>
+
+        {/* Explore Preview */}
+        <section className="mt-24">
+          <div className="flex justify-between items-end mb-12">
+            <h2 className="text-4xl font-black text-[#0A2540]">Trending Gems</h2>
+            <Link to="/explore" className="text-[#FF5A36] font-black no-underline hover:underline flex items-center gap-2 uppercase tracking-widest text-xs">
+              Explore All <ArrowRight weight="bold" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {['Bali', 'Tokyo', 'London'].map((city) => (
+              <motion.div key={city} whileHover={{ y: -10 }} className="aspect-[4/5] bg-white rounded-[3rem] shadow-xl border border-slate-100 p-4 group cursor-pointer relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+                <img 
+                  src={`https://images.unsplash.com/photo-1506929199175-60903ee8b5a8?auto=format&fit=crop&w=800&q=80`} 
+                  alt={city} 
+                  className="w-full h-full object-cover rounded-[2.5rem] group-hover:scale-110 transition-transform duration-700" 
+                />
+                <div className="absolute bottom-8 left-8 z-20 text-white">
+                  <h4 className="text-3xl font-black">{city}</h4>
+                  <p className="text-white/70 font-bold">Starting from ₹35,000</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
