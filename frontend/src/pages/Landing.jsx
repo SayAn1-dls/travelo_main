@@ -4,15 +4,15 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { AirplaneTilt, Train, Buildings, UsersThree, ChatCircleDots, MapTrifold, ArrowRight, Receipt } from "@phosphor-icons/react";
+import { AirplaneTilt, Train, Buildings, UsersThree, ChatCircleDots, MapTrifold, ArrowRight, Receipt, GlobeHemisphereWest, Sparkle } from "@phosphor-icons/react";
 
-const HERO = "https://images.unsplash.com/photo-1494548162494-384bba4ab999?auto=format&fit=crop&w=1800&q=80";
+const HERO = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80";
 
 const features = [
-  { icon: AirplaneTilt, title: "Flights, trains & hotels", desc: "One search bar for every leg of the journey. Compare, pick, pay — done.", span: "md:col-span-5" },
-  { icon: UsersThree, title: "Group trip planner", desc: "Budgets, expense splitting and 'who owes whom' settled automatically — with one-tap UPI pay links.", span: "md:col-span-7" },
-  { icon: MapTrifold, title: "Destination hub", desc: "Land anywhere and instantly know the buses, cabs, scooters and rentals around you.", span: "md:col-span-7" },
-  { icon: ChatCircleDots, title: "Tara, your AI guide", desc: "A geolocation-aware assistant that knows the hidden spots near you.", span: "md:col-span-5" },
+  { icon: GlobeHemisphereWest, title: "Explore Everywhere", desc: "Flights, trains & hotels in one snap. No boring tabs, just travel vibes.", span: "md:col-span-5", color: "bg-blue-50 text-blue-500" },
+  { icon: UsersThree, title: "Squad Goals Only", desc: "Settle bills without the drama. One-tap UPI for your group funds.", span: "md:col-span-7", color: "bg-orange-50 text-[#FF5A36]" },
+  { icon: MapTrifold, title: "Secret Spots", desc: "Ditch the tourists. Discover hidden gems and local rides instantly.", span: "md:col-span-7", color: "bg-teal-50 text-teal-500" },
+  { icon: ChatCircleDots, title: "Tara: Your AI BFF", desc: "A smart travel buddy that knows exactly where the party is.", span: "md:col-span-5", color: "bg-purple-50 text-purple-500" },
 ];
 
 export default function Landing() {
@@ -21,7 +21,7 @@ export default function Landing() {
   const [destinations, setDestinations] = useState([]);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
 
   useEffect(() => {
     api.get("/destinations").then((r) => setDestinations(r.data)).catch(() => {});
@@ -30,126 +30,87 @@ export default function Landing() {
   const cta = () => navigate(user ? "/dashboard" : "/auth");
 
   return (
-    <div className="bg-[#F9F8F6] min-h-screen">
-      <section ref={heroRef} className="relative h-[92vh] min-h-[560px] overflow-hidden">
-        <motion.img src={HERO} alt="Travel destination" style={{ y }} className="absolute inset-0 w-full h-[115%] object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/30" />
-        <header className="absolute top-0 inset-x-0 z-10">
-          <div className="max-w-7xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between">
-            <span className="flex items-center gap-2 text-white">
-              <AirplaneTilt size={28} weight="duotone" />
-              <span className="font-display font-bold text-2xl">Travelo</span>
-            </span>
-            <Button data-testid="landing-signin-btn" onClick={cta} variant="outline" className="rounded-full bg-white/10 border-white/40 text-white hover:bg-white hover:text-[#1A1A1A] backdrop-blur-md transition-colors">
-              {user ? "Dashboard" : "Sign in"}
+    <div className="bg-[#F9F8F6] min-h-screen selection:bg-[#FF5A36] selection:text-white">
+      {/* Dynamic Navbar */}
+      <nav className="fixed top-0 inset-x-0 z-[100] px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between bg-white/70 backdrop-blur-2xl border border-white/40 px-6 py-3 rounded-[2rem] shadow-xl shadow-black/5">
+          <Link to="/" className="flex items-center gap-2 group no-underline">
+            <div className="w-10 h-10 bg-[#FF5A36] rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:rotate-12 transition-transform">
+              <AirplaneTilt size={24} weight="fill" className="text-white" />
+            </div>
+            <span className="font-black text-2xl tracking-tighter text-[#0A2540]">travelo<span className="text-[#FF5A36]">.</span></span>
+          </Link>
+          <div className="flex items-center gap-4">
+            <Button onClick={cta} className="rounded-full bg-[#0A2540] text-white hover:bg-black px-8 font-bold transition-all hover:scale-105 active:scale-95 shadow-lg">
+              {user ? "Go to Dashboard" : "Get Started"}
             </Button>
           </div>
-        </header>
-        <div className="absolute inset-x-0 bottom-0 z-10 max-w-7xl mx-auto px-5 sm:px-8 pb-16 sm:pb-24">
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-white/80 uppercase tracking-[0.25em] text-xs font-semibold mb-4">
-            Plan · Book · Roam · Split
-          </motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="font-display text-white text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] max-w-3xl">
-            Wander far.<br />
-            <span className="italic text-[#FFB49B]">Split fair.</span>
+        </div>
+      </nav>
+
+      {/* Explosive Hero */}
+      <section ref={heroRef} className="relative h-[95vh] min-h-[600px] flex items-center justify-center text-center px-6 overflow-hidden">
+        <motion.img src={HERO} alt="Adventure awaits" style={{ y }} className="absolute inset-0 w-full h-[120%] object-cover brightness-90 grayscale-[0.1]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A2540]/60 via-transparent to-[#F9F8F6]" />
+        
+        <div className="relative z-10 max-w-4xl">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 px-6 py-2 rounded-full text-white text-xs font-black uppercase tracking-[0.2em] mb-8">
+            <Sparkle weight="fill" className="text-yellow-400" /> V2.0 is Here!
+          </motion.div>
+          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-7xl md:text-9xl font-black text-white leading-[0.85] tracking-tight mb-8">
+            STOP DREAMING,<br />
+            <span className="text-[#FF5A36] drop-shadow-2xl">START PACKING.</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="text-white/85 text-base md:text-lg max-w-xl mt-5">
-            The all-in-one travel ecosystem — book flights, trains and stays, discover how to get around, and settle group expenses without the awkward math.
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-white/90 text-xl md:text-2xl font-semibold max-w-2xl mx-auto mb-12 leading-relaxed">
+            The world's most exciting travel engine for elite squads. 
+            Logistics, budgets, and vibes — all in one snap.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="flex flex-wrap gap-3 mt-8">
-            <Button data-testid="landing-cta-primary" onClick={cta} size="lg" className="rounded-full bg-[#FF5A36] hover:bg-[#E64322] text-white px-8 h-13 text-base">
-              Start your journey <ArrowRight size={18} className="ml-2" />
-            </Button>
-            <Button data-testid="landing-cta-secondary" onClick={() => navigate(user ? "/trips" : "/auth")} size="lg" variant="outline" className="rounded-full bg-white/10 border-white/40 text-white hover:bg-white hover:text-[#1A1A1A] backdrop-blur-md px-8 h-13 text-base transition-colors">
-              Plan a group trip
-            </Button>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <button onClick={cta} className="bg-[#FF5A36] hover:bg-[#FF451A] text-white text-xl font-black px-12 py-6 rounded-[2.5rem] shadow-2xl shadow-orange-500/40 transition-all hover:scale-110 active:scale-95 group">
+              PLAN YOUR NEXT TRIP <ArrowRight className="inline-block ml-2 group-hover:translate-x-2 transition-transform" />
+            </button>
           </motion.div>
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-5 sm:px-8 py-20 sm:py-28">
-        <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-3">Everything in one place</p>
-        <h2 className="font-display text-3xl sm:text-4xl font-bold max-w-lg">Built by people who never unpack.</h2>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mt-12">
+      {/* Feature Grid - Non-Dull version */}
+      <section className="max-w-7xl mx-auto px-6 py-32">
+        <div className="text-center mb-20">
+          <h2 className="text-5xl md:text-6xl font-black text-[#0A2540] mb-6">Why Travelo?</h2>
+          <p className="text-slate-500 text-xl font-bold uppercase tracking-widest">Built for the next generation of explorers</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
-              className={`${f.span} bg-white border border-[#E5E4E0] rounded-2xl p-8 hover:shadow-lg hover:-translate-y-1 transition-[box-shadow,transform] duration-300`}
+            <motion.div 
+              key={i} 
+              whileHover={{ y: -10 }}
+              className={`${f.span} group relative bg-white p-12 rounded-[3.5rem] shadow-2xl shadow-black/[0.03] border border-slate-100 overflow-hidden`}
             >
-              <f.icon size={36} weight="duotone" className="text-[#FF5A36]" />
-              <h3 className="font-display text-xl font-bold mt-4">{f.title}</h3>
-              <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-5 sm:px-8 pb-20 sm:pb-28">
-        <div className="flex items-end justify-between mb-10">
-          <div>
-            <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FF5A36] mb-3">Destination hubs</p>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold">Where to next?</h2>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {destinations.slice(0, 6).map((d, i) => (
-            <motion.div key={d.slug} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
-              <Link to={user ? `/destinations/${d.slug}` : "/auth"} data-testid={`landing-destination-${d.slug}`} className="group block relative rounded-2xl overflow-hidden h-72">
-                <img src={d.image} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <div className="absolute bottom-0 p-6 text-white">
-                  <p className="text-xs uppercase tracking-widest text-white/70">{d.country}</p>
-                  <h3 className="font-display text-2xl font-bold">{d.name}</h3>
-                  <p className="text-sm text-white/80">{d.tagline}</p>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      <section className="relative bg-[#0A2540] text-white overflow-hidden grain">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-20 sm:py-28 grid md:grid-cols-2 gap-12 items-center relative z-10">
-          <div>
-            <p className="uppercase tracking-[0.25em] text-xs font-semibold text-[#FFB49B] mb-3">The group trip, solved</p>
-            <h2 className="font-display text-3xl sm:text-5xl font-bold leading-tight">"Ravi owes you ₹1,200" — handled.</h2>
-            <p className="text-white/80 mt-5 leading-relaxed max-w-md">
-              Set a trip budget, log expenses as you go, split them equally or your way. Travelo does the settlement math and nudges friends with a UPI deep link that opens their payment app.
-            </p>
-            <Button data-testid="landing-group-cta" onClick={() => navigate(user ? "/trips" : "/auth")} size="lg" className="rounded-full bg-[#FF5A36] hover:bg-[#E64322] mt-8 px-8">
-              Create a travel plan
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {[
-              { icon: Receipt, t: "Beach shack dinner — ₹2,400", s: "Paid by Meera · split 4 ways" },
-              { icon: UsersThree, t: "Ravi owes Meera ₹1,200", s: "Reminder sent · Pay via GPay / PhonePe / Paytm" },
-              { icon: Train, t: "Scooter rentals — ₹1,600", s: "Paid by you · custom split" },
-            ].map((r) => (
-              <div key={r.t} className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-5 flex items-start gap-4">
-                <r.icon size={26} weight="duotone" className="text-[#FFB49B] mt-0.5" />
-                <div>
-                  <p className="font-semibold">{r.t}</p>
-                  <p className="text-sm text-white/70">{r.s}</p>
-                </div>
+              <div className={`${f.color} w-20 h-20 rounded-[2rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform`}>
+                <f.icon size={40} weight="duotone" />
               </div>
-            ))}
-          </div>
+              <h3 className="text-3xl font-black text-[#0A2540] mb-4">{f.title}</h3>
+              <p className="text-slate-500 text-lg font-semibold leading-relaxed">{f.desc}</p>
+              <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                <ArrowRight size={24} className="text-slate-300" />
+              </div>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      <footer className="max-w-7xl mx-auto px-5 sm:px-8 py-12 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <span className="flex items-center gap-2">
-          <AirplaneTilt size={22} weight="duotone" className="text-[#FF5A36]" />
-          <span className="font-display font-bold text-xl">Travelo</span>
-        </span>
-        <p className="text-sm text-muted-foreground">Plan, book, navigate & split — together.</p>
-        <div className="flex gap-2 text-muted-foreground">
-          <Buildings size={20} /> <Train size={20} /> <AirplaneTilt size={20} />
+      {/* Footer */}
+      <footer className="bg-[#0A2540] text-white py-20 px-6 rounded-t-[4rem]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
+          <div className="text-center md:text-left">
+            <span className="font-black text-4xl tracking-tighter">travelo<span className="text-[#FF5A36]">.</span></span>
+            <p className="mt-4 text-white/50 font-bold tracking-widest uppercase text-xs">A Sayan DLS Project • Emergent AI 2026</p>
+          </div>
+          <div className="flex gap-12 text-sm font-black uppercase tracking-widest">
+            <a href="#" className="hover:text-[#FF5A36] no-underline transition-colors">Privacy</a>
+            <a href="#" className="hover:text-[#FF5A36] no-underline transition-colors">Terms</a>
+            <a href="#" className="hover:text-[#FF5A36] no-underline transition-colors">Instagram</a>
+          </div>
         </div>
       </footer>
     </div>
