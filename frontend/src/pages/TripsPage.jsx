@@ -109,7 +109,7 @@ function CreateTripDialog({ onCreated }) {
             ))}
           </div>
           <Button data-testid="trip-submit-btn" onClick={submit} disabled={saving} className="w-full rounded-full bg-[#FF5A36] hover:bg-[#E64322] h-11">
-            {saving ? "Creating…" : "Create trip"}
+            {saving ? "Creating\u2026" : "Create trip"}
           </Button>
         </div>
       </DialogContent>
@@ -151,7 +151,7 @@ function TripCard({ trip: t, index: i }) {
             <Badge variant="outline" className="border-[#0A2540] text-[#0A2540]">{t.members.length} members</Badge>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">{t.destination} · {t.start_date} → {t.end_date}</p>
+        <p className="text-sm text-muted-foreground mt-1">{t.destination} \u00b7 {t.start_date} \u2192 {t.end_date}</p>
         <div className="flex items-center gap-2 mt-4">
           <div className="flex -space-x-2">
             {t.members.slice(0, 4).map((m) => (
@@ -206,7 +206,7 @@ export default function TripsPage() {
       </div>
 
       {trips === null ? (
-        <p className="mt-10 text-muted-foreground">Loading…</p>
+        <p className="mt-10 text-muted-foreground">Loading\u2026</p>
       ) : trips.length === 0 ? (
         <div className="mt-10 bg-[#0A2540] text-white rounded-2xl p-12 text-center relative overflow-hidden grain">
           <UsersThree size={40} weight="duotone" className="text-[#FFB49B] mx-auto" />
