@@ -1,72 +1,108 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { AirplaneTilt, User } from "@phosphor-icons/react";
+import { AirplaneTilt, SignOut } from "@phosphor-icons/react";
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   if (!user) return null;
 
   const links = [
     { label: "EXPLORE", path: "/explore" },
-    { label: "MISSIONS", path: "/trips" },
-    { label: "LOGISTICS", path: "/bookings" },
-    { label: "CAPITAL", path: "/bookings-history" },
+    { label: "TRIPS", path: "/trips" },
+    { label: "BOOK", path: "/bookings" },
+    { label: "LEDGER", path: "/bookings-history" },
   ];
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
   return (
-    <nav className="fixed top-6 inset-x-6 z-[1000]">
-      <div className="max-w-7xl mx-auto flex items-center justify-between bg-[#050505]/80 backdrop-blur-3xl border border-white/10 px-8 py-4 rounded-[2.5rem] shadow-2xl">
-
-        {/* LOGO */}
-        <Link to="/dashboard" className="flex items-center gap-3 no-underline group">
-          <div className="w-10 h-10 bg-sexy-orange rounded-xl flex items-center justify-center shadow-sexy-orange" style={{transform: 'rotate(-12deg)'}}>
-            <AirplaneTilt size={22} weight="fill" className="text-white" />
-          </div>
-          <span className="goated-heading text-3xl uppercase tracking-tighter">travelo<span className="text-sexy-orange">.</span></span>
-        </Link>
-
-        {/* NAV LINKS */}
-        <div className="hidden lg:flex items-center gap-10">
-          {links.map((link) => {
-            const active = location.pathname === link.path;
-            return (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`goated-heading text-xl no-underline transition-all duration-200 ${
-                  active
-                    ? 'text-sexy-orange'
-                    : 'text-white/50 hover:text-white'
-                }`}
-              >
-                {link.label}
-                {active && <span className="block w-full h-[2px] bg-sexy-orange mt-1 rounded-full" />}
-              </Link>
-            );
-          })}
+    <nav style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1000,
+      background: "#080808",
+      borderBottom: "2px solid #111111",
+      padding: "0 32px",
+      height: 64,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+    }}>
+      <Link to="/dashboard" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 36, height: 36, background: "#FF4D00", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", transform: "rotate(-10deg)" }}>
+          <AirplaneTilt size={20} weight="fill" color="white" />
         </div>
+        <span style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 22, color: "white", letterSpacing: "0.05em" }}>
+          TRAVELO<span style={{ color: "#FF4D00" }}>.</span>
+        </span>
+      </Link>
 
-        {/* USER PILL + AVATAR */}
-        <div className="flex items-center gap-5">
-          <div className="hidden sm:flex items-center gap-3 bg-white/5 border border-white/10 px-5 py-2 rounded-2xl">
-            <div className="w-2 h-2 rounded-full bg-sexy-yellow animate-pulse" />
-            <span className="font-black text-[10px] tracking-[0.2em] uppercase text-white/70">
-              {user?.name?.split(' ')[0]?.toUpperCase() || 'EXPLORER'}
-            </span>
-          </div>
-          <div className="w-11 h-11 rounded-full border-2 border-sexy-orange overflow-hidden shadow-sexy-orange cursor-pointer hover:scale-110 transition-transform flex-shrink-0">
-            {user?.avatar ? (
-              <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-sexy-orange/20 flex items-center justify-center">
-                <User size={20} weight="bold" className="text-sexy-orange" />
-              </div>
-            )}
-          </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {links.map(link => {
+          const active = location.pathname === link.path;
+          return (
+            <Link
+              key={link.path}
+              to={link.path}
+              style={{
+                textDecoration: "none",
+                fontFamily: "Anton, Impact, sans-serif",
+                fontSize: 13,
+                letterSpacing: "0.1em",
+                color: active ? "#FF4D00" : "#555555",
+                padding: "8px 16px",
+                borderRadius: 6,
+                background: active ? "rgba(255,77,0,0.08)" : "transparent",
+                transition: "all 0.15s",
+                border: active ? "1px solid rgba(255,77,0,0.2)" : "1px solid transparent",
+              }}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.color = "#F0F0F0"; }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.color = "#555555"; }}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#111111", border: "1px solid #1E1E1E", borderRadius: 8, padding: "8px 14px" }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#F5FF50" }} />
+          <span style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 12, color: "#888888", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            {user?.name?.split(' ')[0] || "Traveler"}
+          </span>
         </div>
-
+        <button
+          onClick={handleLogout}
+          style={{
+            background: "transparent",
+            border: "1px solid #1E1E1E",
+            borderRadius: 8,
+            padding: "8px 12px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            color: "#555555",
+            fontFamily: "Space Grotesk, sans-serif",
+            fontSize: 12,
+            fontWeight: 700,
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#FF4D00"; e.currentTarget.style.color = "#FF4D00"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E1E1E"; e.currentTarget.style.color = "#555555"; }}
+        >
+          <SignOut size={14} />
+          OUT
+        </button>
       </div>
     </nav>
   );

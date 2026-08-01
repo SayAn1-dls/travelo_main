@@ -4,53 +4,189 @@
 
 @layer base {
   body {
-    @apply bg-sexy-black text-white antialiased overflow-x-hidden;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #080808;
+    color: #F0F0F0;
+    font-family: 'Space Grotesk', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: #FF4D00;
+    color: white;
   }
 }
 
 @layer components {
-  .goated-heading {
-    @apply font-bebas tracking-tighter leading-none;
-  }
-  
-  .crazy-text {
-    @apply font-crazy text-sexy-orange;
-  }
-
-  .sexy-card {
-    @apply bg-sexy-dark border-2 border-white/5 rounded-sexy p-8 transition-all duration-300;
+  .heading-trip {
+    font-family: 'Anton', Impact, sans-serif;
+    line-height: 0.9;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
   }
 
-  .sexy-card:hover {
-    @apply border-sexy-orange shadow-sexy-orange -translate-y-2;
+  .heading-bebas {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
 
-  .crystal-clear {
-    @apply font-semibold text-white/90 leading-relaxed;
+  .quip {
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+    color: #FF4D00;
   }
 
-  .btn-sexy {
-    @apply px-10 py-5 rounded-full font-black uppercase tracking-widest transition-all active:scale-95;
-    background: linear-gradient(90deg, #FF4D00, #FF007A);
-    box-shadow: 0 10px 30px rgba(255, 77, 0, 0.3);
+  .travel-card {
+    background: #111111;
+    border: 2px solid #222222;
+    border-radius: 16px;
+    transition: border-color 0.2s, transform 0.2s;
   }
 
-  .btn-sexy:hover {
-    @apply scale-105;
-    box-shadow: 0 15px 45px rgba(255, 77, 0, 0.5);
+  .travel-card:hover {
+    border-color: #FF4D00;
+    transform: translateY(-4px);
   }
 
-  .sticker-float {
-    @apply absolute pointer-events-none select-none animate-bounce;
+  .ticket-card {
+    background: #111111;
+    border: 2px solid #333333;
+    border-radius: 12px;
+    position: relative;
   }
-}
 
-.text-gradient-sexy {
-  background: linear-gradient(to right, #FF4D00, #EAFF00, #00F0FF);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  .ticket-card::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background: #080808;
+    border-radius: 50%;
+    border: 2px solid #333333;
+  }
+
+  .ticket-card::after {
+    content: '';
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background: #080808;
+    border-radius: 50%;
+    border: 2px solid #333333;
+  }
+
+  .btn-fire {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #FF4D00;
+    color: white;
+    font-family: 'Anton', Impact, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 16px 40px;
+    border-radius: 8px;
+    border: 2px solid #FF4D00;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .btn-fire:hover {
+    background: transparent;
+    color: #FF4D00;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: transparent;
+    color: #F0F0F0;
+    font-family: 'Anton', Impact, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 16px 40px;
+    border-radius: 8px;
+    border: 2px solid #333333;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .btn-ghost:hover {
+    border-color: #F0F0F0;
+  }
+
+  .field {
+    width: 100%;
+    background: #0F0F0F;
+    border: 2px solid #2A2A2A;
+    border-radius: 10px;
+    padding: 16px 20px;
+    color: #F0F0F0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field:focus {
+    border-color: #FF4D00;
+  }
+
+  .field::placeholder {
+    color: #404040;
+    font-weight: 500;
+  }
+
+  .runway-stripe {
+    height: 6px;
+    background: repeating-linear-gradient(
+      90deg,
+      #FF4D00 0px,
+      #FF4D00 20px,
+      transparent 20px,
+      transparent 40px
+    );
+    border-radius: 3px;
+  }
+
+  .stat-block {
+    background: #111111;
+    border: 2px solid #1E1E1E;
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .badge-fire {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 77, 0, 0.12);
+    color: #FF4D00;
+    border: 1.5px solid rgba(255, 77, 0, 0.3);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+  }
 }
 
 ::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #080808; }
 ::-webkit-scrollbar-thumb { background: #FF4D00; border-radius: 10px; }
