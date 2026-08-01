@@ -8,30 +8,43 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        bebas: ['Bebas Neue', 'cursive'],
-        crazy: ['Permanent Marker', 'cursive'],
-        sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
-        poppins: ['Poppins', 'sans-serif'],
+        anton: ['Anton', 'Impact', 'sans-serif'],
+        bebas: ['Bebas Neue', 'Impact', 'sans-serif'],
+        han: ['Black Han Sans', 'sans-serif'],
+        caveat: ['Caveat', 'cursive'],
+        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
       },
       colors: {
-        sexy: {
+        brand: {
           orange: '#FF4D00',
-          yellow: '#EAFF00',
-          cyan: '#00F0FF',
-          pink: '#FF007A',
-          black: '#050505',
-          dark: '#0A0A0A',
-          glass: 'rgba(255, 255, 255, 0.03)',
+          yellow: '#F5FF50',
+          cyan: '#00E5FF',
+          pink: '#FF2D6B',
+          black: '#080808',
+          card: '#111111',
+          border: '#222222',
         }
       },
       boxShadow: {
-        'sexy-orange': '0 0 40px rgba(255, 77, 0, 0.25)',
-        'sexy-cyan': '0 0 40px rgba(0, 240, 255, 0.25)',
-        'sharp': '12px 12px 0px rgba(255, 77, 0, 1)',
-        'sharp-cyan': '12px 12px 0px rgba(0, 240, 255, 1)',
+        'neon-orange': '0 0 0 2px #FF4D00, 0 0 30px rgba(255,77,0,0.4)',
+        'neon-cyan': '0 0 0 2px #00E5FF, 0 0 30px rgba(0,229,255,0.4)',
+        'hard-orange': '6px 6px 0px #FF4D00',
+        'hard-yellow': '6px 6px 0px #F5FF50',
+        'hard-cyan': '6px 6px 0px #00E5FF',
       },
-      borderRadius: {
-        'sexy': '2.5rem',
+      keyframes: {
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(-3deg)' },
+          '50%': { transform: 'rotate(3deg)' },
+        }
+      },
+      animation: {
+        marquee: 'marquee 20s linear infinite',
+        wiggle: 'wiggle 2s ease-in-out infinite',
       }
     }
   },
