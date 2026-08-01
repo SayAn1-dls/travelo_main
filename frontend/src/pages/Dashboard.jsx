@@ -1,73 +1,67 @@
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
-import { AirplaneTilt, Wallet, MapPin, ChatsCircle, Lightning } from "@phosphor-icons/react";
+import { AirplaneTilt, Wallet, MapPin, ChatsCircle, Lightning, Star } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const firstName = user?.name?.split(' ')[0] || "Wanderer";
+  const firstName = (user?.name?.split(' ')[0] || "TRAVELER").toUpperCase();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#080808", paddingTop: 88, paddingBottom: 80 }}>
-      <div style={{ maxWidth: 1300, margin: "0 auto", padding: "0 32px" }}>
-        <header style={{ marginBottom: 64, paddingTop: 48 }}>
-          <div style={{ marginBottom: 16 }}>
-            <span style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: "0.3em", color: "#444444", textTransform: "uppercase" }}>COMMAND CENTER \u00b7 TRAVELO v24</span>
+    <div className="min-h-screen bg-black pt-40 pb-20 px-10 selection:bg-brutal-acid selection:text-black">
+      <div className="max-w-7xl mx-auto">
+        {/* COMMAND HEADER */}
+        <header className="mb-24 flex flex-col md:flex-row items-end justify-between gap-12">
+          <div>
+            <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-brutal-acid border-4 border-black flex items-center justify-center rotate-[-15deg] shadow-xl">
+                    <Star weight="fill" size={32} className="text-black" />
+                </div>
+                <span className="font-bebas text-3xl tracking-[0.3em] text-white/40 uppercase">HQ OVERVIEW &middot; v27</span>
+            </div>
+            <h1 className="header-massive text-[12vw]">YO, <span className="text-brutal-orange">{firstName}!</span></h1>
+            <p className="font-marker text-5xl text-brutal-orange mt-4 rotate-[-1deg]">"Your bags are by the door. Your brain is in vacation mode."</p>
           </div>
-          <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: "clamp(56px, 8vw, 120px)", lineHeight: 0.9, color: "white", margin: "0 0 16px" }}>
-            YO, <span style={{ color: "#FF4D00" }}>{firstName.toUpperCase()}!</span>
-          </motion.h1>
-          <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 26, color: "#555555", margin: 0 }}>"Your bags are by the door. Your itinerary is not."</p>
+          <div className="font-marker text-3xl text-white/30 text-right italic hidden lg:block">
+            Last seen: mission active
+          </div>
         </header>
 
-        <div style={{ height: 3, background: "repeating-linear-gradient(90deg, #FF4D00 0, #FF4D00 24px, transparent 24px, transparent 42px)", marginBottom: 48, borderRadius: 2 }} />
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 20 }}>
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ gridColumn: "span 8", background: "#0F0F0F", border: "2px solid #1A1A1A", borderRadius: 20, padding: 40, position: "relative", overflow: "hidden", minHeight: 280 }}>
-            <div style={{ position: "absolute", top: -60, right: -60, opacity: 0.04 }}><AirplaneTilt size={300} weight="thin" color="white" style={{ transform: "rotate(15deg)" }} /></div>
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <span style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 10, letterSpacing: "0.3em", color: "#444444", textTransform: "uppercase", display: "block", marginBottom: 12 }}>NEW MISSION</span>
-              <h2 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: "clamp(40px, 4vw, 64px)", color: "white", lineHeight: 0.9, margin: "0 0 16px" }}>START AN<br /><span style={{ color: "#FF4D00" }}>EXPEDITION</span></h2>
-              <p style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 16, color: "#666666", maxWidth: 420, marginBottom: 32, lineHeight: 1.6 }}>Itineraries, money splits, AI concierge. The boring stuff is handled. You just need to pack.</p>
-              <Link to="/trips"><button className="btn-fire">BUILD THE VIBE</button></Link>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
+          {/* ACTION CARD */}
+          <div className="md:col-span-8 brutal-card border-brutal-orange shadow-brutal relative overflow-hidden flex flex-col justify-center min-h-[450px]">
+            <div className="absolute top-[-50px] right-[-50px] opacity-10 rotate-[20deg] pointer-events-none">
+                <AirplaneTilt size={400} weight="thin" className="text-white" />
             </div>
-          </motion.div>
-
-          <div style={{ gridColumn: "span 4", display: "flex", flexDirection: "column", gap: 20 }}>
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} style={{ background: "#0F0F0F", border: "2px solid #1A1A1A", borderRadius: 20, padding: 28, flex: 1 }}>
-              <Wallet size={28} color="#00E5FF" weight="bold" />
-              <p style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 42, color: "white", margin: "12px 0 4px", lineHeight: 1 }}>\u20b90</p>
-              <p style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#444444", textTransform: "uppercase", margin: "0 0 8px" }}>TOTAL SPENT</p>
-              <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 16, color: "#444444", margin: 0 }}>"Start a trip to ruin this."</p>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} style={{ background: "#0F0F0F", border: "2px solid #1A1A1A", borderRadius: 20, padding: 28, flex: 1 }}>
-              <MapPin size={28} color="#F5FF50" weight="bold" />
-              <p style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 42, color: "white", margin: "12px 0 4px", lineHeight: 1 }}>0</p>
-              <p style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#444444", textTransform: "uppercase", margin: "0 0 8px" }}>ACTIVE TRIPS</p>
-              <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 16, color: "#444444", margin: 0 }}>"The suitcase is ready."</p>
-            </motion.div>
+            <div className="relative z-10">
+                <h2 className="header-massive text-8xl mb-8">START AN<br/><span className="text-brutal-acid">EXPEDITION</span></h2>
+                <p className="clear-body text-2xl max-w-md mb-12 font-black uppercase tracking-tight">Itineraries, money splits, AI concierge. The boring stuff is handled. You just need to show up.</p>
+                <Link to="/trips">
+                    <button className="btn-brutal px-14 py-8 text-4xl">BUILD THE VIBE</button>
+                </Link>
+            </div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} style={{ gridColumn: "span 4", background: "#0F0F0F", border: "2px solid #1A1A1A", borderRadius: 20, padding: 32 }}>
-            <MapPin size={32} color="#FF4D00" weight="bold" />
-            <h3 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 30, color: "white", margin: "16px 0 8px" }}>EXPLORE SPOTS</h3>
-            <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 18, color: "#555555", margin: "0 0 24px" }}>"125 destinations. Pick one."</p>
-            <Link to="/explore"><button className="btn-ghost" style={{ fontSize: 13, padding: "12px 24px" }}>BROWSE DESTINATIONS</button></Link>
-          </motion.div>
+          {/* STATS */}
+          <div className="md:col-span-4 flex flex-col gap-12">
+            <div className="brutal-card border-white shadow-brutal relative flex flex-col items-center text-center py-12">
+                <div className="font-marker text-3xl text-brutal-orange mb-4">"THE DAMAGE"</div>
+                <div className="header-massive text-9xl text-brutal-orange">&#x20b9;0</div>
+                <p className="font-bebas text-2xl tracking-widest text-white/40 uppercase">TOTAL EXPENSES LOGGED</p>
+            </div>
+            <div className="brutal-card border-brutal-acid shadow-brutal-acid relative flex flex-col items-center text-center py-12">
+                <div className="font-marker text-3xl text-black mb-4">"THE SQUAD"</div>
+                <div className="header-massive text-9xl text-black bg-brutal-acid px-6">0</div>
+                <p className="font-bebas text-2xl tracking-widest text-black/60 uppercase mt-4">ACTIVE MISSIONS</p>
+            </div>
+          </div>
+        </div>
 
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ gridColumn: "span 4", background: "#0F0F0F", border: "2px solid #1A1A1A", borderRadius: 20, padding: 32 }}>
-            <Lightning size={32} color="#F5FF50" weight="fill" />
-            <h3 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 30, color: "white", margin: "16px 0 8px" }}>BOOK FAST</h3>
-            <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 18, color: "#555555", margin: "0 0 24px" }}>"Middle seat awaits the slow."</p>
-            <Link to="/bookings"><button className="btn-ghost" style={{ fontSize: 13, padding: "12px 24px" }}>BOOK FLIGHTS & STAYS</button></Link>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} style={{ gridColumn: "span 4", background: "rgba(255,45,107,0.04)", border: "2px solid rgba(255,45,107,0.12)", borderRadius: 20, padding: 32 }}>
-            <ChatsCircle size={32} color="#FF2D6B" weight="fill" />
-            <h3 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 30, color: "white", margin: "16px 0 8px" }}>ASK TARA</h3>
-            <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 18, color: "#FF2D6B", margin: "0 0 24px" }}>"AI concierge, offline-proof."</p>
-            <Link to="/trips"><button style={{ background: "transparent", border: "1.5px solid rgba(255,45,107,0.3)", borderRadius: 8, padding: "12px 24px", fontFamily: "Anton, sans-serif", fontSize: 13, color: "#FF2D6B", letterSpacing: "0.1em", cursor: "pointer", transition: "all 0.15s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,45,107,0.1)"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>CHAT NOW</button></Link>
-          </motion.div>
+        {/* EXTRA DIALOGUE */}
+        <div className="flex justify-center py-20">
+            <div className="font-marker text-5xl text-brutal-orange text-center max-w-3xl rotate-[1deg]">
+                "Goa is calling, but your bank account is hanging up. Use the ledger to fix that."
+            </div>
         </div>
       </div>
     </div>

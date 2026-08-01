@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
-import { AirplaneTilt, ArrowRight, GoogleLogo } from "@phosphor-icons/react";
-
-const BG = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=85";
+import { AirplaneTilt, ArrowRight, GoogleLogo, ShieldCheck } from "@phosphor-icons/react";
+import { motion } from "framer-motion";
 
 export default function AuthPage() {
   const [mode, setMode] = useState("login");
@@ -29,107 +28,89 @@ export default function AuthPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#080808", display: "flex" }}>
-
-      {/* LEFT — Full-bleed travel photo */}
-      <div style={{ flex: 1, display: "none", position: "relative", overflow: "hidden", minWidth: 0 }} className="hidden lg:block">
-        <img src={BG} alt="Travel" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 40%, #080808 100%), linear-gradient(to top, #080808 0%, transparent 60%)" }} />
-        <div style={{ position: "absolute", top: 40, left: 40, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 44, height: 44, background: "#FF4D00", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", transform: "rotate(-10deg)" }}>
-            <AirplaneTilt size={24} weight="fill" color="white" />
-          </div>
-          <span style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 28, color: "white", letterSpacing: "0.05em" }}>TRAVELO<span style={{ color: "#FF4D00" }}>.</span></span>
-        </div>
-        <div style={{ position: "absolute", bottom: 60, left: 48, right: 48 }}>
-          <div style={{ display: "inline-block", background: "#FF4D00", padding: "4px 12px", marginBottom: 16, borderRadius: 4 }}>
-            <span style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: "0.2em", color: "white", textTransform: "uppercase" }}>GATE 01 — TRAVELO</span>
-          </div>
-          <h2 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: "clamp(48px, 5vw, 80px)", color: "white", lineHeight: 0.9, margin: "0 0 20px" }}>NEXT STOP:<br /><span style={{ color: "#FF4D00" }}>EVERYWHERE.</span></h2>
-          <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 26, color: "#F5FF50", margin: 0 }}>"Your OOO message is overdue."</p>
-        </div>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-10 selection:bg-brutal-orange selection:text-white">
+      {/* FLOATING STICKER */}
+      <div className="fixed top-20 right-20 w-32 h-32 bg-brutal-acid border-4 border-black flex items-center justify-center rotate-[15deg] shadow-2xl hidden md:flex">
+        <span className="font-marker text-4xl text-black">NO<br/>BOTS</span>
       </div>
 
-      {/* RIGHT — Auth form */}
-      <div style={{ width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 48px", position: "relative" }} className="lg:w-[520px]">
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 48 }} className="lg:hidden">
-          <div style={{ width: 36, height: 36, background: "#FF4D00", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", transform: "rotate(-10deg)" }}>
-            <AirplaneTilt size={20} weight="fill" color="white" />
+      <nav className="fixed top-10 left-10">
+        <Link to="/" className="flex items-center gap-4 no-underline group">
+          <div className="w-12 h-12 bg-brutal-orange border-4 border-white flex items-center justify-center rotate-[-10deg] group-hover:rotate-0 transition-transform">
+            <AirplaneTilt size={28} weight="fill" className="text-white" />
           </div>
-          <span style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: 24, color: "white" }}>TRAVELO<span style={{ color: "#FF4D00" }}>.</span></span>
-        </div>
+          <span className="header-massive text-4xl text-white">TRAVELO.</span>
+        </Link>
+      </nav>
 
-        <div style={{ background: "#111111", border: "2px solid #222222", borderRadius: 20, padding: "40px 36px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, background: "repeating-linear-gradient(90deg, #FF4D00 0px, #FF4D00 20px, transparent 20px, transparent 36px)" }} />
-
-          <div style={{ marginBottom: 32 }}>
-            <p style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 10, letterSpacing: "0.3em", color: "#555555", textTransform: "uppercase", marginBottom: 12 }}>TRAVELO — BOARDING PASS</p>
-            <h1 style={{ fontFamily: "Anton, Impact, sans-serif", fontSize: "clamp(40px, 6vw, 64px)", color: "white", lineHeight: 0.9, margin: "0 0 12px", whiteSpace: "pre-line" }}>
-              {mode === "login" ? "WELCOME\nBACK" : "JOIN THE\nSQUAD"}
-            </h1>
-            <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 20, color: "#FF4D00", margin: 0 }}>
-              {mode === "login" ? '"Your bags are missed."' : '"Free passport. No stamps needed."'}
-            </p>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0" }}>
-            <div style={{ flex: 1, height: 1, background: "#1E1E1E" }} />
-            <span style={{ fontFamily: "Anton, sans-serif", fontSize: 12, color: "#333333", letterSpacing: "0.2em" }}>SECURITY CHECK</span>
-            <div style={{ flex: 1, height: 1, background: "#1E1E1E" }} />
-          </div>
-
-          <button onClick={() => { const r = window.location.origin + "/dashboard"; window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(r)}`; }} style={{ width: "100%", background: "white", color: "#080808", border: "none", borderRadius: 10, padding: "16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", marginBottom: 24, transition: "opacity 0.15s" }} onMouseEnter={e => e.currentTarget.style.opacity = "0.9"} onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
-            <GoogleLogo size={20} weight="bold" /> Continue with Google
-          </button>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ flex: 1, height: 1, background: "#1E1E1E" }} />
-            <span style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 12, color: "#404040", fontWeight: 600 }}>OR</span>
-            <div style={{ flex: 1, height: 1, background: "#1E1E1E" }} />
-          </div>
-
-          <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {mode === "register" && (
-              <div>
-                <label style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 11, letterSpacing: "0.15em", color: "#555555", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Full Name</label>
-                <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Sayan Das" className="field" />
-              </div>
-            )}
-            <div>
-              <label style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 11, letterSpacing: "0.15em", color: "#555555", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Email</label>
-              <input required type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="explorer@travelo.app" className="field" />
-            </div>
-            <div>
-              <label style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 11, letterSpacing: "0.15em", color: "#555555", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Password</label>
-              <input required type="password" minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="••••••••" className="field" />
-            </div>
-            {error && (
-              <div style={{ background: "rgba(255,45,107,0.08)", border: "1.5px solid rgba(255,45,107,0.25)", borderRadius: 8, padding: "12px 16px", display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <span style={{ color: "#FF2D6B", fontSize: 16, flexShrink: 0 }}>⚠</span>
-                <div>
-                  <p style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 12, color: "#FF2D6B", margin: "0 0 2px" }}>
-                    {(error.toLowerCase().includes("500") || error.toLowerCase().includes("network")) ? "Backend is offline — try Google login instead" : error}
-                  </p>
-                  {(error.toLowerCase().includes("500") || error.toLowerCase().includes("network")) && (
-                    <p style={{ fontFamily: "Caveat, cursive", fontSize: 14, color: "#666666", margin: 0 }}>"Even airports have delays."</p>
-                  )}
-                </div>
-              </div>
-            )}
-            <button type="submit" disabled={loading} style={{ width: "100%", background: loading ? "#222222" : "#FF4D00", color: "white", border: "2px solid #FF4D00", borderRadius: 10, padding: "17px", fontFamily: "Anton, Impact, sans-serif", fontSize: 18, letterSpacing: "0.1em", cursor: loading ? "not-allowed" : "pointer", transition: "all 0.15s", marginTop: 4 }} onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#FF4D00"; } }} onMouseLeave={e => { if (!loading) { e.currentTarget.style.background = "#FF4D00"; e.currentTarget.style.color = "white"; } }}>
-              {loading ? "PROCESSING..." : mode === "login" ? "BOARD THE PLANE" : "GRAB YOUR TICKET"}
-            </button>
-          </form>
-
-          <p style={{ marginTop: 28, textAlign: "center", fontFamily: "Space Grotesk, sans-serif", fontSize: 14, color: "#555555" }}>
-            {mode === "login" ? "New traveler?" : "Already exploring?"}{" "}
-            <button style={{ background: "none", border: "none", cursor: "pointer", color: "#00E5FF", fontWeight: 700, fontSize: 14, padding: 0, fontFamily: "Space Grotesk, sans-serif", textDecoration: "underline" }} onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
-              {mode === "login" ? "Create account" : "Sign in"}
-            </button>
+      <div className="w-full max-w-xl">
+        <header className="text-center mb-16">
+          <motion.h1 initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="header-massive text-9xl mb-4">
+            {mode === "login" ? "WELCOME BACK" : "JOIN THE SQUAD"}
+          </motion.h1>
+          <p className="font-marker text-4xl text-brutal-orange italic">
+            {mode === "login" ? '"Ready to ruin your bank balance?"' : '"Free passport. No stamps needed."'}
           </p>
+        </header>
+
+        <div className="border-4 border-white bg-white text-black relative overflow-hidden shadow-[12px_12px_0px_#FF4D00]">
+          <div className="absolute top-0 left-0 right-0 h-4 bg-brutal-orange" />
+          
+          <div className="space-y-8 py-10 px-8">
+            <button 
+                onClick={() => { const r = window.location.origin + "/dashboard"; window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(r)}`; }}
+                className="w-full bg-black text-white p-6 border-4 border-black flex items-center justify-center gap-6 hover:bg-brutal-grey transition-colors shadow-[8px_8px_0px_#FF4D00]"
+            >
+                <GoogleLogo size={32} weight="bold" />
+                <span className="font-bebas text-3xl tracking-widest uppercase">BOARD WITH GOOGLE</span>
+            </button>
+
+            <div className="flex items-center gap-8">
+                <div className="h-[3px] bg-black flex-1" />
+                <span className="font-bebas text-2xl text-black opacity-30">OR</span>
+                <div className="h-[3px] bg-black flex-1" />
+            </div>
+
+            <form onSubmit={submit} className="space-y-6">
+              {mode === "register" && (
+                <div className="space-y-2">
+                  <label className="font-bebas text-2xl tracking-widest block">USER IDENTITY</label>
+                  <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="SAYAN DLS" className="w-full border-4 border-black p-5 text-2xl font-black outline-none focus:border-brutal-orange bg-white" />
+                </div>
+              )}
+              <div className="space-y-2">
+                <label className="font-bebas text-2xl tracking-widest block">COMMS ADDRESS</label>
+                <input required type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="YOU@TRAVELO.APP" className="w-full border-4 border-black p-5 text-2xl font-black outline-none focus:border-brutal-orange bg-white" />
+              </div>
+              <div className="space-y-2">
+                <label className="font-bebas text-2xl tracking-widest block">SECRET KEY</label>
+                <input required type="password" minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" className="w-full border-4 border-black p-5 text-2xl font-black outline-none focus:border-brutal-orange bg-white" />
+              </div>
+
+              {error && (
+                <div className="bg-red-500 text-white p-6 border-4 border-black font-black uppercase text-sm tracking-widest shadow-[8px_8px_0px_#000]">
+                  &#9888;&#65039; BREACH DETECTED: {error}
+                </div>
+              )}
+
+              <button type="submit" disabled={loading} className="w-full bg-brutal-orange text-white border-4 border-black py-6 font-bebas text-4xl uppercase tracking-widest flex items-center justify-center gap-6 shadow-[8px_8px_0px_#000] hover:shadow-[12px_12px_0px_#000] hover:-translate-x-1 hover:-translate-y-1 transition-all active:translate-x-0 active:translate-y-0 active:shadow-none">
+                {loading ? "CHECKING..." : mode === "login" ? "ENGAGE" : "REGISTER"}
+                <ArrowRight size={44} weight="bold" />
+              </button>
+            </form>
+
+            <div className="text-center pt-8 border-t-4 border-black/10">
+                <p className="font-marker text-2xl rotate-[-1deg] text-black">
+                    {mode === "login" ? "New around here? " : "Already built different? "}
+                    <button className="text-brutal-orange underline underline-offset-8 hover:text-black transition-colors font-black uppercase" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
+                        {mode === "login" ? "JOIN SQUAD" : "BACK TO HQ"}
+                    </button>
+                </p>
+            </div>
+          </div>
         </div>
 
-        <p style={{ fontFamily: "Caveat, cursive", fontWeight: 700, fontSize: 18, color: "#333333", textAlign: "center", marginTop: 32 }}>
+        <p className="font-marker text-4xl text-center mt-12 rotate-[2deg] text-brutal-acid">
           "Life is short. Passport stamps are forever."
         </p>
       </div>
