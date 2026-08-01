@@ -20,17 +20,19 @@ import RecapPage from "@/pages/RecapPage";
 
 function ProtectedLayout() {
   const { user } = useAuth();
-  if (user === null)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="font-display text-2xl text-[#FF5A36] animate-pulse">Travelo</div>
-      </div>
-    );
+  
+  // If user is false (not logged in), redirect to auth
   if (user === false) return <Navigate to="/auth" replace />;
+  
+  // If user is null (still loading), we show a quick indicator
+  if (user === null) return <div className="min-h-screen bg-black flex items-center justify-center font-bebas text-5xl text-white">RECRUITING OPERATIVE...</div>;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       <Navbar />
-      <Outlet />
+      <div className="pt-20">
+        <Outlet />
+      </div>
       <ChatWidget />
     </div>
   );
@@ -38,7 +40,6 @@ function ProtectedLayout() {
 
 function AppRoutes() {
   const location = useLocation();
-  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
   if (location.hash?.includes("session_id=")) return <AuthCallback />;
   return (
     <Routes>

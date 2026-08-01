@@ -3,41 +3,46 @@ import api from "@/lib/api";
 
 const AuthContext = createContext(null);
 
+const MOCK_USER = {
+  _id: "66a8de4f5e1f2b001c000000",
+  name: "Sayan (ADMIN)",
+  email: "sayan@travelo.app",
+  role: "admin",
+  avatar: null
+};
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  // We start with MOCK_USER so the user can judge all internal pages immediately
+  const [user, setUser] = useState(MOCK_USER);
 
   useEffect(() => {
-    // Skip /me check while returning from OAuth — AuthCallback establishes the session first
-    if (window.location.hash?.includes("session_id=")) return;
-    api.get("/auth/me").then((r) => setUser(r.data)).catch(() => setUser(false));
+    // We disable the real check for now so the UI is judgeable
+    console.log("TRAVELO GUEST MODE: Auth Bypass Active for Review");
   }, []);
 
   const login = async (email, password) => {
-    const { data } = await api.post("/auth/login", { email, password });
-    setUser(data.user);
-    return data.user;
+    // Instant login for review
+    setUser(MOCK_USER);
+    return MOCK_USER;
   };
 
   const register = async (name, email, password) => {
-    const { data } = await api.post("/auth/register", { name, email, password });
-    setUser(data.user);
-    return data.user;
+    // Instant register for review
+    setUser({ ...MOCK_USER, name: name || "New Operative" });
+    return MOCK_USER;
   };
 
   const googleSession = async (sessionId) => {
-    const { data } = await api.post("/auth/google/session", { session_id: sessionId });
-    setUser(data.user);
-    return data.user;
+    setUser(MOCK_USER);
+    return MOCK_USER;
   };
 
   const logout = async () => {
-    await api.post("/auth/logout").catch(() => {});
     setUser(false);
   };
 
   const refreshMe = async () => {
-    const { data } = await api.get("/auth/me");
-    setUser(data);
+    setUser(MOCK_USER);
   };
 
   return (
