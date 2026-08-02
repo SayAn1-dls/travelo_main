@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { AirplaneTilt, SignOut, ShieldCheck } from "@phosphor-icons/react";
+import { AirplaneTilt, SignOut } from "@phosphor-icons/react";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -30,9 +30,9 @@ export default function Navbar() {
         {links.map((link) => {
           const active = location.pathname === link.path;
           return (
-            <Link 
-              key={link.path} 
-              to={link.path} 
+            <Link
+              key={link.path}
+              to={link.path}
               className={`font-black text-[12px] tracking-[0.3em] px-8 py-3 no-underline transition-all ${active ? 'text-orange-500' : 'text-white/40 hover:text-white'}`}
             >
               {link.label}
@@ -43,13 +43,10 @@ export default function Navbar() {
 
       <div className="flex items-center gap-6 pointer-events-auto bg-white/5 backdrop-blur-3xl border border-white/10 p-4 rounded-[2rem] shadow-2xl">
         <div className="flex flex-col items-end px-6 border-r border-white/10">
-          <span className="text-3xl font-[900] leading-none text-cyan-500 font-bebas italic">{user.name?.split(' ')[0].toUpperCase()}</span>
-          <span className="font-black text-[10px] tracking-[0.4em] uppercase opacity-20 mt-1 italic">OPERATIVE</span>
+          <span className="text-3xl font-[900] leading-none text-cyan-500 font-bebas italic">{user.name?.split(' ')[0]}</span>
+          <span className="font-black text-[10px] tracking-[0.4em] uppercase opacity-20 mt-1">OPERATIVE</span>
         </div>
-        <button 
-          onClick={logout}
-          className="w-14 h-14 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center hover:bg-orange-500 transition-all group"
-        >
+        <button onClick={logout} className="w-14 h-14 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center hover:bg-orange-500 transition-all group">
           <SignOut size={28} weight="bold" className="text-orange-500 group-hover:text-white" />
         </button>
       </div>

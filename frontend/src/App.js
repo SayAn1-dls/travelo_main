@@ -13,11 +13,10 @@ import RecapPage from "@/pages/RecapPage";
 function Layout() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/auth" replace />;
-  
   return (
     <div className="min-h-screen bg-[#030303]">
       <Navbar />
-      <Outlet />
+      <div className="pt-24"><Outlet /></div>
     </div>
   );
 }

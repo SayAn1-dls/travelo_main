@@ -1,113 +1,49 @@
-import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { AirplaneTilt, ChartPie, Globe, ShieldCheck, ArrowRight, Sparkle, MapPin } from "@phosphor-icons/react";
+import { Sparkle } from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   const { user } = useAuth();
-
-  const stats = [
-    { label: "Active Missions", value: "3", sub: "TRIPS PLANNED", color: "text-orange-500" },
-    { label: "Capital Tracked", value: "₹42,500", sub: "TOTAL LOGGED", color: "text-cyan-500" },
-    { label: "Destinations Hit", value: "7", sub: "LOCATIONS DONE", color: "text-orange-400" },
-  ];
-
-  const modules = [
-    {
-      icon: AirplaneTilt,
-      label: "MISSION BOARD",
-      desc: "View and manage all your active trips.",
-      link: "/trips",
-      color: "text-orange-500",
-      bg: "bg-orange-500/10 border-orange-500/20",
-    },
-    {
-      icon: Globe,
-      label: "BOOK LOGISTICS",
-      desc: "Flights, hotels, everything in one shot.",
-      link: "/book",
-      color: "text-cyan-500",
-      bg: "bg-cyan-500/10 border-cyan-500/20",
-    },
-    {
-      icon: ChartPie,
-      label: "CAPITAL LEDGER",
-      desc: "Track squad expenses and settle fast.",
-      link: "/bookings",
-      color: "text-orange-400",
-      bg: "bg-orange-400/10 border-orange-400/20",
-    },
-  ];
+  const name = (user?.name || "OPERATIVE").split(' ')[0].toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#030303] pt-40 pb-20 px-10">
-      {/* Background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full bg-orange-500/[0.06] blur-[180px]" />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-cyan-500/[0.05] blur-[180px]" />
-      </div>
-
-      <div className="max-w-[1600px] mx-auto relative z-10">
-        {/* Header */}
-        <header className="mb-24">
-          <div className="flex items-center gap-4 mb-8">
-            <Sparkle size={32} weight="fill" className="text-orange-500" />
-            <span className="font-black text-[11px] tracking-[0.5em] uppercase text-white/30 italic">COMMAND CENTER</span>
+    <div className="min-h-screen bg-[#030303] pt-40 pb-20 px-10 relative overflow-hidden">
+      <div className="fixed inset-0 bg-[radial-gradient(at_100%_0%,rgba(0,240,255,0.05)_0%,transparent_50%),radial-gradient(at_0%_100%,rgba(255,77,0,0.03)_0%,transparent_50%)] pointer-events-none" />
+      
+      <div className="max-w-7xl mx-auto relative z-10">
+        <header className="mb-32">
+          <div className="flex items-center gap-6 mb-8">
+            <Sparkle weight="fill" size={40} className="text-orange-500 animate-pulse" />
+            <span className="text-4xl font-[900] tracking-[0.3em] text-white/30 font-bebas uppercase">COMMAND HQ</span>
           </div>
-          <h1 className="text-[13vw] font-[900] leading-[0.75] uppercase tracking-tighter">
-            <span className="text-white block">HEY,</span>
-            <span className="text-orange-500 italic block">{user?.name?.split(" ")[0] || "TRAVELER"}.</span>
-          </h1>
-          <p className="text-white/30 font-bold text-3xl mt-12 uppercase tracking-widest italic">
-            "Where are we going next?"
-          </p>
+          <h1 className="text-[14vw] font-[900] leading-[0.75] uppercase font-bebas">YO, <span className="text-orange-500 italic">{name}!</span></h1>
+          <p className="text-white/40 font-bold text-4xl mt-12 italic uppercase tracking-tighter">"READY TO BREAK THE INTERNET WITH ANOTHER TRIP?"</p>
         </header>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10">
-              <p className="font-black text-[10px] tracking-[0.5em] uppercase text-white/20 mb-6 italic">{s.sub}</p>
-              <div className={`text-[10vw] font-[900] leading-none font-bebas italic ${s.color}`}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Module Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-20">
-          {modules.map((m) => (
-            <Link key={m.label} to={m.link} className="no-underline group">
-              <div className={`border backdrop-blur-3xl rounded-[2.5rem] p-12 h-full transition-all hover:scale-[1.02] ${m.bg}`}>
-                <m.icon size={64} className={`${m.color} mb-10 group-hover:rotate-[-10deg] transition-transform`} weight="duotone" />
-                <h3 className="text-5xl font-[900] uppercase mb-6 font-bebas tracking-wide">{m.label}</h3>
-                <p className="text-white/40 font-bold text-xl italic mb-10 leading-snug">{m.desc}</p>
-                <div className={`flex items-center gap-3 font-black text-sm tracking-[0.4em] uppercase ${m.color} italic`}>
-                  OPEN <ArrowRight weight="bold" size={20} />
-                </div>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          <div className="lg:col-span-8 silicon-glass border-orange-500/20 group min-h-[500px] flex flex-col justify-center">
+            <h2 className="text-[8vw] font-[900] mb-8 leading-none uppercase font-bebas">Launch New <br/><span className="text-cyan-500 italic text-[9vw]">Expedition.</span></h2>
+            <p className="text-2xl text-white/40 mb-16 font-bold uppercase tracking-tight max-w-md">Itineraries, group capital, and secret spots. All handled.</p>
+            <Link to="/trips">
+              <button className="btn-launch py-10 px-20 text-4xl">INITIATE MISSION</button>
             </Link>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-12 backdrop-blur-3xl">
-          <div className="flex items-center gap-4 mb-10">
-            <MapPin weight="fill" size={28} className="text-orange-500" />
-            <span className="font-black text-sm tracking-[0.4em] uppercase text-white/40 italic">QUICK LAUNCH</span>
           </div>
-          <div className="flex flex-wrap gap-6">
-            {[
-              { label: "New Trip →", link: "/trips" },
-              { label: "Log Expense →", link: "/bookings" },
-              { label: "Book Tickets →", link: "/book" },
-            ].map((a) => (
-              <Link
-                key={a.label}
-                to={a.link}
-                className="no-underline bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-500/30 px-10 py-6 rounded-2xl font-black uppercase text-sm tracking-[0.3em] text-white/60 hover:text-white transition-all italic"
-              >
-                {a.label}
+
+          <div className="lg:col-span-4 flex flex-col gap-12">
+            <div className="silicon-glass border-white/5 flex-1 flex flex-col">
+              <h3 className="text-6xl font-[900] mb-4 font-bebas text-white uppercase italic">The Pool</h3>
+              <div className="text-8xl font-[900] text-orange-500 italic tracking-tighter font-bebas">₹12,450</div>
+              <Link to="/bookings" className="mt-auto">
+                <button className="w-full bg-white/5 hover:bg-white/10 py-6 rounded-3xl font-black uppercase text-sm tracking-[0.3em] transition-all italic border border-white/10">RECAP DAMAGE</button>
               </Link>
-            ))}
+            </div>
+            <div className="silicon-glass bg-orange-500/5 border-orange-500/30 flex-1">
+              <h3 className="text-6xl font-[900] mb-6 font-bebas text-orange-500 italic uppercase">TARA</h3>
+              <p className="text-sm font-bold text-white/40 mb-10 italic uppercase tracking-widest leading-relaxed">"Analyzing party patterns in Goa. Standby for the drop."</p>
+              <Link to="/book">
+                <button className="w-full btn-launch py-6 text-xl">OPEN COMMS</button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

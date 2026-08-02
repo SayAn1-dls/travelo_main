@@ -5,19 +5,14 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        bebas: ['"Bebas Neue"', "sans-serif"],
-        jakarta: ['"Plus Jakarta Sans"', "sans-serif"],
+        bebas: ['Bebas Neue', 'cursive'],
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
       },
-      backdropBlur: {
-        "4xl": "80px",
-        "5xl": "120px",
-      },
-      boxShadow: {
-        silicon: "0 40px 120px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)",
-        "orange-glow": "0 0 60px rgba(249,115,22,0.35)",
-        "cyan-glow": "0 0 60px rgba(6,182,212,0.25)",
-      },
-    },
+      colors: {
+        orange: { 500: '#FF4D00' },
+        cyan: { 500: '#00F0FF' },
+      }
+    }
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };
