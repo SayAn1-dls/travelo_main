@@ -1,8 +1,8 @@
 # TRAVELO CHANGELOG
 
-### feat(booking)
-- BookingPage: flight + hotel search forms
-- Flight: origin, destination, date, passengers
-- Hotel: city, check-in/out, guests
-- Opens MakeMyTrip / GoIbibo / Booking.com with query params
-- Stored recent searches in localStorage
+### feat(recap)
+- RecapPage: full ledger of logged bookings
+- Per-trip breakdown with total
+- Category badges per expense
+- Grand total in electric orange Bebas Neue
+- Empty state with brutalist 'NO DAMAGE YET' message
