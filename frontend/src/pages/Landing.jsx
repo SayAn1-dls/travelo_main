@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { AirplaneTilt, ArrowRight, Sparkle, MapPin, CurrencyInr, Users } from "@phosphor-icons/react";
 
-// Social proof stats — update with real numbers post-launch
 const STATS = [
   { num: "50K+", label: "Operatives active" },
   { num: "₹2.4Cr", label: "Settled this month" },
@@ -48,7 +47,7 @@ export default function Landing() {
             className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 px-8 py-2 rounded-full mb-12 backdrop-blur-3xl"
           >
             <Sparkle weight="fill" className="text-orange-500" size={14} />
-            <span className="font-black text-[10px] tracking-[0.4em] uppercase text-orange-500">FOR THE SQUAD. BY THE SQUAD. BUILT DIFFERENT.</span>
+            <span className="font-black text-[10px] tracking-[0.4em] uppercase text-orange-500">v3.0 — THE FINAL MASTERPIECE — MARKET READY</span>
           </motion.div>
 
           <motion.h1
@@ -101,7 +100,7 @@ export default function Landing() {
                 transition={{ delay: 0.5 + i * 0.1 }}
                 className="silicon-glass group hover:bg-white/[0.05] transition-all"
               >
-                <f.icon size={48} className={`${f.color} mb-8`} weight="duotone" />
+                <f.icon size={48} className="${f.color} mb-8" weight="duotone" />
                 <h3 className="text-4xl font-[900] mb-4 font-bebas text-white uppercase italic">{f.title}</h3>
                 <p className="text-white/30 text-lg font-bold uppercase tracking-tight">{f.desc}</p>
               </motion.div>
@@ -115,10 +114,10 @@ export default function Landing() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7 + i * 0.1 }}
-                className="p-10 border border-white/5 rounded-[2rem] text-left"
+                className="silicon-glass-sm p-10 border border-white/5 flex flex-col justify-center min-h-[240px]"
               >
-                <p className="text-3xl font-[900] font-bebas italic text-orange-500 mb-4 uppercase leading-tight">\"{q.text}\"</p>
-                <p className="text-white/20 font-bold text-xs uppercase tracking-widest">{q.author}</p>
+                <p className="text-3xl font-marker text-orange-500 mb-4 uppercase leading-tight italic">\"{q.text}\"</p>
+                <p className="text-white/20 font-bold text-xs uppercase tracking-[0.4em]">{q.author}</p>
               </motion.div>
             ))}
           </div>

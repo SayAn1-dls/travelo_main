@@ -47,6 +47,8 @@
   }
 }
 
+.font-marker { font-family: "Permanent Marker", cursive; }
+
 .text-gradient {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-400;
 }

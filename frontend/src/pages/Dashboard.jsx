@@ -54,7 +54,7 @@ export default function Dashboard() {
           <h1 className="text-[12vw] font-[900] leading-[0.78] uppercase font-bebas">
             YO,{' '}<span className="text-orange-500 italic">{name}!</span>
           </h1>
-          <p className="text-white/30 font-bold text-2xl md:text-3xl mt-10 italic uppercase tracking-tight max-w-3xl">
+          <p className="text-white/40 font-marker text-3xl md:text-4xl mt-10 uppercase tracking-widest max-w-3xl">
             "{greeting}"
           </p>
         </header>
