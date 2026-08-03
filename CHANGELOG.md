@@ -1,7 +1,7 @@
 # TRAVELO CHANGELOG
 
-### fix(routing) SPA
-- vercel.json rewrites: all paths → /index.html
-- Prevents 404 on direct URL access to /dashboard, /trips/id etc.
-- Static assets still served with 1yr immutable cache
-- Security headers added: X-Frame-Options, nosniff
+### fix(auth) offline-first
+- Removed all axios/fetch calls from frontend
+- All state lives in localStorage — no CORS, no 500s, no timeouts
+- Works fully offline on airplane mode
+- Backend API bypass permanent until DB creds are wired
