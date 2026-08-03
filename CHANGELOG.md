@@ -1,7 +1,7 @@
 # TRAVELO CHANGELOG
 
-### fix(auth) offline-first
-- Removed all axios/fetch calls from frontend
-- All state lives in localStorage — no CORS, no 500s, no timeouts
-- Works fully offline on airplane mode
-- Backend API bypass permanent until DB creds are wired
+### refactor(persistence)
+- lib/persistence.js: getItem/setItem/removeItem wrappers
+- Safe JSON.parse with try/catch fallback
+- Consistent key namespace: travelo_*_v3
+- Used across all pages for consistent storage access
