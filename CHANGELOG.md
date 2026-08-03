@@ -2,8 +2,9 @@
 
 ## v3.0.0 — Silicon Brutalist Masterpiece
 
-### feat(auth)
-- LocalStorage persistence engine — auto-login on page refresh
-- No backend calls, zero network errors
-- ADMIN_USER pre-seeded for instant demo
-- register() accepts custom operative name
+### feat(landing)
+- 14vw Bebas Neue PLAN.PACK.EXPLORE hero
+- Framer Motion staggered entrance animations
+- Social proof stats: 50K+ operatives, ₹2.4Cr settled
+- 3 feature cards with silicon-glass treatment
+- Permanent Marker quote grid for personality
