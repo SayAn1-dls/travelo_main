@@ -1,8 +1,6 @@
 # TRAVELO CHANGELOG
 
-### feat(recap)
-- RecapPage: full ledger of logged bookings
-- Per-trip breakdown with total
-- Category badges per expense
-- Grand total in electric orange Bebas Neue
-- Empty state with brutalist 'NO DAMAGE YET' message
+### fix(routing)
+- TripMissionPage 'ADJUST EXPENSES' button navigates to /dashboard
+- useNavigate hook — no page reload, state preserved
+- Fixes persistent user complaint about broken redirect flow
