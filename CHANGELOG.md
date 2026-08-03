@@ -1,8 +1,8 @@
 # TRAVELO CHANGELOG
 
-### feat(squad-mail)
-- SquadMailPage: compose + inbox UI
-- 'ALL OPERATIVES' broadcast option
-- Thread ordering: newest first
-- Read/unread badge indicator
-- stores messages to: travelo_mail_v3 key
+### feat(booking)
+- BookingPage: flight + hotel search forms
+- Flight: origin, destination, date, passengers
+- Hotel: city, check-in/out, guests
+- Opens MakeMyTrip / GoIbibo / Booking.com with query params
+- Stored recent searches in localStorage
