@@ -1,8 +1,7 @@
 # TRAVELO CHANGELOG
 
-### feat(trip-mission) expenses
-- Add expense: description, amount, payer, split members, category
-- Categories: FOOD / TRAVEL / STAY / FUN / OTHER
-- Expense list with delete and category badge
-- localStorage key: travelo_exp_{tripId}
-- Real-time total update on add/delete
+### feat(trip-mission) budget
+- Budget progress bar: expenses/budget * 100
+- Color changes: green → yellow → red at 80%/100%
+- Shows 'OVER BUDGET' warning in crispy orange
+- Budget set during trip creation, stored in trip object
