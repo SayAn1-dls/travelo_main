@@ -1,9 +1,8 @@
 # TRAVELO CHANGELOG
 
-### feat(explore)
-- Memories vault — ExplorePage with photo upload
-- Drag-and-drop or click-to-upload zone
-- Filter by trip dropdown
-- Photo grid with hover overlay
-- Caption input per photo
-- Stores base64 images in localStorage
+### feat(squad-mail)
+- SquadMailPage: compose + inbox UI
+- 'ALL OPERATIVES' broadcast option
+- Thread ordering: newest first
+- Read/unread badge indicator
+- stores messages to: travelo_mail_v3 key
