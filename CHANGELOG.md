@@ -1,8 +1,8 @@
 # TRAVELO CHANGELOG
 
-### feat(dashboard)
-- 12vw 'YO, SAYAN!' brutalist greeting
-- Hourly greeting rotation from 5 motivational quotes
-- Live expense total aggregated across all trips
-- Active missions count from localStorage
-- Quick nav grid: LOGISTICS / LEDGER / MEMORIES / SQUAD MAIL
+### feat(trips)
+- 'THE TRIP BOARD.' 14vw brutalist header
+- Create mission form: name, destination, budget, members
+- Delete with confirmation toast
+- Member CSV input auto-prepends SAYAN if not included
+- Random emoji assigned per trip (6 categories)
