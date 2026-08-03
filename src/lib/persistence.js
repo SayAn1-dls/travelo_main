@@ -1,37 +1,25 @@
-// Travelo Local Persistence Engine v4.0
-// Zero network errors — full offline-first architecture for elite client demos
+const PREFIX = "travelo_v4_";
 
-const KEYS = {
-  TRIPS: 'travelo_trips_v3',
-  EXPENSES: (id) => `travelo_exp_${id}`,
-  AUTH: 'travelo_auth_v29',
-  LEDGER: 'travelo_expenses_v3',
-  MEMORIES: 'travelo_memories',
-  SQUAD_MAIL: 'travelo_squad_mail',
-  PAYMENTS: 'travelo_payments',
-};
-
-export const persist = {
+export const ls = {
   get: (key, fallback = null) => {
     try {
-      const val = localStorage.getItem(key);
-      return val ? JSON.parse(val) : fallback;
-    } catch {
-      return fallback;
-    }
+      const v = localStorage.getItem(PREFIX + key);
+      return v !== null ? JSON.parse(v) : fallback;
+    } catch { return fallback; }
   },
   set: (key, value) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-      return true;
-    } catch {
-      return false;
-    }
+    try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); }
+    catch { /* storage full or private mode */ }
   },
   remove: (key) => {
-    try { localStorage.removeItem(key); } catch {}
+    try { localStorage.removeItem(PREFIX + key); }
+    catch {/* noop */}
   },
-  KEYS,
+  clear: () => {
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(PREFIX))
+        .forEach(k => localStorage.removeItem(k));
+    } catch {/* noop */}
+  },
 };
-
-export default persist;
