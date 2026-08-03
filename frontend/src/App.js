@@ -1,18 +1,19 @@
-import "./App.css";
+import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import { Toaster } from "sonner";
-import Navbar from "./components/Navbar";
-import Landing from "./pages/Landing";
-import AuthPage from "./pages/AuthPage";
-import Dashboard from "./pages/Dashboard";
-import BookingPage from "./pages/BookingPage";
-import TripsPage from "./pages/TripsPage";
-import RecapPage from "./pages/RecapPage";
-import TripMissionPage from "./pages/TripMissionPage";
-import PaymentPage from "./pages/PaymentPage";
-import ExplorePage from "./pages/ExplorePage";
-import SquadMailPage from "./pages/SquadMailPage";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { Toaster } from "@/components/ui/sonner";
+import Navbar from "@/components/Navbar";
+import Landing from "@/pages/Landing";
+import AuthPage from "@/pages/AuthPage";
+import Dashboard from "@/pages/Dashboard";
+import BookingPage from "@/pages/BookingPage";
+import TripsPage from "@/pages/TripsPage";
+import RecapPage from "@/pages/RecapPage";
+import TripMissionPage from "@/pages/TripMissionPage";
+import PaymentPage from "@/pages/PaymentPage";
+import ExplorePage from "@/pages/ExplorePage";
+import SquadMailPage from "@/pages/SquadMailPage";
+import NotFound from "@/pages/NotFound";
 
 function Layout() {
   const { user } = useAuth();
@@ -42,6 +43,7 @@ function App() {
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/squad-mail" element={<SquadMailPage />} />
           </Route>
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster position="top-center" richColors theme="dark" duration={3000} closeButton />
       </BrowserRouter>
@@ -50,3 +52,5 @@ function App() {
 }
 
 export default App;
+// Travelo v3.0 — All routes active
+// Routes: dashboard, trips, trips/:id, book, bookings, payment, explore, squad-mail
