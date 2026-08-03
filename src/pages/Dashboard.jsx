@@ -1,42 +1,69 @@
 import { useAuth } from "@/context/AuthContext";
+import { AirplaneTilt, Sparkle, ChatCircleDots, ArrowRight, Globe, CreditCard, Receipt, MapPin } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
-import { Sparkle, AirplaneTilt, CurrencyInr, ChatTeardropDots, Image, Envelope } from "@phosphor-icons/react";
-const GREETINGS = ["READY TO BREAK THE INTERNET WITH ANOTHER TRIP?","YOUR PASSPORT IS BORED. FIX THAT.","THE GROUP CHAT IS WAITING. MOVE.","PLAN IT. PACK IT. NEVER LOOK ACKK.","SOMEONE'S GOTTA BE THE ONE WHO BOOKS IT. BE THAT."];
+
+const QUOTES = [
+  "READY TO BREAK THE INTERNET WITH ANOTHER TRIP?",
+  "YOUR NEXT ADVENTURE IS ONE CLICK AWAY.",
+  "STOP SCROLLING. START GOING.",
+  "THE WORLD IS TOO BIG FOR ONE ITINERARY.",
+  "SLEEP WHEN YOU'RE HOME. EXPLORE WHEN YOU'RE NOT.",
+  "YOUR PASSPORT AIN'T GONNA STAMP ITSELF.",
+  "VIBES DON'T PACK THEMSELVES. GET MOVING.",
+  "THE BEST TRIP IS THE ONE YOU HAVEN'T BOOKED YET.",
+];
+
+const QUICK_LINKS = [
+  { to: "/trips", label: "MISSIONS", icon: MapPin, color: "text-orange-500", desc: "Active expeditions" },
+  { to: "/explore", label: "EXPLORE", icon: Globe, color: "text-cyan-500", desc: "Find destinations" },
+  { to: "/payment", label: "BOARDING", icon: CreditCard, color: "text-white", desc: "Issue boarding pass" },
+  { to: "/squad-mail", label: "SQUAD MAIL", icon: ChatCircleDots, color: "text-orange-500", desc: "Message your crew" },
+];
+
 export default function Dashboard() {
   const { user } = useAuth();
-  const name = (user?.name || "OPERATIVE").split(' ')[0].toUpperCase();
-  const greeting = GREETINGS[new Date().getHours() % GREETINGS.length];
-  const trips = (() => { try { return JSON.parse(localStorage.getItem("travelo_trips_v3") || '[]'); } catch { return []; } })();
-  const expenses = (() => { try { let total = 0; trips.forEach(t => { const exp = JSON.parse(localStorage.getItem(`travelo_exp_${t.id}`) || '[]'); total += exp.reduce((a, e) => a + e.amount, 0); }); return total; } catch { return 0; } })();
+  const name = (user?.name || "OPERATIVE").split(" ")[0].toUpperCase();
+  const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+
   return (
-    <div className="min-h-screen bg-[#030303] pt-36 pb-20 px-6 md:px-10 relative overflow-hidden">
+    <div className="min-h-screen bg-[#030303] pt-40 pb-20 px-10 relative overflow-hidden">
+      <div className="fixed inset-0 bg-[radial-gradient(at_100%_0%,rgba(0,240,255,0.05)_0%,transparent_50%)] pointer-events-none" />
       <div className="max-w-7xl mx-auto relative z-10">
-        <header className="mb-24">
-          <h1 className="text-[12vw] font-[900] leading-[0.78] uppercase font-bebas">ZO{' '}<span className="text-orange-500 italic">{name}!</span></h1>
-          <p className="text-white/40 font-marker text-3xl mt-10 uppercase tracking-widest max-w-3xl">"{greeting}"</p>
-        </header>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-10">
-          <div className="lg:col-span-8 silicon-glass border-orange-500/10 min-h-[420px] flex flex-col justify-between">
-            <h2 className="text-[7vw] font-[900] mb-6 leading-none uppercase font-bebas">Launch New<br/><span className="text-cyan-500 italic">Expedition.</span></h2>
-            <Link to="/trips" className="no-underline"><button className="btn-launch py-8 px-16 text-3xl rounded-[2rem]">INITIATE MISSION</button></Link>
+        <header className="mb-32">
+          <div className="flex items-center gap-6 mb-8">
+            <Sparkle weight="fill" size={40} className="text-orange-500 animate-pulse" />
+            <span className="text-4xl font-[900] tracking-[0.3em] text-white/30 font-bebas uppercase">COMMAND HQ</span>
           </div>
-          <div className="lg:col-span-4 flex flex-col gap-10">
-            <div className="silicon-glass flex-1 flex flex-col">
-              <div className="text-[7vw] md:text-[4vw] font-[900] text-orange-500 italic font-bebas leading-none mb-2">₹ {expenses.toLocaleString()}</div>
-              <p className="text-white/20 font-bold text-sm uppercase tracking-widest">Squad Capital</p>
+          <h1 className="text-[14vw] font-[900] leading-[0.75] uppercase font-bebas">YO, <span className="text-orange-500 italic">{name}!</span></h1>
+          <p className="text-white/40 font-bold text-4xl mt-12 italic uppercase tracking-tighter">"{quote}"</p>
+        </header>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-16">
+          <div className="lg:col-span-8 silicon-glass border-orange-500/20 group min-h-[500px] flex flex-col justify-center p-16">
+            <h2 className="text-[8vw] font-[900] mb-8 leading-none uppercase font-bebas">Launch New <br/><span className="text-cyan-500 italic text-[9vw]">Expedition.</span></h2>
+            <p className="text-2xl text-white/40 mb-16 font-bold uppercase tracking-tight max-w-md">Itineraries, group capital, and squad logistics. All in one place.</p>
+            <Link to="/trips"><button className="btn-launch py-10 px-20 text-4xl">INITIATE MISSION</button></Link>
+          </div>
+          <div className="lg:col-span-4 flex flex-col gap-12">
+            <div className="silicon-glass border-white/5 flex-1 p-12 flex flex-col">
+              <h3 className="text-6xl font-[900] mb-4 font-bebas text-white uppercase italic">The Pool</h3>
+              <div className="text-8xl font-[900] text-orange-500 italic tracking-tighter font-bebas">₹12,450</div>
+              <Link to="/bookings" className="mt-auto"><button className="w-full bg-white/5 hover:bg-white/10 py-6 rounded-3xl font-black uppercase text-sm tracking-[0.3em] transition-all italic border border-white/10 font-bebas text-white/50 hover:text-white">RECAP DAMAGE</button></Link>
             </div>
-            <div className="silicon-glass bg-orange-500/5 border-orange-500/20 flex-1">
-              <div className="text-[7vw] md:text-[4vw] font-[900] text-white italic font-bebas leading-none">{trips.length}</div>
-              <p className="text-white/20 font-bold text-sm uppercase tracking-widest mt-2">Active Missions</p>
+            <div className="silicon-glass bg-orange-500/5 border-orange-500/30 flex-1 p-12">
+              <h3 className="text-6xl font-[900] mb-6 font-bebas text-orange-500 italic uppercase">TARA</h3>
+              <p className="text-sm font-bold text-white/40 mb-10 italic uppercase tracking-widest leading-relaxed">"Analyzing party patterns in Goa. Standby for the drop."</p>
+              <Link to="/book"><button className="w-full btn-launch py-6 text-xl">OPEN COMMS</button></Link>
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[{ icon: AirplaneTilt, label: 'LOGISTICS', path: '/book', color: 'text-orange-500' },{ icon: CurrencyInr, label: 'LEDGER', path: '/bookings', color: 'text-cyan-500' },{ icon: Image, label: 'MEMORIES', path: '/explore', color: 'text-yellow-400' },{ icon: Envelope, label: 'SQUAD", path: '/squad-mail', color: 'text-white/60' }].map((item) => (
-            <Link to={item.path} key={item.label} className="no-underline">
-              <div className="silicon-glass group hover:border-white/20 transition-all cursor-pointer min-h-[180px] flex flex-col justify-between p-10">
-                <item.icon size={40} className={item.color} weight="duotone" />
-                <p className="font-[900] text-2xl font-bebas text-white uppercase italic">{item.label}</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+          {QUICK_LINKS.map(({ to, label, icon: Icon, color, desc }) => (
+            <Link to={to} key={to}>
+              <div className="silicon-glass p-10 group hover:border-orange-500/30 transition-all cursor-pointer">
+                <Icon size={48} className={`${color} mb-6 group-hover:scale-110 transition-transform`} weight="fill" />
+                <div className="text-3xl font-[900] font-bebas text-white uppercase italic mb-2">{label}</div>
+                <div className="text-white/30 font-bold text-sm uppercase tracking-widest">{desc}</div>
+                <ArrowRight size={24} className="text-white/10 group-hover:text-orange-500 mt-6 transition-colors" weight="bold" />
               </div>
             </Link>
           ))}
