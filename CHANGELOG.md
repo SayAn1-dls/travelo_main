@@ -1,10 +1,7 @@
 # TRAVELO CHANGELOG
 
-## v3.0.0 — Silicon Brutalist Masterpiece
-
-### feat(landing)
-- 14vw Bebas Neue PLAN.PACK.EXPLORE hero
-- Framer Motion staggered entrance animations
-- Social proof stats: 50K+ operatives, ₹2.4Cr settled
-- 3 feature cards with silicon-glass treatment
-- Permanent Marker quote grid for personality
+### feat(auth-page)
+- Silicon glass form with 60px backdrop-blur
+- Login/Signup tab toggle with orange active state
+- Demo operative skip link — instant dashboard access
+- Random quote rotator from 4 brutalist one-liners
