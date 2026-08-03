@@ -1,9 +1,9 @@
 # TRAVELO CHANGELOG
 
-### feat(payment)
-- PaymentPage: Brutalist checkout UI
-- 3 modes: CARD / UPI / WALLET
-- Card form: number, expiry, CVV, name
-- UPI form: VPA input
-- Wallet: balance display + pay button
-- Stores receipt to localStorage on success
+### feat(explore)
+- Memories vault — ExplorePage with photo upload
+- Drag-and-drop or click-to-upload zone
+- Filter by trip dropdown
+- Photo grid with hover overlay
+- Caption input per photo
+- Stores base64 images in localStorage
