@@ -15,7 +15,7 @@
 
 @layer components {
   .silicon-glass {
-    @apply bg-white/[0.03] backdrop-blur-[60px] border border-white/10 rounded-[2rem] md:rounded-[3rem] shadow-2xl p-8 md:p-16;
+    @apply bg-white/[0.03] backdrop-blur-[60px] border border-white/10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl p-8 md:p-16;
   }
   
   .silicon-glass-sm {
@@ -56,13 +56,6 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { @apply bg-white/10 rounded-full; }
 ::-webkit-scrollbar-thumb:hover { @apply bg-white/20; }
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-.animate-float { animation: float 6s ease-in-out infinite; }
 
 @media (max-width: 640px) {
   .header-massive { font-size: 16vw; }
