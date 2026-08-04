@@ -8,6 +8,7 @@
 // "Jobs fill your pocket but adventures fill your soul." — Jaime Lyn Beatty
 // "The journey itself is my home." — Matsuo Bashō
 // "We travel not to escape life but for life not to escape us." — Unknown
+// "Man cannot discover new oceans unless he loses sight of the shore." — André Gide
 const PREFIX = "travelo_v4_";
 
 export const ls = {
