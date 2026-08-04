@@ -1,42 +1,63 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
+const STORAGE_KEY = "travelo_auth_v29";
+const USERS_KEY = "travelo_users_v1";
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("travelo_auth_v29");
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        const userData = { uid: firebaseUser.uid, email: firebaseUser.email, name: firebaseUser.displayName || firebaseUser.email.split('@')[0] };
-        setUser(userData); localStorage.setItem("travelo_auth_v29", JSON.stringify(userData));
-      } else {
-        const local = localStorage.getItem("travelo_auth_v29");
-        if (local) setUser(JSON.parse(local));
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const login = async (email, password) => {
-    try { const res = await signInWithEmailAndPassword(auth, email, password); return res.user; } catch (err) {
-      if (email === 'demo@travelo.app') { const demoUser = { uid: 'demo', email: 'demo@travelo.app', name: 'DEMO OPERATIVE' };
-        setUser(demoUser); localStorage.setItem("travelo_auth_v29", JSON.stringify(demoUser)); return demoUser; }
-      throw err;
+    if (email === "demo@travelo.app") {
+      const demoUser = { uid: "demo", email: "demo@travelo.app", name: "DEMO OPERATIVE" };
+      setUser(demoUser);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser));
+      return demoUser;
     }
+    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+    const found = users.find((u) => u.email === email && u.password === password);
+    if (!found) throw new Error("Invalid credentials. Check email and password.");
+    const userData = { uid: found.uid, email: found.email, name: found.name };
+    setUser(userData);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+    return userData;
   };
 
-  const register = async (name, email, password) => { return await createUserWithEmailAndPassword(auth, email, password); };
-  const logout = async () => { await signOut(auth); setUser(null); localStorage.removeItem("travelo_auth_v29"); };
+  const register = async (name, email, password) => {
+    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+    if (users.find((u) => u.email === email)) throw new Error("Email already registered. Login instead.");
+    const newUser = {
+      uid: `local_${Date.now()}`,
+      email,
+      password,
+      name: (name || email.split("@")[0]).toUpperCase(),
+    };
+    users.push(newUser);
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    const userData = { uid: newUser.uid, email: newUser.email, name: newUser.name };
+    setUser(userData);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+    return userData;
+  };
 
-  return <AuthContext.Provider value={{ user, login, register, logout, loading }}>{children}</AuthContext.Provider>;
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, register, logout, loading: false }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => useContext(AuthContext);

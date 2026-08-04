@@ -1,9 +1,10 @@
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import VersionBadge from "@/components/VersionBadge";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Landing from "@/pages/Landing";
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
@@ -22,7 +23,9 @@ function Layout() {
   return (
     <div className="min-h-screen bg-[#030303]">
       <Navbar />
-      <div className="pt-24"><Outlet /></div>
+      <div className="pt-24">
+        <Outlet />
+      </div>
       <VersionBadge />
     </div>
   );
@@ -30,26 +33,28 @@ function Layout() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/book" element={<BookingPage />} />
-            <Route path="/bookings" element={<RecapPage />} />
-            <Route path="/trips" element={<TripsPage />} />
-            <Route path="/trips/:id" element={<TripMissionPage />} />
-            <Route path="/payment" element={<PaymentPage />} />
-            <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/squad-mail" element={<SquadMailPage />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster position="top-center" richColors theme="dark" duration={3000} closeButton />
-      </BrowserRouter>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/book" element={<BookingPage />} />
+              <Route path="/bookings" element={<RecapPage />} />
+              <Route path="/trips" element={<TripsPage />} />
+              <Route path="/trips/:id" element={<TripMissionPage />} />
+              <Route path="/payment" element={<PaymentPage />} />
+              <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/squad-mail" element={<SquadMailPage />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster position="top-center" richColors theme="dark" duration={3000} closeButton />
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
