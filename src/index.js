@@ -12,6 +12,7 @@
 // ✦ "Jobs fill your pockets, but adventures fill your soul." — Jamie Lyn Beatty
 // ✦ "Wherever you go, go with all your heart." — Confucius
 // ✦ "Travel makes one modest. You see what a tiny place you occupy in the world." — Gustave Flaubert
+// ✦ "The real voyage of discovery consists not in seeking new landscapes, but in having new eyes." — Marcel Proust
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
