@@ -1,42 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from 'react';
+import { store } from '../utils/storage';
 
+/**
+ * useLocalStorage — reactive state backed by the zero-network persistence engine.
+ * Drop-in replacement for useState with automatic LS sync.
+ */
 export function useLocalStorage(key, initialValue) {
-  const [storedValue, setStoredValue] = useState(() => {
-    try {
-      const item = localStorage.getItem(key);
-      return item !== null ? JSON.parse(item) : initialValue;
-    } catch {
-      return initialValue;
-    }
-  });
+  const [state, setState] = useState(() => store.get(key, initialValue));
 
-  const setValue = useCallback((value) => {
-    try {
-      const toStore = typeof value === "function" ? value(storedValue) : value;
-      setStoredValue(toStore);
-      localStorage.setItem(key, JSON.stringify(toStore));
-    } catch (err) {
-      console.warn(`[useLocalStorage] Failed to set "${key}":`, err);
-    }
-  }, [key, storedValue]);
+  const set = useCallback((value) => {
+    const next = typeof value === 'function' ? value(state) : value;
+    setState(next);
+    store.set(key, next);
+  }, [key, state]);
 
-  const removeValue = useCallback(() => {
-    try {
-      setStoredValue(initialValue);
-      localStorage.removeItem(key);
-    } catch {/* noop */}
+  const remove = useCallback(() => {
+    setState(initialValue);
+    store.remove(key);
   }, [key, initialValue]);
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === key) {
-        try { setStoredValue(e.newValue !== null ? JSON.parse(e.newValue) : initialValue); }
-        catch {/* noop */}
-      }
-    };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, [key, initialValue]);
-
-  return [storedValue, setValue, removeValue];
+  return [state, set, remove];
 }
+
+export default useLocalStorage;
