@@ -3,6 +3,7 @@
 // "Adventure is worthwhile." — Aesop
 // "Life is either a daring adventure or nothing at all." — Helen Keller
 // "Travel is the only thing you buy that makes you richer." — Unknown
+// "To travel is to live." — Hans Christian Andersen
 const PREFIX = "travelo_v4_";
 
 export const ls = {
