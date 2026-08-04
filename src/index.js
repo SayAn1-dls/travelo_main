@@ -16,6 +16,7 @@
 // ✦ "Collect moments, not things." — Paulo Coelho
 // ✦ "It is not down in any map; true places never are." — Herman Melville
 // ✦ "Do not follow where the path may lead. Go instead where there is no path and leave a trail." — Ralph Waldo Emerson
+// ✦ "Once the travel bug bites there is no known antidote." — Michael Palin
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
