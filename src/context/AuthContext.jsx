@@ -1,63 +1,53 @@
-import { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { localAuth } from '../lib/localStorageEngine';
 
-const AuthContext = createContext();
-
-const STORAGE_KEY = "travelo_auth_v29";
-const USERS_KEY = "travelo_users_v1";
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
+      const session = localAuth.getSession();
+      if (session) setUser(session);
+    } catch (err) {
+      console.error('[AuthContext] session restore failed:', err);
+    } finally {
+      setLoading(false);
     }
-  });
+  }, []);
 
-  const login = async (email, password) => {
-    if (email === "demo@travelo.app") {
-      const demoUser = { uid: "demo", email: "demo@travelo.app", name: "DEMO OPERATIVE" };
-      setUser(demoUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser));
-      return demoUser;
-    }
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    const found = users.find((u) => u.email === email && u.password === password);
-    if (!found) throw new Error("Invalid credentials. Check email and password.");
-    const userData = { uid: found.uid, email: found.email, name: found.name };
-    setUser(userData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-    return userData;
-  };
+  const login = useCallback(async (email, password) => {
+    const session = localAuth.login(email, password);
+    setUser(session);
+    return session;
+  }, []);
 
-  const register = async (name, email, password) => {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    if (users.find((u) => u.email === email)) throw new Error("Email already registered. Login instead.");
-    const newUser = {
-      uid: `local_${Date.now()}`,
-      email,
-      password,
-      name: (name || email.split("@")[0]).toUpperCase(),
-    };
-    users.push(newUser);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    const userData = { uid: newUser.uid, email: newUser.email, name: newUser.name };
-    setUser(userData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-    return userData;
-  };
+  const register = useCallback(async (email, password, displayName) => {
+    const session = localAuth.register(email, password, displayName);
+    setUser(session);
+    return session;
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
+    localAuth.logout();
     setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
-  };
+  }, []);
+
+  const value = { user, loading, login, register, logout, isAuthenticated: !!user };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading: false }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+}
+
+export default AuthContext;
