@@ -7,6 +7,7 @@
 // "Once a year, go someplace you've never been before." — Dalai Lama
 // "Jobs fill your pocket but adventures fill your soul." — Jaime Lyn Beatty
 // "The journey itself is my home." — Matsuo Bashō
+// "We travel not to escape life but for life not to escape us." — Unknown
 const PREFIX = "travelo_v4_";
 
 export const ls = {
