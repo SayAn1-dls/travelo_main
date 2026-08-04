@@ -6,47 +6,59 @@
 
 @layer base {
   body {
-    @apply bg-[#030303] text-white antialiased overflow-x-hidden;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-  }
-  * { box-sizing: border-box; }
-}
-
-@layer components {
-  .silicon-glass {
-    @apply bg-white/[0.03] backdrop-blur-[60px] border border-white/10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl p-8 md:p-16;
-  }
-  
-  .silicon-glass-sm {
-    @apply bg-white/[0.03] backdrop-blur-[60px] border border-white/10 rounded-2xl shadow-xl p-8;
-  }
-
-  .silicon-input {
-    @apply w-full bg-white/[0.04] border border-white/5 backdrop-blur-md rounded-2xl px-8 py-6 text-xl font-bold outline-none 
-    focus:border-orange-500/50 focus:bg-white/[0.06] transition-all 
-    placeholder:text-white/15 uppercase tracking-wider
-    text-white;
-  }
-
-  .btn-launch {
-    @apply bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white font-[900] px-12 py-8 
-    rounded-[2rem] uppercase tracking-[0.2em] transition-all active:scale-[0.97] 
-    shadow-[0_0_40px_rgba(255,77,0,0.35)] hover:shadow-[0_0_80px_rgba(255,77,0,0.6)]
-    flex items-center justify-center gap-4 text-3xl;
-    font-family: 'Bebas Neue', cursive;
+    background-color: #030303 !important;
+    color: white !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
 }
-
-.font-bebas { font-family: 'Bebas Neue', cursive; }
-.font-marker { font-family: 'Permanent Marker', cursive; }
 
 .header-massive {
-  @apply uppercase leading-[0.8] tracking-tighter;
-  font-family: 'Bebas Neue', cursive;
-  font-size: clamp(4rem, 15vw, 15rem);
+  font-family: 'Bebas Neue', cursive !important;
+  text-transform: uppercase !important;
+  line-height: 0.75 !important;
+  letter-spacing: -0.05em !important;
+  font-size: clamp(4rem, 15vw, 15rem) !important;
+  color: white !important;
 }
 
+.font-marker {
+  font-family: 'Permanent Marker', cursive !important;
+}
+
+.silicon-glass {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(60px) !important;
+  -webkit-backdrop-filter: blur(60px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 2.5rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  padding: 2.5rem !important;
+}
+
+.btn-launch {
+  background: #FF4D00 !important;
+  color: white !important;
+  font-family: 'Bebas Neue', cursive !important;
+  font-size: 2.5rem !important;
+  padding: 2rem 4rem !important;
+  border-radius: 2.5rem !important;
+  box-shadow: 0 0 40px rgba(255, 77, 0, 0.35) !important;
+  border: none !important;
+  cursor: pointer !important;
+  text-transform: uppercase !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 1rem !important;
+}
+
+.text-orange { color: #FF4D00 !important; }
+.text-cyan { color: #00F0FF !important; }
+
 @media (max-width: 640px) {
-  .header-massive { font-size: 16vw; }
-  .silicon-input { font-size: 16px !important; }
+  .header-massive { font-size: 16vw !important; }
+  .silicon-glass { padding: 1.5rem !important; }
 }
