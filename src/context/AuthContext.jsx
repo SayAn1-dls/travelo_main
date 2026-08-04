@@ -14,13 +14,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        const userData = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-        };
-        setUser(userData);
-        localStorage.setItem("travelo_auth_v29", JSON.stringify(userData));
+        const userData = { uid: firebaseUser.uid, email: firebaseUser.email, name: firebaseUser.displayName || firebaseUser.email.split('@')[0] };
+        setUser(userData); localStorage.setItem("travelo_auth_v29", JSON.stringify(userData));
       } else {
         const local = localStorage.getItem("travelo_auth_v29");
         if (local) setUser(JSON.parse(local));
@@ -31,34 +26,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    try {
-      const res = await signInWithEmailAndPassword(auth, email, password);
-      return res.user;
-    } catch (err) {
-      if (email === 'demo@travelo.app') {
-        const demoUser = { uid: 'demo', email: 'demo@travelo.app', name: 'DEMO OPERATIVE' };
-        setUser(demoUser);
-        localStorage.setItem("travelo_auth_v29", JSON.stringify(demoUser));
-        return demoUser;
-      }
+    try { const res = await signInWithEmailAndPassword(auth, email, password); return res.user; } catch (err) {
+      if (email === 'demo@travelo.app') { const demoUser = { uid: 'demo', email: 'demo@travelo.app', name: 'DEMO OPERATIVE' };
+        setUser(demoUser); localStorage.setItem("travelo_auth_v29", JSON.stringify(demoUser)); return demoUser; }
       throw err;
     }
   };
 
-  const register = async (name, email, password) => {
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    return res.user;
-  };
+  const register = async (name, email, password) => { return await createUserWithEmailAndPassword(auth, email, password); };
+  const logout = async () => { await signOut(auth); setUser(null); localStorage.removeItem("travelo_auth_v29"); };
 
-  const logout = async () => {
-    await signOut(auth); setUser(null); localStorage.removeItem("travelo_auth_v29");
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, login, register, logout, loading }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

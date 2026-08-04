@@ -9,8 +9,6 @@
     @apply bg-[#030303] text-white antialiased overflow-x-hidden;
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
-  * { box-sizing: border-box; }
-  ::selection { background: rgba(255, 77, 0, 0.4); }
 }
 
 @layer components {
@@ -18,19 +16,11 @@
     @apply bg-white/[0.03] backdrop-blur-[60px] border border-white/10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl p-8 md:p-16;
   }
   
-  .silicon-glass-sm {
-    @apply bg-white/[0.03] backdrop-blur-[60px] border border-white/10 rounded-[1.5rem] shadow-xl p-8;
-  }
-
   .silicon-input {
     @apply w-full bg-white/[0.04] border border-white/5 backdrop-blur-md rounded-2xl px-8 py-6 text-xl font-bold outline-none 
     focus:border-orange-500/50 focus:bg-white/[0.06] transition-all 
     placeholder:text-white/15 uppercase tracking-wider
     text-white;
-  }
-
-  .silicon-label {
-    @apply text-[10px] font-black uppercase tracking-[0.5em] text-white/25 ml-4 block mb-3;
   }
 
   .btn-launch {
@@ -47,15 +37,6 @@
   @apply font-bebas uppercase leading-[0.8] tracking-tighter;
   font-size: clamp(4rem, 15vw, 15rem);
 }
-
-.text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-br from-orange-500 via-orange-400 to-yellow-400;
-}
-
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply bg-white/10 rounded-full; }
-::-webkit-scrollbar-thumb:hover { @apply bg-white/20; }
 
 @media (max-width: 640px) {
   .header-massive { font-size: 16vw; }
