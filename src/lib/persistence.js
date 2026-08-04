@@ -2,6 +2,7 @@
 // "The world is a book and those who do not travel read only one page." — Saint Augustine
 // "Adventure is worthwhile." — Aesop
 // "Life is either a daring adventure or nothing at all." — Helen Keller
+// "Travel is the only thing you buy that makes you richer." — Unknown
 const PREFIX = "travelo_v4_";
 
 export const ls = {
