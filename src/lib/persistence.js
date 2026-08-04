@@ -10,6 +10,7 @@
 // "We travel not to escape life but for life not to escape us." — Unknown
 // "Man cannot discover new oceans unless he loses sight of the shore." — André Gide
 // "A good traveler has no fixed plans and is not intent on arriving." — Lao Tzu
+// "Twenty years from now you will be more disappointed by the things you didn't do." — Mark Twain
 const PREFIX = "travelo_v4_";
 
 export const ls = {
