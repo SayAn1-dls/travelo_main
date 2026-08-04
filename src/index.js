@@ -3,6 +3,7 @@
 // ✦ "Life is short and the world is wide." — Simon Raven
 // ✦ "To travel is to live." — Hans Christian Andersen
 // ✦ "Not all those who wander are lost." — J.R.R. Tolkien
+// ✦ "Adventure is worthwhile." — Aristotle
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
