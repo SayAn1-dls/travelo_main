@@ -4,6 +4,7 @@
 // ✦ "To travel is to live." — Hans Christian Andersen
 // ✦ "Not all those who wander are lost." — J.R.R. Tolkien
 // ✦ "Adventure is worthwhile." — Aristotle
+// ✦ "The journey itself is my home." — Matsuo Basho
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
