@@ -18,15 +18,21 @@
       .header-massive { font-family: 'Bebas Neue', cursive !important; text-transform: uppercase !important; line-height: 0.75 !important; letter-spacing: -0.05em !important; font-size: clamp(4rem, 15vw, 15rem) !important; color: white !important; text-align: center; }
       .font-marker { font-family: 'Permanent Marker', cursive !important; }
       .silicon-glass { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(60px) !important; -webkit-backdrop-filter: blur(60px) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 2.5rem !important; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important; }
-      .btn-launch { background: var(--orange) !important; color: white !important; font-family: 'Bebas Neue', cursive !important; border-radius: 2.5rem !important; box-shadow: 0 0 40px rgba(255, 77, 0, 0.35) !important; border: none !important; cursor: pointer !important; padding: 2rem 4rem !important; font-size: 2.5rem !important; text-transform: uppercase !important; transition: all 0.3s ease !important; display: inline-flex !important; align-items: center !important; gap: 1rem !important; }
+      .btn-launch { background: #FF4D00 !important; color: white !important; font-family: 'Bebas Neue', cursive !important; border-radius: 2.5rem !important; box-shadow: 0 0 40px rgba(255, 77, 0, 0.35) !important; border: none !important; cursor: pointer !important; padding: 2rem 4rem !important; font-size: 2.5rem !important; text-transform: uppercase !important; transition: all 0.3s ease !important; display: inline-flex !important; align-items: center !important; gap: 1rem !important; }
       .btn-launch:hover { box-shadow: 0 0 60px rgba(255, 77, 0, 0.6) !important; transform: scale(1.02) !important; }
-      .text-orange { color: var(--orange) !important; }
-      .text-cyan { color: var(--cyan) !important; }
+      .text-orange { color: #FF4D00 !important; }
+      .text-cyan { color: #00F0FF !important; }
       @media (max-width: 640px) { .header-massive { font-size: 16vw !important; } }
     </style>
   </head>
   <body style="background-color: #030303;">
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    <script>
+      // Direct override for the most stable experience
+      window.addEventListener('load', () => {
+        console.log("TRAVELO V5.1 LOADED");
+      });
+    </script>
   </body>
 </html>
