@@ -10,6 +10,7 @@
 // ✦ "Fill your life with adventures, not things." — Anonymous
 // ✦ "A good traveler has no fixed plans and is not intent on arriving." — Lao Tzu
 // ✦ "Jobs fill your pockets, but adventures fill your soul." — Jamie Lyn Beatty
+// ✦ "Wherever you go, go with all your heart." — Confucius
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
