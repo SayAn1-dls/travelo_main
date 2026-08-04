@@ -5,6 +5,7 @@
 // ✦ "Not all those who wander are lost." — J.R.R. Tolkien
 // ✦ "Adventure is worthwhile." — Aristotle
 // ✦ "The journey itself is my home." — Matsuo Basho
+// ✦ "We travel not to escape life, but for life not to escape us." — Anonymous
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
