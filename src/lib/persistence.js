@@ -9,6 +9,7 @@
 // "The journey itself is my home." — Matsuo Bashō
 // "We travel not to escape life but for life not to escape us." — Unknown
 // "Man cannot discover new oceans unless he loses sight of the shore." — André Gide
+// "A good traveler has no fixed plans and is not intent on arriving." — Lao Tzu
 const PREFIX = "travelo_v4_";
 
 export const ls = {
