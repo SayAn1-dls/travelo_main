@@ -6,7 +6,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import bcrypt
 import jwt
@@ -33,6 +33,9 @@ db = mongo_client[os.environ.get("DB_NAME", "travelo")]
 users_col = db["users"]
 bookings_col = db["bookings"]
 payment_transactions = db["payment_transactions"]
+trip_plans = db["trip_plans"]
+trip_expenses = db["trip_expenses"]
+trip_notifications = db["trip_notifications"]
 
 # ---------------------------------------------------------------- stripe
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
@@ -104,6 +107,34 @@ class BookingRequest(BaseModel):
 class CheckoutRequest(BaseModel):
     booking_id: str
     origin_url: str
+
+
+# ---- Trip Planner models
+class MemberIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=60)
+    contribution: float = Field(..., ge=0)
+    payment_handle: str = Field("", max_length=120)  # UPI id / paypal.me / venmo url
+
+
+class TripPlanRequest(BaseModel):
+    place: str = Field(..., min_length=2, max_length=100)
+    start_date: str
+    end_date: str
+    budget: float = Field(..., ge=0)
+    members: List[MemberIn] = Field(..., min_length=1, max_length=20)
+
+
+class ExpenseRequest(BaseModel):
+    description: str = Field(..., min_length=1, max_length=140)
+    amount: float = Field(..., gt=0)
+    paid_by: str  # member id
+    category: str = Field("general", max_length=30)  # general|hotel|flight|car|food|activity
+
+
+class SettleRequest(BaseModel):
+    from_member: str
+    to_member: str
+    amount: float = Field(..., gt=0)
 
 
 # ---------------------------------------------------------------- app
@@ -346,6 +377,244 @@ async def stripe_webhook(request: Request):
         await payment_transactions.update_one({"stripe_payment_intent_id": obj.get("payment_intent")},
             {"$set": {"status": "refunded", "payment_status": "refunded", "updated_at": datetime.now(timezone.utc)}})
     return {"status": "ok"}
+
+
+# ---------------------------------------------------------------- trip planner
+async def _notify(trip_id: str, ntype: str, message: str, member_id: str = None):
+    await trip_notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "trip_id": trip_id,
+        "type": ntype,  # expense | settlement | reminder | info
+        "message": message,
+        "member_id": member_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+def _compute_finances(trip: dict, expenses: list, settlements: list) -> dict:
+    members = trip["members"]
+    n = len(members) or 1
+    pool = sum(m["contribution"] for m in members)
+    spent = sum(e["amount"] for e in expenses)
+
+    paid = {m["id"]: 0.0 for m in members}
+    share = {m["id"]: 0.0 for m in members}
+    for e in expenses:
+        if e["paid_by"] in paid:
+            paid[e["paid_by"]] += e["amount"]
+        per_head = e["amount"] / n
+        for m in members:
+            share[m["id"]] += per_head
+
+    settled_out = {m["id"]: 0.0 for m in members}
+    settled_in = {m["id"]: 0.0 for m in members}
+    for s in settlements:
+        if s["from_member"] in settled_out:
+            settled_out[s["from_member"]] += s["amount"]
+        if s["to_member"] in settled_in:
+            settled_in[s["to_member"]] += s["amount"]
+
+    balances = {}
+    member_stats = []
+    for m in members:
+        bal = round(paid[m["id"]] - share[m["id"]] + settled_out[m["id"]] - settled_in[m["id"]], 2)
+        balances[m["id"]] = bal
+        member_stats.append({
+            **m,
+            "paid": round(paid[m["id"]], 2),
+            "share": round(share[m["id"]], 2),
+            "settled_paid": round(settled_out[m["id"]], 2),
+            "settled_received": round(settled_in[m["id"]], 2),
+            "balance": bal,  # >0 is owed money, <0 owes money
+        })
+
+    # Min-cash-flow settle suggestions (greedy)
+    creditors = sorted([[mid, b] for mid, b in balances.items() if b > 0.01], key=lambda x: -x[1])
+    debtors = sorted([[mid, -b] for mid, b in balances.items() if b < -0.01], key=lambda x: -x[1])
+    suggestions = []
+    ci, di = 0, 0
+    while ci < len(creditors) and di < len(debtors):
+        amt = round(min(creditors[ci][1], debtors[di][1]), 2)
+        if amt > 0:
+            suggestions.append({"from_member": debtors[di][0], "to_member": creditors[ci][0], "amount": amt})
+        creditors[ci][1] -= amt
+        debtors[di][1] -= amt
+        if creditors[ci][1] <= 0.01:
+            ci += 1
+        if debtors[di][1] <= 0.01:
+            di += 1
+
+    over = spent > trip["budget"]
+    return {
+        "pool": round(pool, 2),
+        "spent": round(spent, 2),
+        "remaining": round(pool - spent, 2),
+        "budget": trip["budget"],
+        "budget_left": round(trip["budget"] - spent, 2),
+        "budget_status": "over" if over else "under",
+        "budget_used_pct": round((spent / trip["budget"]) * 100, 1) if trip["budget"] > 0 else 0,
+        "members": member_stats,
+        "settle_suggestions": suggestions,
+        "all_settled": len(suggestions) == 0,
+    }
+
+
+async def _get_trip_or_404(trip_id: str, user_id: str) -> dict:
+    trip = await trip_plans.find_one({"id": trip_id, "user_id": user_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(404, "Trip plan not found")
+    return trip
+
+
+async def _full_trip(trip: dict) -> dict:
+    expenses = await trip_expenses.find({"trip_id": trip["id"]}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    settlements = trip.get("settlements", [])
+    finances = _compute_finances(trip, expenses, settlements)
+    return {**trip, "expenses": expenses, "finances": finances}
+
+
+@api.post("/trips")
+async def create_trip(req: TripPlanRequest, user=Depends(get_current_user)):
+    try:
+        start = datetime.fromisoformat(req.start_date)
+        end = datetime.fromisoformat(req.end_date)
+    except ValueError:
+        raise HTTPException(400, "Dates must be ISO format (YYYY-MM-DD)")
+    if end <= start:
+        raise HTTPException(400, "Return date must be after departure")
+    members = [{
+        "id": str(uuid.uuid4()),
+        "name": m.name.strip(),
+        "contribution": round(m.contribution, 2),
+        "payment_handle": m.payment_handle.strip(),
+        "is_owner": i == 0,
+    } for i, m in enumerate(req.members)]
+    trip = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "place": req.place.strip(),
+        "start_date": req.start_date,
+        "end_date": req.end_date,
+        "budget": round(req.budget, 2),
+        "members": members,
+        "settlements": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await trip_plans.insert_one({**trip})
+    await _notify(trip["id"], "info", f"Trip to {trip['place']} created. Squad of {len(members)}. Pool: ${sum(m['contribution'] for m in members):,.0f}. Budget: ${trip['budget']:,.0f}.")
+    return await _full_trip(trip)
+
+
+@api.get("/trips")
+async def list_trips(user=Depends(get_current_user)):
+    trips = await trip_plans.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    result = []
+    for t in trips:
+        expenses = await trip_expenses.find({"trip_id": t["id"]}, {"_id": 0}).to_list(500)
+        fin = _compute_finances(t, expenses, t.get("settlements", []))
+        result.append({**t, "finances": {k: fin[k] for k in ("pool", "spent", "remaining", "budget", "budget_status", "budget_used_pct")}})
+    return result
+
+
+@api.get("/trips/{trip_id}")
+async def get_trip(trip_id: str, user=Depends(get_current_user)):
+    trip = await _get_trip_or_404(trip_id, user["id"])
+    return await _full_trip(trip)
+
+
+@api.delete("/trips/{trip_id}")
+async def delete_trip(trip_id: str, user=Depends(get_current_user)):
+    await _get_trip_or_404(trip_id, user["id"])
+    await trip_plans.delete_one({"id": trip_id})
+    await trip_expenses.delete_many({"trip_id": trip_id})
+    await trip_notifications.delete_many({"trip_id": trip_id})
+    return {"deleted": True}
+
+
+@api.post("/trips/{trip_id}/expenses")
+async def add_expense(trip_id: str, req: ExpenseRequest, user=Depends(get_current_user)):
+    trip = await _get_trip_or_404(trip_id, user["id"])
+    member_map = {m["id"]: m for m in trip["members"]}
+    if req.paid_by not in member_map:
+        raise HTTPException(400, "paid_by must be a valid member id")
+    expense = {
+        "id": str(uuid.uuid4()),
+        "trip_id": trip_id,
+        "description": req.description.strip(),
+        "amount": round(req.amount, 2),
+        "paid_by": req.paid_by,
+        "paid_by_name": member_map[req.paid_by]["name"],
+        "category": req.category,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await trip_expenses.insert_one({**expense})
+    per_head = round(req.amount / len(trip["members"]), 2)
+    await _notify(
+        trip_id, "expense",
+        f"{member_map[req.paid_by]['name']} spent ${req.amount:,.2f} on \"{req.description.strip()}\". "
+        f"Everyone owes them ${per_head:,.2f}. Pay them back, squad!",
+        req.paid_by,
+    )
+    return await _full_trip(trip)
+
+
+@api.delete("/trips/{trip_id}/expenses/{expense_id}")
+async def delete_expense(trip_id: str, expense_id: str, user=Depends(get_current_user)):
+    trip = await _get_trip_or_404(trip_id, user["id"])
+    res = await trip_expenses.delete_one({"id": expense_id, "trip_id": trip_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Expense not found")
+    return await _full_trip(trip)
+
+
+@api.post("/trips/{trip_id}/settle")
+async def settle_up(trip_id: str, req: SettleRequest, user=Depends(get_current_user)):
+    trip = await _get_trip_or_404(trip_id, user["id"])
+    member_map = {m["id"]: m for m in trip["members"]}
+    if req.from_member not in member_map or req.to_member not in member_map:
+        raise HTTPException(400, "Members must belong to this trip")
+    settlement = {
+        "id": str(uuid.uuid4()),
+        "from_member": req.from_member,
+        "to_member": req.to_member,
+        "amount": round(req.amount, 2),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await trip_plans.update_one({"id": trip_id}, {"$push": {"settlements": settlement}})
+    trip["settlements"] = trip.get("settlements", []) + [settlement]
+    await _notify(
+        trip_id, "settlement",
+        f"{member_map[req.from_member]['name']} paid back ${req.amount:,.2f} to {member_map[req.to_member]['name']}. Respect.",
+        req.from_member,
+    )
+    return await _full_trip(trip)
+
+
+@api.post("/trips/{trip_id}/remind")
+async def remind_debtors(trip_id: str, user=Depends(get_current_user)):
+    trip = await _get_trip_or_404(trip_id, user["id"])
+    expenses = await trip_expenses.find({"trip_id": trip_id}, {"_id": 0}).to_list(500)
+    fin = _compute_finances(trip, expenses, trip.get("settlements", []))
+    member_map = {m["id"]: m for m in trip["members"]}
+    reminded = []
+    for s in fin["settle_suggestions"]:
+        debtor = member_map[s["from_member"]]["name"]
+        creditor = member_map[s["to_member"]]["name"]
+        await _notify(
+            trip_id, "reminder",
+            f"REMINDER: {debtor} still owes ${s['amount']:,.2f} to {creditor}. The trip is over. Pay up!",
+            s["from_member"],
+        )
+        reminded.append(debtor)
+    if not reminded:
+        await _notify(trip_id, "info", "Everyone is settled up. This squad is elite.")
+    return {"reminded": reminded, "count": len(reminded)}
+
+
+@api.get("/trips/{trip_id}/notifications")
+async def trip_notifications_list(trip_id: str, user=Depends(get_current_user)):
+    await _get_trip_or_404(trip_id, user["id"])
+    return await trip_notifications.find({"trip_id": trip_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
 
 
 app.include_router(api)

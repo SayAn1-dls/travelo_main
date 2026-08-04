@@ -13,6 +13,9 @@ import BookingPage from '@/pages/BookingPage';
 import PaymentSuccessPage from '@/pages/PaymentSuccessPage';
 import PaymentCancelPage from '@/pages/PaymentCancelPage';
 import Dashboard from '@/pages/Dashboard';
+import TripPlannerPage from '@/pages/TripPlannerPage';
+import TripWizardPage from '@/pages/TripWizardPage';
+import TripDetailPage from '@/pages/TripDetailPage';
 import NotFound from '@/pages/NotFound';
 
 function Protected({ children }) {
@@ -45,6 +48,9 @@ function App() {
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/payment/cancel" element={<PaymentCancelPage />} />
             <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+            <Route path="/planner" element={<Protected><TripPlannerPage /></Protected>} />
+            <Route path="/planner/new" element={<Protected><TripWizardPage /></Protected>} />
+            <Route path="/planner/:id" element={<Protected><TripDetailPage /></Protected>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster position="top-center" richColors duration={3500} closeButton />

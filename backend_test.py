@@ -572,6 +572,513 @@ except Exception as e:
     log_fail("POST /payments/checkout (without auth)", str(e))
 
 # ============================================================================
+# 7. TRIP PLANNER (NEW FEATURE)
+# ============================================================================
+print("\n[7] TRIP PLANNER API")
+print("-" * 80)
+
+# Login with test credentials for Trip Planner tests
+trip_auth_token = None
+try:
+    resp = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": "smoke@travelo.app",
+        "password": "Test@1234"
+    }, timeout=10)
+    if resp.status_code == 200:
+        trip_auth_token = resp.json().get("token")
+        log_pass("Trip Planner: logged in with test credentials")
+    else:
+        log_fail("Trip Planner login", f"Status {resp.status_code}: {resp.text}")
+except Exception as e:
+    log_fail("Trip Planner login", str(e))
+
+trip_id = None
+alice_id = None
+bob_id = None
+cara_id = None
+dan_id = None
+expense1_id = None
+expense2_id = None
+
+if trip_auth_token:
+    # 1. POST /api/trips - Create trip with 4 members
+    try:
+        resp = requests.post(f"{BASE_URL}/trips", json={
+            "place": "Lisbon, Portugal",
+            "start_date": "2026-11-01",
+            "end_date": "2026-11-08",
+            "budget": 3000,
+            "members": [
+                {"name": "Alice (You)", "contribution": 1000, "payment_handle": "alice@upi"},
+                {"name": "Bob", "contribution": 800, "payment_handle": ""},
+                {"name": "Cara", "contribution": 700, "payment_handle": "cara.paypal"},
+                {"name": "Dan", "contribution": 500, "payment_handle": ""}
+            ]
+        }, headers={"Authorization": f"Bearer {trip_auth_token}"}, timeout=10)
+        
+        if resp.status_code == 200:
+            trip = resp.json()
+            trip_id = trip.get("id")
+            members = trip.get("members", [])
+            finances = trip.get("finances", {})
+            expenses = trip.get("expenses", [])
+            
+            # Verify structure
+            checks = []
+            checks.append(("trip has id", trip_id is not None))
+            checks.append(("4 members", len(members) == 4))
+            checks.append(("first member is_owner=true", members[0].get("is_owner") == True if members else False))
+            checks.append(("all members have id", all("id" in m for m in members)))
+            checks.append(("expenses is empty list", expenses == []))
+            checks.append(("finances.pool = 3000.0", finances.get("pool") == 3000.0))
+            checks.append(("finances.spent = 0", finances.get("spent") == 0))
+            checks.append(("finances.remaining = 3000", finances.get("remaining") == 3000))
+            checks.append(("finances.budget_status = under", finances.get("budget_status") == "under"))
+            checks.append(("finances.all_settled = true", finances.get("all_settled") == True))
+            
+            if all(check[1] for check in checks):
+                # Store member IDs for later tests
+                alice_id = members[0].get("id")
+                bob_id = members[1].get("id")
+                cara_id = members[2].get("id")
+                dan_id = members[3].get("id")
+                log_pass("POST /api/trips: trip created with correct structure and finances")
+            else:
+                failed_checks = [check[0] for check in checks if not check[1]]
+                log_fail("POST /api/trips", f"Failed checks: {', '.join(failed_checks)}. Response: {json.dumps(trip, indent=2)}")
+        else:
+            log_fail("POST /api/trips", f"Status {resp.status_code}: {resp.text}")
+    except Exception as e:
+        log_fail("POST /api/trips", str(e))
+    
+    # 2. Validation: end_date before start_date
+    try:
+        resp = requests.post(f"{BASE_URL}/trips", json={
+            "place": "Paris, France",
+            "start_date": "2026-12-10",
+            "end_date": "2026-12-05",
+            "budget": 2000,
+            "members": [{"name": "Test User", "contribution": 2000, "payment_handle": ""}]
+        }, headers={"Authorization": f"Bearer {trip_auth_token}"}, timeout=10)
+        
+        if resp.status_code == 400:
+            log_pass("POST /api/trips (end_date before start_date): returns 400")
+        else:
+            log_fail("POST /api/trips (end_date before start_date)", f"Expected 400, got {resp.status_code}")
+    except Exception as e:
+        log_fail("POST /api/trips (end_date before start_date)", str(e))
+    
+    # 3. Validation: empty members array
+    try:
+        resp = requests.post(f"{BASE_URL}/trips", json={
+            "place": "Rome, Italy",
+            "start_date": "2026-12-01",
+            "end_date": "2026-12-08",
+            "budget": 2000,
+            "members": []
+        }, headers={"Authorization": f"Bearer {trip_auth_token}"}, timeout=10)
+        
+        if resp.status_code == 422:
+            log_pass("POST /api/trips (empty members): returns 422")
+        else:
+            log_fail("POST /api/trips (empty members)", f"Expected 422, got {resp.status_code}")
+    except Exception as e:
+        log_fail("POST /api/trips (empty members)", str(e))
+    
+    # 4. GET /api/trips - List trips
+    if trip_id:
+        try:
+            resp = requests.get(f"{BASE_URL}/trips", 
+                              headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                              timeout=10)
+            if resp.status_code == 200:
+                trips = resp.json()
+                if isinstance(trips, list) and any(t.get("id") == trip_id for t in trips):
+                    # Check that finances summary is included
+                    trip_in_list = next((t for t in trips if t.get("id") == trip_id), None)
+                    if trip_in_list and "finances" in trip_in_list:
+                        log_pass("GET /api/trips: list includes trip with finances summary")
+                    else:
+                        log_fail("GET /api/trips", "Trip found but missing finances summary")
+                else:
+                    log_fail("GET /api/trips", f"Created trip not found in list. Got {len(trips)} trips")
+            else:
+                log_fail("GET /api/trips", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("GET /api/trips", str(e))
+    
+    # 5. GET /api/trips/{id} - Get single trip
+    if trip_id:
+        try:
+            resp = requests.get(f"{BASE_URL}/trips/{trip_id}", 
+                              headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                              timeout=10)
+            if resp.status_code == 200:
+                trip = resp.json()
+                if trip.get("id") == trip_id and "finances" in trip and "expenses" in trip:
+                    log_pass("GET /api/trips/{id}: returns full trip object")
+                else:
+                    log_fail("GET /api/trips/{id}", f"Invalid trip structure: {trip}")
+            else:
+                log_fail("GET /api/trips/{id}", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("GET /api/trips/{id}", str(e))
+        
+        # 6. GET /api/trips/{nonexistent_id}
+        try:
+            resp = requests.get(f"{BASE_URL}/trips/00000000-0000-0000-0000-000000000000", 
+                              headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                              timeout=10)
+            if resp.status_code == 404:
+                log_pass("GET /api/trips/{nonexistent_id}: returns 404")
+            else:
+                log_fail("GET /api/trips/{nonexistent_id}", f"Expected 404, got {resp.status_code}")
+        except Exception as e:
+            log_fail("GET /api/trips/{nonexistent_id}", str(e))
+    
+    # 7. POST /api/trips/{id}/expenses - Add first expense (Bob pays)
+    if trip_id and bob_id:
+        try:
+            resp = requests.post(f"{BASE_URL}/trips/{trip_id}/expenses", json={
+                "description": "Fado night dinner",
+                "amount": 400,
+                "paid_by": bob_id,
+                "category": "food"
+            }, headers={"Authorization": f"Bearer {trip_auth_token}"}, timeout=10)
+            
+            if resp.status_code == 200:
+                trip = resp.json()
+                finances = trip.get("finances", {})
+                expenses = trip.get("expenses", [])
+                members_stats = finances.get("members", [])
+                suggestions = finances.get("settle_suggestions", [])
+                
+                # Verify finances after first expense
+                checks = []
+                checks.append(("spent = 400", finances.get("spent") == 400))
+                checks.append(("remaining = 2600", finances.get("remaining") == 2600))
+                
+                # Per-member share should be 100 each (400/4)
+                # Bob paid 400, owes 100, so balance = +300
+                # Others paid 0, owe 100 each, so balance = -100
+                bob_stats = next((m for m in members_stats if m.get("id") == bob_id), None)
+                alice_stats = next((m for m in members_stats if m.get("id") == alice_id), None)
+                
+                if bob_stats:
+                    checks.append(("Bob share = 100", bob_stats.get("share") == 100))
+                    checks.append(("Bob balance = +300", bob_stats.get("balance") == 300))
+                if alice_stats:
+                    checks.append(("Alice balance = -100", alice_stats.get("balance") == -100))
+                
+                # Settle suggestions: 3 entries totaling 300 all to Bob
+                total_to_bob = sum(s.get("amount", 0) for s in suggestions if s.get("to_member") == bob_id)
+                checks.append(("3 settle suggestions", len(suggestions) == 3))
+                checks.append(("total to Bob = 300", total_to_bob == 300))
+                
+                if expenses:
+                    expense1_id = expenses[0].get("id")
+                
+                if all(check[1] for check in checks):
+                    log_pass("POST /api/trips/{id}/expenses (Bob pays 400): finances calculated correctly")
+                else:
+                    failed_checks = [check[0] for check in checks if not check[1]]
+                    log_fail("POST /api/trips/{id}/expenses (Bob pays 400)", f"Failed checks: {', '.join(failed_checks)}. Finances: {json.dumps(finances, indent=2)}")
+            else:
+                log_fail("POST /api/trips/{id}/expenses (Bob pays 400)", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("POST /api/trips/{id}/expenses (Bob pays 400)", str(e))
+    
+    # 8. POST /api/trips/{id}/expenses - Add second expense (Alice pays)
+    if trip_id and alice_id:
+        try:
+            resp = requests.post(f"{BASE_URL}/trips/{trip_id}/expenses", json={
+                "description": "Surf lessons",
+                "amount": 200,
+                "paid_by": alice_id,
+                "category": "activity"
+            }, headers={"Authorization": f"Bearer {trip_auth_token}"}, timeout=10)
+            
+            if resp.status_code == 200:
+                trip = resp.json()
+                finances = trip.get("finances", {})
+                expenses = trip.get("expenses", [])
+                members_stats = finances.get("members", [])
+                suggestions = finances.get("settle_suggestions", [])
+                
+                # Verify finances after second expense
+                # Total spent = 600, share per person = 150
+                # Alice: paid 200, share 150, balance = +50
+                # Bob: paid 400, share 150, balance = +250
+                # Cara: paid 0, share 150, balance = -150
+                # Dan: paid 0, share 150, balance = -150
+                checks = []
+                checks.append(("spent = 600", finances.get("spent") == 600))
+                checks.append(("remaining = 2400", finances.get("remaining") == 2400))
+                
+                alice_stats = next((m for m in members_stats if m.get("id") == alice_id), None)
+                bob_stats = next((m for m in members_stats if m.get("id") == bob_id), None)
+                cara_stats = next((m for m in members_stats if m.get("id") == cara_id), None)
+                dan_stats = next((m for m in members_stats if m.get("id") == dan_id), None)
+                
+                if alice_stats:
+                    checks.append(("Alice balance = +50", alice_stats.get("balance") == 50))
+                if bob_stats:
+                    checks.append(("Bob balance = +250", bob_stats.get("balance") == 250))
+                if cara_stats:
+                    checks.append(("Cara balance = -150", cara_stats.get("balance") == -150))
+                if dan_stats:
+                    checks.append(("Dan balance = -150", dan_stats.get("balance") == -150))
+                
+                # Verify settle suggestions sum matches total owed (300)
+                total_suggested = sum(s.get("amount", 0) for s in suggestions)
+                checks.append(("settle suggestions sum = 300", total_suggested == 300))
+                
+                if len(expenses) >= 2:
+                    expense2_id = expenses[0].get("id") if expenses[0].get("description") == "Surf lessons" else expenses[1].get("id")
+                
+                if all(check[1] for check in checks):
+                    log_pass("POST /api/trips/{id}/expenses (Alice pays 200): finances calculated correctly")
+                else:
+                    failed_checks = [check[0] for check in checks if not check[1]]
+                    log_fail("POST /api/trips/{id}/expenses (Alice pays 200)", f"Failed checks: {', '.join(failed_checks)}. Finances: {json.dumps(finances, indent=2)}")
+            else:
+                log_fail("POST /api/trips/{id}/expenses (Alice pays 200)", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("POST /api/trips/{id}/expenses (Alice pays 200)", str(e))
+    
+    # 9. Validation: invalid paid_by
+    if trip_id:
+        try:
+            resp = requests.post(f"{BASE_URL}/trips/{trip_id}/expenses", json={
+                "description": "Invalid expense",
+                "amount": 100,
+                "paid_by": "invalid_member_id",
+                "category": "general"
+            }, headers={"Authorization": f"Bearer {trip_auth_token}"}, timeout=10)
+            
+            if resp.status_code == 400:
+                log_pass("POST /api/trips/{id}/expenses (invalid paid_by): returns 400")
+            else:
+                log_fail("POST /api/trips/{id}/expenses (invalid paid_by)", f"Expected 400, got {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/trips/{id}/expenses (invalid paid_by)", str(e))
+    
+    # 10. Validation: amount <= 0
+    if trip_id and alice_id:
+        try:
+            resp = requests.post(f"{BASE_URL}/trips/{trip_id}/expenses", json={
+                "description": "Zero expense",
+                "amount": 0,
+                "paid_by": alice_id,
+                "category": "general"
+            }, headers={"Authorization": f"Bearer {trip_auth_token}"}, timeout=10)
+            
+            if resp.status_code == 422:
+                log_pass("POST /api/trips/{id}/expenses (amount=0): returns 422")
+            else:
+                log_fail("POST /api/trips/{id}/expenses (amount=0)", f"Expected 422, got {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/trips/{id}/expenses (amount=0)", str(e))
+    
+    # 11. GET /api/trips/{id}/notifications
+    if trip_id:
+        try:
+            resp = requests.get(f"{BASE_URL}/trips/{trip_id}/notifications", 
+                              headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                              timeout=10)
+            if resp.status_code == 200:
+                notifications = resp.json()
+                # Should have: 1 info (trip created) + 2 expense notifications
+                if isinstance(notifications, list) and len(notifications) >= 3:
+                    info_notifs = [n for n in notifications if n.get("type") == "info"]
+                    expense_notifs = [n for n in notifications if n.get("type") == "expense"]
+                    
+                    if len(info_notifs) >= 1 and len(expense_notifs) >= 2:
+                        log_pass("GET /api/trips/{id}/notifications: contains info + 2 expense notifications")
+                    else:
+                        log_fail("GET /api/trips/{id}/notifications", f"Expected 1+ info and 2+ expense notifications. Got: {len(info_notifs)} info, {len(expense_notifs)} expense")
+                else:
+                    log_fail("GET /api/trips/{id}/notifications", f"Expected at least 3 notifications, got {len(notifications) if isinstance(notifications, list) else 'non-list'}")
+            else:
+                log_fail("GET /api/trips/{id}/notifications", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("GET /api/trips/{id}/notifications", str(e))
+    
+    # 12. POST /api/trips/{id}/settle - Cara pays Bob 150
+    if trip_id and cara_id and bob_id:
+        try:
+            resp = requests.post(f"{BASE_URL}/trips/{trip_id}/settle", json={
+                "from_member": cara_id,
+                "to_member": bob_id,
+                "amount": 150
+            }, headers={"Authorization": f"Bearer {trip_auth_token}"}, timeout=10)
+            
+            if resp.status_code == 200:
+                trip = resp.json()
+                finances = trip.get("finances", {})
+                members_stats = finances.get("members", [])
+                suggestions = finances.get("settle_suggestions", [])
+                
+                # Cara's balance should become 0 (was -150, paid 150)
+                cara_stats = next((m for m in members_stats if m.get("id") == cara_id), None)
+                
+                checks = []
+                if cara_stats:
+                    checks.append(("Cara balance = 0", cara_stats.get("balance") == 0))
+                
+                # Suggestions should shrink (Cara no longer in suggestions)
+                cara_in_suggestions = any(s.get("from_member") == cara_id for s in suggestions)
+                checks.append(("Cara not in suggestions", not cara_in_suggestions))
+                
+                if all(check[1] for check in checks):
+                    log_pass("POST /api/trips/{id}/settle (Cara pays Bob 150): balance updated, suggestions shrink")
+                else:
+                    failed_checks = [check[0] for check in checks if not check[1]]
+                    log_fail("POST /api/trips/{id}/settle (Cara pays Bob 150)", f"Failed checks: {', '.join(failed_checks)}. Cara stats: {cara_stats}")
+            else:
+                log_fail("POST /api/trips/{id}/settle (Cara pays Bob 150)", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("POST /api/trips/{id}/settle (Cara pays Bob 150)", str(e))
+        
+        # Verify settlement notification was created
+        try:
+            resp = requests.get(f"{BASE_URL}/trips/{trip_id}/notifications", 
+                              headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                              timeout=10)
+            if resp.status_code == 200:
+                notifications = resp.json()
+                settlement_notifs = [n for n in notifications if n.get("type") == "settlement"]
+                if len(settlement_notifs) >= 1:
+                    log_pass("POST /api/trips/{id}/settle: settlement notification created")
+                else:
+                    log_fail("POST /api/trips/{id}/settle notification", f"Expected settlement notification, got {len(settlement_notifs)}")
+            else:
+                log_fail("POST /api/trips/{id}/settle notification", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/trips/{id}/settle notification", str(e))
+    
+    # 13. POST /api/trips/{id}/remind - Remind remaining debtors
+    if trip_id:
+        try:
+            resp = requests.post(f"{BASE_URL}/trips/{trip_id}/remind", 
+                                headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                                timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                reminded = data.get("reminded", [])
+                count = data.get("count", 0)
+                
+                # Dan should still be in debt (balance = -150), so should be reminded
+                # Alice and Bob are creditors, Cara is settled
+                if "Dan" in reminded and count >= 1:
+                    log_pass("POST /api/trips/{id}/remind: Dan included in reminders")
+                else:
+                    log_fail("POST /api/trips/{id}/remind", f"Expected Dan in reminders. Got: {reminded}, count: {count}")
+            else:
+                log_fail("POST /api/trips/{id}/remind", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("POST /api/trips/{id}/remind", str(e))
+        
+        # Verify reminder notifications were created
+        try:
+            resp = requests.get(f"{BASE_URL}/trips/{trip_id}/notifications", 
+                              headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                              timeout=10)
+            if resp.status_code == 200:
+                notifications = resp.json()
+                reminder_notifs = [n for n in notifications if n.get("type") == "reminder"]
+                if len(reminder_notifs) >= 1:
+                    log_pass("POST /api/trips/{id}/remind: reminder notifications created")
+                else:
+                    log_fail("POST /api/trips/{id}/remind notifications", f"Expected reminder notifications, got {len(reminder_notifs)}")
+            else:
+                log_fail("POST /api/trips/{id}/remind notifications", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/trips/{id}/remind notifications", str(e))
+    
+    # 14. DELETE /api/trips/{id}/expenses/{expense_id} - Delete expense
+    if trip_id and expense1_id:
+        try:
+            resp = requests.delete(f"{BASE_URL}/trips/{trip_id}/expenses/{expense1_id}", 
+                                  headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                                  timeout=10)
+            if resp.status_code == 200:
+                trip = resp.json()
+                finances = trip.get("finances", {})
+                expenses = trip.get("expenses", [])
+                
+                # After deleting first expense (400), spent should be 200
+                if finances.get("spent") == 200:
+                    log_pass("DELETE /api/trips/{id}/expenses/{expense_id}: finances recomputed")
+                else:
+                    log_fail("DELETE /api/trips/{id}/expenses/{expense_id}", f"Expected spent=200, got {finances.get('spent')}")
+            else:
+                log_fail("DELETE /api/trips/{id}/expenses/{expense_id}", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("DELETE /api/trips/{id}/expenses/{expense_id}", str(e))
+        
+        # 15. DELETE nonexistent expense
+        try:
+            resp = requests.delete(f"{BASE_URL}/trips/{trip_id}/expenses/00000000-0000-0000-0000-000000000000", 
+                                  headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                                  timeout=10)
+            if resp.status_code == 404:
+                log_pass("DELETE /api/trips/{id}/expenses/{nonexistent_id}: returns 404")
+            else:
+                log_fail("DELETE /api/trips/{id}/expenses/{nonexistent_id}", f"Expected 404, got {resp.status_code}")
+        except Exception as e:
+            log_fail("DELETE /api/trips/{id}/expenses/{nonexistent_id}", str(e))
+    
+    # 16. DELETE /api/trips/{id} - Delete trip
+    if trip_id:
+        try:
+            resp = requests.delete(f"{BASE_URL}/trips/{trip_id}", 
+                                  headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                                  timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("deleted") == True:
+                    log_pass("DELETE /api/trips/{id}: returns {deleted: true}")
+                else:
+                    log_fail("DELETE /api/trips/{id}", f"Expected {{deleted: true}}, got {data}")
+            else:
+                log_fail("DELETE /api/trips/{id}", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("DELETE /api/trips/{id}", str(e))
+        
+        # 17. Verify trip is deleted (GET should return 404)
+        try:
+            resp = requests.get(f"{BASE_URL}/trips/{trip_id}", 
+                              headers={"Authorization": f"Bearer {trip_auth_token}"}, 
+                              timeout=10)
+            if resp.status_code == 404:
+                log_pass("DELETE /api/trips/{id}: subsequent GET returns 404")
+            else:
+                log_fail("DELETE /api/trips/{id} verification", f"Expected 404 after delete, got {resp.status_code}")
+        except Exception as e:
+            log_fail("DELETE /api/trips/{id} verification", str(e))
+
+else:
+    log_fail("TRIP PLANNER API", "No auth token available, skipping all trip planner tests")
+
+# POST /api/trips without auth
+try:
+    resp = requests.post(f"{BASE_URL}/trips", json={
+        "place": "Test Place",
+        "start_date": "2026-12-01",
+        "end_date": "2026-12-08",
+        "budget": 1000,
+        "members": [{"name": "Test", "contribution": 1000, "payment_handle": ""}]
+    }, timeout=10)
+    
+    if resp.status_code in [401, 403]:
+        log_pass("POST /api/trips (without auth): returns 401/403")
+    else:
+        log_fail("POST /api/trips (without auth)", f"Expected 401/403, got {resp.status_code}")
+except Exception as e:
+    log_fail("POST /api/trips (without auth)", str(e))
+
+# ============================================================================
 # SUMMARY
 # ============================================================================
 print("\n" + "=" * 80)

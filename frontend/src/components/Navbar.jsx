@@ -29,6 +29,7 @@ export default function Navbar() {
 
         <nav className="hidden items-center gap-8 md:flex">
           <NavLink to="/explore" className={linkClass} data-testid="nav-explore">Explore</NavLink>
+          {user && <NavLink to="/planner" className={linkClass} data-testid="nav-planner">Trip Planner</NavLink>}
           {user && <NavLink to="/dashboard" className={linkClass} data-testid="nav-dashboard">My Trips</NavLink>}
         </nav>
 
@@ -75,6 +76,7 @@ export default function Navbar() {
         <div className="border-t border-white/10 bg-ink px-5 py-6 md:hidden">
           <div className="flex flex-col gap-5">
             <NavLink to="/explore" className={linkClass} onClick={() => setOpen(false)}>Explore</NavLink>
+            {user && <NavLink to="/planner" className={linkClass} onClick={() => setOpen(false)}>Trip Planner</NavLink>}
             {user && <NavLink to="/dashboard" className={linkClass} onClick={() => setOpen(false)}>My Trips</NavLink>}
             {user ? (
               <button onClick={handleLogout} className="w-fit border border-white/20 px-4 py-2 font-mono text-xs uppercase tracking-widest text-white">

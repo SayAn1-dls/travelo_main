@@ -80,6 +80,20 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ Quotes API working perfectly. Verified: GET /quotes returns 24 quotes with correct structure (text + author fields), GET /quotes/random returns single quote with correct structure."
+  - task: "Trip Planner: trips CRUD, expenses split engine, settle, remind, notifications"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. POST/GET /api/trips, GET/DELETE /api/trips/{id}, POST /api/trips/{id}/expenses (equal split + notification), DELETE expense, POST /api/trips/{id}/settle, POST /api/trips/{id}/remind, GET /api/trips/{id}/notifications. Finances: pool=sum(contributions), spent, remaining, budget over/under + pct, per-member balance = paid - share + settled_out - settled_in, min-cash-flow settle suggestions. Manually smoke tested: math verified."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TRIP PLANNER ENDPOINTS WORKING PERFECTLY (20/20 tests passed). Comprehensive testing: POST /api/trips (creates trip with 4 members, correct finances: pool=3000, spent=0, remaining=3000, budget_status=under, all_settled=true, first member is_owner=true) ✅, Validation (end_date before start_date→400, empty members→422, without auth→401/403) ✅, GET /api/trips (list with finances summary) ✅, GET /api/trips/{id} (full trip object, 404 for nonexistent) ✅, POST /api/trips/{id}/expenses (Bob pays 400: spent=400, remaining=2600, per-member share=100, Bob balance=+300, others=-100, 3 settle suggestions totaling 300 to Bob) ✅, (Alice pays 200: spent=600, Alice balance=+50, Bob=+250, Cara=-150, Dan=-150, suggestions sum=300) ✅, Validation (invalid paid_by→400, amount≤0→422) ✅, GET /api/trips/{id}/notifications (1 info + 2 expense notifications with correct names/amounts) ✅, POST /api/trips/{id}/settle (Cara pays Bob 150: Cara balance becomes 0, settlement notification created, suggestions shrink) ✅, POST /api/trips/{id}/remind (Dan included in reminders, reminder notifications created) ✅, DELETE /api/trips/{id}/expenses/{expense_id} (finances recomputed: spent=200 after deleting 400 expense, 404 for nonexistent expense) ✅, DELETE /api/trips/{id} (returns {deleted:true}, subsequent GET→404) ✅. All finances calculations accurate (equal split, balance tracking, min-cash-flow settle suggestions). All CRUD operations, validations, and notifications working correctly."
 
 frontend:
   - task: "Cinematic Landing + quotes rotator + marquee"
@@ -118,15 +132,10 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
 
 test_plan:
-  current_focus:
-    - "JWT Auth: register/login/me"
-    - "Destinations API"
-    - "Bookings CRUD"
-    - "Stripe checkout + status polling"
-    - "Quotes API"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -146,6 +155,18 @@ agent_communication:
       Bookings CRUD (create with correct amount calculation, validation errors, list, get, 404, auth required) ✅,
       Stripe payments (checkout session creation with valid URL, status polling returns pending for unpaid - EXPECTED, 404 for nonexistent booking, auth required) ✅.
       All backend APIs are fully functional. Ready for main agent to summarize and finish.
+  - agent: "testing"
+    message: >
+      ✅ TRIP PLANNER BACKEND TESTING COMPLETE - ALL TESTS PASSED (50/50 total backend tests, 20 new Trip Planner tests).
+      Trip Planner endpoints fully functional: POST /api/trips (creates trip with members, correct finances calculation) ✅,
+      Validations (date validation, empty members, auth required) ✅, GET /api/trips (list with finances) ✅,
+      GET /api/trips/{id} (full trip, 404 handling) ✅, POST /api/trips/{id}/expenses (equal split, balance tracking,
+      settle suggestions, validations) ✅, GET /api/trips/{id}/notifications (info, expense, settlement, reminder types) ✅,
+      POST /api/trips/{id}/settle (balance updates, notification creation) ✅, POST /api/trips/{id}/remind (debtor reminders) ✅,
+      DELETE /api/trips/{id}/expenses/{expense_id} (finances recomputation) ✅, DELETE /api/trips/{id} (cascade delete) ✅.
+      All finances math verified: pool calculation, equal expense splitting, per-member balances (paid - share + settled_out - settled_in),
+      min-cash-flow settle suggestions algorithm working correctly. All CRUD operations, validations, and notifications working as expected.
+      COMPLETE BACKEND (auth, destinations, bookings, payments, quotes, trip planner) IS FULLY FUNCTIONAL.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.

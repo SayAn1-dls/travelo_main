@@ -44,6 +44,16 @@ export const api = {
   booking: (id) => request(`/bookings/${id}`),
   checkout: (payload) => request('/payments/checkout', { method: 'POST', body: payload }),
   paymentStatus: (sessionId) => request(`/payments/status/${sessionId}`, { auth: false }),
+  // Trip planner
+  createTrip: (payload) => request('/trips', { method: 'POST', body: payload }),
+  trips: () => request('/trips'),
+  trip: (id) => request(`/trips/${id}`),
+  deleteTrip: (id) => request(`/trips/${id}`, { method: 'DELETE' }),
+  addExpense: (tripId, payload) => request(`/trips/${tripId}/expenses`, { method: 'POST', body: payload }),
+  deleteExpense: (tripId, expenseId) => request(`/trips/${tripId}/expenses/${expenseId}`, { method: 'DELETE' }),
+  settle: (tripId, payload) => request(`/trips/${tripId}/settle`, { method: 'POST', body: payload }),
+  remind: (tripId) => request(`/trips/${tripId}/remind`, { method: 'POST' }),
+  tripNotifications: (tripId) => request(`/trips/${tripId}/notifications`),
 };
 
 export default api;
