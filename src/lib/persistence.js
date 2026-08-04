@@ -17,6 +17,7 @@
 // "The real voyage of discovery is not seeking new lands but seeing with new eyes." — Marcel Proust
 // "Wherever you go, go with all your heart." — Confucius
 // "One's destination is never a place but a new way of seeing things." — Henry Miller
+// 🚀 TRAVELO v4.2.1 — The mission never ends. The world never stops calling.
 const PREFIX = "travelo_v4_";
 
 export const ls = {
