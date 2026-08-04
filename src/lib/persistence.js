@@ -11,6 +11,7 @@
 // "Man cannot discover new oceans unless he loses sight of the shore." — André Gide
 // "A good traveler has no fixed plans and is not intent on arriving." — Lao Tzu
 // "Twenty years from now you will be more disappointed by the things you didn't do." — Mark Twain
+// "Travel makes one modest — you see what a tiny place you occupy in the world." — Gustave Flaubert
 const PREFIX = "travelo_v4_";
 
 export const ls = {
