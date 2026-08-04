@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { AirplaneTilt, MapPin, Users, Lightning, Star, ArrowRight, Globe, Shield, Rocket } from "@phosphor-icons/react";
+import { AirplaneTilt, MapPin, Users, ArrowRight, Globe, Shield, Rocket, Star } from "@phosphor-icons/react";
 
 const STATS = [
   { label: "Missions Launched", value: "1M+", icon: Rocket },
@@ -16,7 +16,7 @@ const TESTIMONIALS = [
   { name: "RAHUL D.", city: "DELHI", text: "Travelo is genuinely the goated travel app. Period.", rating: 5 },
 ];
 
-function AnimatedCounter({ target, suffix = "" }) {
+function AnimatedCounter({ target }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
   useEffect(() => {
@@ -45,6 +45,8 @@ export default function Landing() {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-[#030303] overflow-x-hidden">
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[1000] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+      
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-32">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,77,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,77,0,0.03)_1px,transparent_1px)] bg-[size:80px_80px]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_50%,rgba(255,77,0,0.06),transparent)]" />
@@ -62,12 +64,19 @@ export default function Landing() {
         </nav>
 
         <div className="relative z-10 max-w-7xl mx-auto">
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="inline-flex items-center gap-3 bg-white/[0.03] border border-white/10 px-6 py-3 rounded-full mb-12 backdrop-blur-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-3 bg-white/[0.03] border border-white/10 px-6 py-3 rounded-full mb-12 backdrop-blur-xl"
+          >
             <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
-            <span className="font-black text-[10px] tracking-[0.4em] uppercase text-white/60">v4.1 MASTERPIECE — INSTITUTIONAL GRADE</span>
+            <span className="font-black text-[10px] tracking-[0.4em] uppercase text-white/60">v4.2 MASTERPIECE — INSTITUTIONAL GRADE</span>
           </motion.div>
 
-          <motion.h1 style={{ y: yHero }} className="header-massive text-white mb-12 select-none">
+          <motion.h1 
+            style={{ y: yHero }}
+            className="header-massive text-white mb-12 select-none"
+          >
             PLAN. PACK.<br/>
             <span className="text-orange-500 italic drop-shadow-[0_0_80px_rgba(255,77,0,0.3)]">EXPLORE.</span>
           </motion.h1>
@@ -79,7 +88,9 @@ export default function Landing() {
 
           <Link to="/auth">
             <button className="btn-launch text-3xl px-16 py-10 rounded-[2.5rem] group relative overflow-hidden">
-              <span className="relative z-10 flex items-center gap-4">START EXPEDITION <ArrowRight size={48} weight="bold" className="group-hover:translate-x-3 transition-transform" /></span>
+              <span className="relative z-10 flex items-center gap-4">
+                START EXPEDITION <ArrowRight size={48} weight="bold" className="group-hover:translate-x-3 transition-transform" />
+              </span>
               <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-400 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
             </button>
           </Link>
@@ -93,7 +104,9 @@ export default function Landing() {
               <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 text-orange-500">
                 <s.icon size={32} weight="duotone" />
               </div>
-              <h3 className="text-6xl font-[900] font-bebas text-white italic mb-2"><AnimatedCounter target={s.value} /></h3>
+              <h3 className="text-6xl font-[900] font-bebas text-white italic mb-2">
+                <AnimatedCounter target={s.value} />
+              </h3>
               <p className="text-white/20 font-black text-xs uppercase tracking-[0.3em]">{s.label}</p>
             </div>
           ))}
