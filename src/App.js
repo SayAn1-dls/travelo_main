@@ -1,15 +1,12 @@
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "sonner";
 import Navbar from "@/components/Navbar";
-import VersionBadge from "@/components/VersionBadge";
 import Landing from "@/pages/Landing";
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
-import BookingPage from "@/pages/BookingPage";
 import TripsPage from "@/pages/TripsPage";
-import RecapPage from "@/pages/RecapPage";
 import TripMissionPage from "@/pages/TripMissionPage";
 import PaymentPage from "@/pages/PaymentPage";
 import ExplorePage from "@/pages/ExplorePage";
@@ -23,7 +20,6 @@ function Layout() {
     <div className="min-h-screen bg-[#030303]">
       <Navbar />
       <div className="pt-24"><Outlet /></div>
-      <VersionBadge />
     </div>
   );
 }
@@ -37,8 +33,6 @@ function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/book" element={<BookingPage />} />
-            <Route path="/bookings" element={<RecapPage />} />
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/trips/:id" element={<TripMissionPage />} />
             <Route path="/payment" element={<PaymentPage />} />
