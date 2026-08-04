@@ -1,0 +1,86 @@
+/* ============================================
+   TRAVELO — COOL BRUTALIST ADVENTURE JOURNAL
+   Design Token System v2.0
+   ============================================ */
+
+:root {
+  /* Brand Palette */
+  --color-pitch-black: #000000;
+  --color-electric-orange: #FF4D00;
+  --color-orange-dim: #CC3D00;
+  --color-orange-glow: rgba(255, 77, 0, 0.4);
+  --color-orange-trace: rgba(255, 77, 0, 0.1);
+
+  /* Text Hierarchy */
+  --text-primary: #FFFFFF;
+  --text-secondary: #CCCCCC;
+  --text-muted: #888888;
+  --text-highlight: var(--color-electric-orange);
+
+  /* Silicon Transparency (frosted glass) */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-backdrop: blur(60px);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+  /* Brutalist Borders */
+  --border-thick: 3px solid var(--color-electric-orange);
+  --border-medium: 2px solid var(--color-electric-orange);
+  --border-thin: 1px solid var(--glass-border);
+  --border-radius-brutalist: 0px;
+  --border-radius-soft: 4px;
+
+  /* Typography */
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-handwrite: 'Permanent Marker', cursive;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-size-hero: 16vw;
+  --font-size-title: 4rem;
+  --font-size-heading: 2.5rem;
+  --font-size-subheading: 1.5rem;
+  --font-size-body: 1rem;
+  --font-size-small: 0.875rem;
+
+  /* Spacing (8pt grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Animation */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+  --animation-flicker: flicker 0.15s infinite;
+
+  /* Z-layers */
+  --z-base: 0;
+  --z-card: 10;
+  --z-modal: 100;
+  --z-toast: 1000;
+  --z-cursor: 9999;
+}
+
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.4; }
+}
+
+@keyframes brutalist-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--color-orange-glow); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
