@@ -15,6 +15,7 @@
 // "Investment in travel is an investment in yourself." — Matthew Karsten
 // "It is not down in any map; true places never are." — Herman Melville
 // "The real voyage of discovery is not seeking new lands but seeing with new eyes." — Marcel Proust
+// "Wherever you go, go with all your heart." — Confucius
 const PREFIX = "travelo_v4_";
 
 export const ls = {
