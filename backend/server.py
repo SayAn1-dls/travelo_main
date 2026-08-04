@@ -137,6 +137,10 @@ class SettleRequest(BaseModel):
     amount: float = Field(..., gt=0)
 
 
+class CollageAnalyzeRequest(BaseModel):
+    images: List[str] = Field(..., min_length=1, max_length=5)  # base64-encoded JPEG/PNG/WEBP
+
+
 # ---------------------------------------------------------------- app
 app = FastAPI(title="TRAVELO API")
 api = APIRouter(prefix="/api")
@@ -615,6 +619,62 @@ async def remind_debtors(trip_id: str, user=Depends(get_current_user)):
 async def trip_notifications_list(trip_id: str, user=Depends(get_current_user)):
     await _get_trip_or_404(trip_id, user["id"])
     return await trip_notifications.find({"trip_id": trip_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+
+# ---------------------------------------------------------------- vibe lab (AI collage analysis)
+VIBE_FALLBACK = {
+    "vibe_title": "WANDER MODE ON",
+    "caption": "Some trips don't need captions. This is one of them.",
+    "mood": "epic",
+    "palette": ["#FF4500", "#EAFF00", "#141414"],
+    "hashtags": ["#travelo", "#wanderlust", "#tripdump", "#goldenhour", "#squadgoals"],
+}
+
+VIBE_PROMPT = (
+    "You are TRAVELO's vibe analyst. Look at these trip photos and capture their collective vibe. "
+    "Return ONLY raw valid JSON (no markdown, no code fences) with exactly these keys: "
+    "vibe_title (2-4 punchy words in caps energy, e.g. 'GOLDEN HOUR CHAOS'), "
+    "caption (one short, warm-but-savage social-story sentence, max 90 characters), "
+    "mood (a single lowercase word), "
+    "palette (array of exactly 3 hex color strings pulled from the photos' dominant tones, dark-theme friendly), "
+    "hashtags (array of exactly 5 lowercase hashtags starting with #)."
+)
+
+
+@api.post("/collage/analyze")
+async def analyze_collage(req: CollageAnalyzeRequest, user=Depends(get_current_user)):
+    import json as _json
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+
+    key = os.environ.get("EMERGENT_LLM_KEY")
+    if not key:
+        return {**VIBE_FALLBACK, "source": "fallback"}
+    try:
+        chat = LlmChat(
+            api_key=key,
+            session_id=f"vibe-{uuid.uuid4()}",
+            system_message="You analyze travel photos and answer in strict JSON only.",
+        ).with_model("openai", "gpt-5.4")
+        attachments = [ImageContent(image_base64=img.split(",")[-1]) for img in req.images]
+        response = await chat.send_message(UserMessage(text=VIBE_PROMPT, file_contents=attachments))
+        text = response if isinstance(response, str) else str(response)
+        start, end = text.find("{"), text.rfind("}")
+        if start == -1 or end == -1:
+            raise ValueError("No JSON in model response")
+        data = _json.loads(text[start:end + 1])
+        result = {
+            "vibe_title": str(data.get("vibe_title") or VIBE_FALLBACK["vibe_title"])[:40],
+            "caption": str(data.get("caption") or VIBE_FALLBACK["caption"])[:120],
+            "mood": str(data.get("mood") or VIBE_FALLBACK["mood"])[:20],
+            "palette": (list(data.get("palette") or [])[:3] or VIBE_FALLBACK["palette"]),
+            "hashtags": (list(data.get("hashtags") or [])[:5] or VIBE_FALLBACK["hashtags"]),
+        }
+        while len(result["palette"]) < 3:
+            result["palette"].append(VIBE_FALLBACK["palette"][len(result["palette"])])
+        return {**result, "source": "ai"}
+    except Exception as e:  # noqa: BLE001
+        logger.error("Vibe analysis failed: %s", e)
+        return {**VIBE_FALLBACK, "source": "fallback"}
 
 
 app.include_router(api)

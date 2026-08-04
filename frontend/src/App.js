@@ -16,6 +16,7 @@ import Dashboard from '@/pages/Dashboard';
 import TripPlannerPage from '@/pages/TripPlannerPage';
 import TripWizardPage from '@/pages/TripWizardPage';
 import TripDetailPage from '@/pages/TripDetailPage';
+import VibeLabPage from '@/pages/VibeLabPage';
 import NotFound from '@/pages/NotFound';
 
 function Protected({ children }) {
@@ -51,6 +52,7 @@ function App() {
             <Route path="/planner" element={<Protected><TripPlannerPage /></Protected>} />
             <Route path="/planner/new" element={<Protected><TripWizardPage /></Protected>} />
             <Route path="/planner/:id" element={<Protected><TripDetailPage /></Protected>} />
+            <Route path="/vibe-lab" element={<Protected><VibeLabPage /></Protected>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster position="top-center" richColors duration={3500} closeButton />

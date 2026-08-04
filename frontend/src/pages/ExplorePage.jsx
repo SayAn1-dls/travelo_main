@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import DestinationCard from '@/components/DestinationCard';
 import Marquee from '@/components/Marquee';
 
-const REGIONS = ['All', 'Europe', 'Asia', 'Africa', 'South America', 'Middle East'];
+const REGIONS = ['All', 'India', 'Asia', 'Europe', 'Africa', 'South America', 'Middle East', 'Oceania'];
 
 export default function ExplorePage() {
   const [destinations, setDestinations] = useState([]);
@@ -36,7 +36,7 @@ export default function ExplorePage() {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <p className="font-mono text-xs uppercase tracking-[0.4em] text-acid">// The menu</p>
           <h1 className="mt-3 font-display uppercase leading-[0.85]">
-            <span className="block text-[clamp(3.5rem,10vw,9rem)] text-white">Twelve ways</span>
+            <span className="block text-[clamp(3.5rem,10vw,9rem)] text-white">24 ways</span>
             <span className="block text-[clamp(3.5rem,10vw,9rem)] text-outline-blaze">to disappear.</span>
           </h1>
         </motion.div>

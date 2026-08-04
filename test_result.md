@@ -24,7 +24,7 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ All auth endpoints working correctly. Tested: register (returns token + user, no password leak), duplicate register (409), login (success + wrong password 401), /auth/me (with/without/invalid token). JWT token generation and validation working perfectly."
-  - task: "Destinations API (12 seeded, region/q filters)"
+  - task: "Destinations API (24 seeded, region/q filters)"
     implemented: true
     working: true
     file: "/app/backend/server.py, /app/backend/destinations_data.py"
@@ -38,6 +38,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ All destinations endpoints working. Verified: 12 destinations with correct structure, tier pricing calculations accurate (explorer=base*1.0, elite=base*1.65, legend=base*2.8), region filter (Asia), search filter (q=santo), single destination by ID, 404 for nonexistent destination."
+      - working: true
+        agent: "testing"
+        comment: "✅ EXPANDED CATALOG VERIFIED. Tested: 24 destinations total (expanded from 12), region filter India returns 6 destinations (goa, jaipur, kerala, ladakh, varanasi, udaipur), bora-bora destination with correct base_price 3499 and tier pricing (explorer=3499, elite=5773, legend=9797). All new destinations integrated correctly with Stripe catalog (24 products x 3 tiers)."
   - task: "Bookings CRUD (create/list/get, auth-scoped)"
     implemented: true
     working: true
@@ -52,6 +55,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ All booking endpoints working. Tested: create booking (correct amount calculation: kyoto legend 3 travelers = 15111.0), validation (invalid tier 400, end before start 400, unknown destination 404, travelers 0/13 returns 422), list bookings, get booking by ID, 404 for nonexistent booking, auth required (401/403 without token)."
+      - working: true
+        agent: "testing"
+        comment: "✅ NEW DESTINATION BOOKING VERIFIED. Tested: ladakh destination booking with explorer tier, 2 travelers → correct amount 2198.0 (base_price 1099 * 1.0 * 2). Stripe checkout session creation successful, proving ladakh_explorer price exists in Stripe catalog."
   - task: "Stripe checkout + status polling + webhook (Flow A playbook)"
     implemented: true
     working: true
@@ -69,7 +75,7 @@ backend:
   - task: "Quotes API (random + list)"
     implemented: true
     working: true
-    file: "/app/backend/server.py"
+    file: "/app/backend/server.py, /app/backend/destinations_data.py"
     stuck_count: 0
     priority: "medium"
     needs_retesting: false
@@ -80,6 +86,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ Quotes API working perfectly. Verified: GET /quotes returns 24 quotes with correct structure (text + author fields), GET /quotes/random returns single quote with correct structure."
+      - working: true
+        agent: "testing"
+        comment: "✅ EXPANDED QUOTES VERIFIED. Tested: GET /quotes now returns 40 quotes (expanded from 24) with correct structure."
   - task: "Trip Planner: trips CRUD, expenses split engine, settle, remind, notifications"
     implemented: true
     working: true
@@ -94,6 +103,20 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ ALL TRIP PLANNER ENDPOINTS WORKING PERFECTLY (20/20 tests passed). Comprehensive testing: POST /api/trips (creates trip with 4 members, correct finances: pool=3000, spent=0, remaining=3000, budget_status=under, all_settled=true, first member is_owner=true) ✅, Validation (end_date before start_date→400, empty members→422, without auth→401/403) ✅, GET /api/trips (list with finances summary) ✅, GET /api/trips/{id} (full trip object, 404 for nonexistent) ✅, POST /api/trips/{id}/expenses (Bob pays 400: spent=400, remaining=2600, per-member share=100, Bob balance=+300, others=-100, 3 settle suggestions totaling 300 to Bob) ✅, (Alice pays 200: spent=600, Alice balance=+50, Bob=+250, Cara=-150, Dan=-150, suggestions sum=300) ✅, Validation (invalid paid_by→400, amount≤0→422) ✅, GET /api/trips/{id}/notifications (1 info + 2 expense notifications with correct names/amounts) ✅, POST /api/trips/{id}/settle (Cara pays Bob 150: Cara balance becomes 0, settlement notification created, suggestions shrink) ✅, POST /api/trips/{id}/remind (Dan included in reminders, reminder notifications created) ✅, DELETE /api/trips/{id}/expenses/{expense_id} (finances recomputed: spent=200 after deleting 400 expense, 404 for nonexistent expense) ✅, DELETE /api/trips/{id} (returns {deleted:true}, subsequent GET→404) ✅. All finances calculations accurate (equal split, balance tracking, min-cash-flow settle suggestions). All CRUD operations, validations, and notifications working correctly."
+  - task: "Vibe Lab: POST /api/collage/analyze (AI image analysis)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. AI-powered travel photo collage analysis using LLM (GPT-5.4). Accepts 1-5 base64 JPEG/PNG/WEBP images, returns vibe_title, caption, mood, palette (3 hex colors), hashtags (5 strings), source (ai/fallback). Auth required. Fallback response if LLM unavailable."
+      - working: true
+        agent: "testing"
+        comment: "✅ VIBE LAB AI ANALYSIS WORKING PERFECTLY (4/4 tests passed). Tested: POST /api/collage/analyze with 3 scenic images (gradients, shapes, edges per image_testing.md rules) → returns correct response structure with vibe_title, caption, mood, palette (3 hex colors), hashtags (5 strings starting with #), source='ai' (LLM call successful using GPT-5.4) ✅. Validation tests: empty images array → 422 ✅, 6 images (over limit) → 422 ✅, without auth → 401 ✅. LLM integration confirmed working via backend logs (LiteLLM completion model=gpt-5.4, provider=openai)."
 
 frontend:
   - task: "Cinematic Landing + quotes rotator + marquee"
@@ -132,7 +155,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 3
+  test_sequence: 4
 
 test_plan:
   current_focus: []
@@ -167,6 +190,17 @@ agent_communication:
       All finances math verified: pool calculation, equal expense splitting, per-member balances (paid - share + settled_out - settled_in),
       min-cash-flow settle suggestions algorithm working correctly. All CRUD operations, validations, and notifications working as expected.
       COMPLETE BACKEND (auth, destinations, bookings, payments, quotes, trip planner) IS FULLY FUNCTIONAL.
+  - agent: "testing"
+    message: >
+      ✅ NEW FEATURES BACKEND TESTING COMPLETE - ALL TESTS PASSED (11/11 new feature tests, 61/61 total backend tests).
+      EXPANDED CATALOG: 24 destinations verified (expanded from 12) ✅, region filter India returns 6 destinations (goa, jaipur, kerala, ladakh, varanasi, udaipur) ✅,
+      bora-bora destination with correct base_price 3499 and tier pricing (explorer=3499, elite=5773, legend=9797) ✅.
+      EXPANDED QUOTES: 40 quotes verified (expanded from 24) ✅.
+      NEW DESTINATION BOOKING: ladakh booking with explorer tier, 2 travelers → correct amount 2198.0 ✅, Stripe checkout session creation successful (proves ladakh_explorer price exists) ✅.
+      VIBE LAB AI ANALYSIS: POST /api/collage/analyze with 3 scenic images → correct response structure (vibe_title, caption, mood, palette with 3 hex colors, hashtags with 5 strings starting with #, source='ai') ✅,
+      LLM integration confirmed working (GPT-5.4 via LiteLLM) ✅, Validations (empty images→422, 6 images→422, without auth→401) ✅.
+      Stripe catalog setup confirmed: 24 products x 3 tiers = 72 prices total.
+      ALL BACKEND FEATURES (auth, destinations, bookings, payments, quotes, trip planner, vibe lab) ARE FULLY FUNCTIONAL AND TESTED.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.

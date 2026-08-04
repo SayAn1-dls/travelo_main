@@ -54,6 +54,8 @@ export const api = {
   settle: (tripId, payload) => request(`/trips/${tripId}/settle`, { method: 'POST', body: payload }),
   remind: (tripId) => request(`/trips/${tripId}/remind`, { method: 'POST' }),
   tripNotifications: (tripId) => request(`/trips/${tripId}/notifications`),
+  // Vibe lab
+  analyzeVibe: (payload) => request('/collage/analyze', { method: 'POST', body: payload }),
 };
 
 export default api;
