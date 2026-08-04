@@ -7,6 +7,7 @@
 // ✦ "The journey itself is my home." — Matsuo Basho
 // ✦ "We travel not to escape life, but for life not to escape us." — Anonymous
 // ✦ "Two roads diverged in a wood, and I took the one less traveled by." — Robert Frost
+// ✦ "Fill your life with adventures, not things." — Anonymous
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
