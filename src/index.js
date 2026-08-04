@@ -2,6 +2,7 @@
 // ✦ "Travel is the only thing you buy that makes you richer." — Anonymous
 // ✦ "Life is short and the world is wide." — Simon Raven
 // ✦ "To travel is to live." — Hans Christian Andersen
+// ✦ "Not all those who wander are lost." — J.R.R. Tolkien
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
