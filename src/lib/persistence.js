@@ -6,6 +6,7 @@
 // "To travel is to live." — Hans Christian Andersen
 // "Once a year, go someplace you've never been before." — Dalai Lama
 // "Jobs fill your pocket but adventures fill your soul." — Jaime Lyn Beatty
+// "The journey itself is my home." — Matsuo Bashō
 const PREFIX = "travelo_v4_";
 
 export const ls = {
