@@ -4,6 +4,7 @@
 // "Life is either a daring adventure or nothing at all." — Helen Keller
 // "Travel is the only thing you buy that makes you richer." — Unknown
 // "To travel is to live." — Hans Christian Andersen
+// "Once a year, go someplace you've never been before." — Dalai Lama
 const PREFIX = "travelo_v4_";
 
 export const ls = {
