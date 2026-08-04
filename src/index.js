@@ -9,6 +9,7 @@
 // ✦ "Two roads diverged in a wood, and I took the one less traveled by." — Robert Frost
 // ✦ "Fill your life with adventures, not things." — Anonymous
 // ✦ "A good traveler has no fixed plans and is not intent on arriving." — Lao Tzu
+// ✦ "Jobs fill your pockets, but adventures fill your soul." — Jamie Lyn Beatty
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
