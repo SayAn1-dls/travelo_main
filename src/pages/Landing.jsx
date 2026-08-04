@@ -45,8 +45,6 @@ export default function Landing() {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-[#030303] overflow-x-hidden">
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[1000] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-      
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-32">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,77,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,77,0,0.03)_1px,transparent_1px)] bg-[size:80px_80px]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_50%,rgba(255,77,0,0.06),transparent)]" />
@@ -59,14 +57,14 @@ export default function Landing() {
             <span className="text-4xl font-[900] font-bebas uppercase text-white tracking-tighter">TRAVELO<span className="text-orange-500">.</span></span>
           </div>
           <Link to="/auth" className="pointer-events-auto">
-            <button className="bg-white/5 border border-white/10 backdrop-blur-3xl px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-white hover:bg-orange-500 hover:border-orange-500 transition-all">ENTER HQ</button>
+            <button className="bg-white/5 border border-white/10 backdrop-blur-3xl px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-white hover:bg-orange-500 transition-all">ENTER HQ</button>
           </Link>
         </nav>
 
         <div className="relative z-10 max-w-7xl mx-auto">
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="inline-flex items-center gap-3 bg-white/[0.03] border border-white/10 px-6 py-3 rounded-full mb-12 backdrop-blur-xl">
             <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
-            <span className="font-black text-[10px] tracking-[0.4em] uppercase text-white/60">v4.0 ELITE — INSTITUTIONAL GRADE</span>
+            <span className="font-black text-[10px] tracking-[0.4em] uppercase text-white/60">v4.1 MASTERPIECE — INSTITUTIONAL GRADE</span>
           </motion.div>
 
           <motion.h1 style={{ y: yHero }} className="header-massive text-white mb-12 select-none">
@@ -74,19 +72,17 @@ export default function Landing() {
             <span className="text-orange-500 italic drop-shadow-[0_0_80px_rgba(255,77,0,0.3)]">EXPLORE.</span>
           </motion.h1>
 
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-2xl md:text-3xl text-white/30 max-w-2xl mx-auto mb-16 font-bold uppercase tracking-tight italic">
-            \"THE WORLD IS YOUR LEDGER. TRAVELO IS YOUR PEN.\"<br/>
-            <span className="text-white/10 text-xl">— BUILT FOR THOSE WHO ACTUALLY GO.</span>
-          </motion.p>
+          <p className="text-2xl md:text-3xl text-white/30 max-w-2xl mx-auto mb-16 font-bold uppercase tracking-tight italic">
+            "THE WORLD IS YOUR LEDGER. TRAVELO IS YOUR PEN."<br/>
+            <span className="text-white/10 text-xl">— BUILT FOR THE ELITE SQUAD.</span>
+          </p>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link to="/auth">
-              <button className="btn-launch text-3xl px-16 py-10 rounded-[2.5rem] group relative overflow-hidden">
-                <span className="relative z-10 flex items-center gap-4">START EXPEDITION <ArrowRight size={48} weight="bold" className="group-hover:translate-x-3 transition-transform" /></span>
-                <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-400 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              </button>
-            </Link>
-          </motion.div>
+          <Link to="/auth">
+            <button className="btn-launch text-3xl px-16 py-10 rounded-[2.5rem] group relative overflow-hidden">
+              <span className="relative z-10 flex items-center gap-4">START EXPEDITION <ArrowRight size={48} weight="bold" className="group-hover:translate-x-3 transition-transform" /></span>
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-400 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+            </button>
+          </Link>
         </div>
       </section>
 
@@ -101,22 +97,6 @@ export default function Landing() {
               <p className="text-white/20 font-black text-xs uppercase tracking-[0.3em]">{s.label}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      <section className="py-44 bg-white/[0.01] border-y border-white/5">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-white/20 font-black text-xs tracking-[0.5em] uppercase mb-20">VOICES FROM THE SECTOR</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="silicon-glass border-white/5 p-12 text-left relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity"><AirplaneTilt size={120} weight="fill" /></div>
-                <div className="flex gap-1 mb-8 text-orange-500">{[...Array(t.rating)].map((_, i) => <Star key={i} weight="fill" size={20} />)}</div>
-                <p className="text-3xl font-marker text-white/80 mb-10 leading-relaxed italic">\"{t.text}\"</p>
-                <div><h5 className="text-2xl font-[900] font-bebas text-white uppercase italic tracking-wider">{t.name}</h5><p className="text-white/20 font-black text-[10px] uppercase tracking-widest">{t.city} • OPERATIVE</p></div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
