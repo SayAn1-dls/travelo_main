@@ -14,6 +14,7 @@
 // ✦ "Travel makes one modest. You see what a tiny place you occupy in the world." — Gustave Flaubert
 // ✦ "The real voyage of discovery consists not in seeking new landscapes, but in having new eyes." — Marcel Proust
 // ✦ "Collect moments, not things." — Paulo Coelho
+// ✦ "It is not down in any map; true places never are." — Herman Melville
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
