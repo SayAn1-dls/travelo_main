@@ -11,6 +11,7 @@
 // ✦ "A good traveler has no fixed plans and is not intent on arriving." — Lao Tzu
 // ✦ "Jobs fill your pockets, but adventures fill your soul." — Jamie Lyn Beatty
 // ✦ "Wherever you go, go with all your heart." — Confucius
+// ✦ "Travel makes one modest. You see what a tiny place you occupy in the world." — Gustave Flaubert
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
