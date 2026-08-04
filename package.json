@@ -1,6 +1,6 @@
 {
-  "name": "travelo-v4",
-  "version": "4.2.1",
+  "name": "travelo-bestest-v4",
+  "version": "4.5.0",
   "private": true,
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -38,13 +38,6 @@
     "start": "craco start",
     "build": "craco build",
     "test": "craco test"
-  },
-  "eslintConfig": {
-    "extends": ["react-app", "react-app/jsx-runtime"]
-  },
-  "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   },
   "devDependencies": {
     "@craco/craco": "^7.1.0",
