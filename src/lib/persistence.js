@@ -1,3 +1,4 @@
+// "Not all those who wander are lost." — J.R.R. Tolkien
 const PREFIX = "travelo_v4_";
 
 export const ls = {
