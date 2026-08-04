@@ -9,6 +9,7 @@
     @apply bg-[#030303] text-white antialiased overflow-x-hidden;
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
+  * { box-sizing: border-box; }
 }
 
 @layer components {
@@ -16,6 +17,10 @@
     @apply bg-white/[0.03] backdrop-blur-[60px] border border-white/10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl p-8 md:p-16;
   }
   
+  .silicon-glass-sm {
+    @apply bg-white/[0.03] backdrop-blur-[60px] border border-white/10 rounded-2xl shadow-xl p-8;
+  }
+
   .silicon-input {
     @apply w-full bg-white/[0.04] border border-white/5 backdrop-blur-md rounded-2xl px-8 py-6 text-xl font-bold outline-none 
     focus:border-orange-500/50 focus:bg-white/[0.06] transition-all 
@@ -27,14 +32,17 @@
     @apply bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white font-[900] px-12 py-8 
     rounded-[2rem] uppercase tracking-[0.2em] transition-all active:scale-[0.97] 
     shadow-[0_0_40px_rgba(255,77,0,0.35)] hover:shadow-[0_0_80px_rgba(255,77,0,0.6)]
-    flex items-center justify-center gap-4 font-bebas text-3xl;
+    flex items-center justify-center gap-4 text-3xl;
+    font-family: 'Bebas Neue', cursive;
   }
 }
 
-.font-marker { font-family: "Permanent Marker", cursive; }
+.font-bebas { font-family: 'Bebas Neue', cursive; }
+.font-marker { font-family: 'Permanent Marker', cursive; }
 
 .header-massive {
-  @apply font-bebas uppercase leading-[0.8] tracking-tighter;
+  @apply uppercase leading-[0.8] tracking-tighter;
+  font-family: 'Bebas Neue', cursive;
   font-size: clamp(4rem, 15vw, 15rem);
 }
 
