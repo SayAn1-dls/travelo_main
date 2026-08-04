@@ -13,6 +13,7 @@
 // "Twenty years from now you will be more disappointed by the things you didn't do." — Mark Twain
 // "Travel makes one modest — you see what a tiny place you occupy in the world." — Gustave Flaubert
 // "Investment in travel is an investment in yourself." — Matthew Karsten
+// "It is not down in any map; true places never are." — Herman Melville
 const PREFIX = "travelo_v4_";
 
 export const ls = {
