@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: #030303;
+  color: #ffffff;
+  font-family: 'Space Grotesk', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #EAFF00;
+  color: #030303;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #FF4500;
+  border-radius: 0;
+}
+
+/* ---- Outline / stroke display text ---- */
+.text-outline {
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.85);
+  color: transparent;
+}
+.text-outline-blaze {
+  -webkit-text-stroke: 2px #FF4500;
+  color: transparent;
+}
+.text-outline-acid {
+  -webkit-text-stroke: 2px #EAFF00;
+  color: transparent;
+}
+@media (max-width: 640px) {
+  .text-outline, .text-outline-blaze, .text-outline-acid {
+    -webkit-text-stroke-width: 1.2px;
+  }
+}
+
+/* ---- Film grain overlay ---- */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- Dark native date inputs ---- */
+input[type='date'] {
+  color-scheme: dark;
+}
+
+/* ---- Ticket perforation edge ---- */
+.ticket-notch {
+  background-image: radial-gradient(circle at 50% 50%, #030303 8px, transparent 8px);
+}
+
+.dashed-divider {
+  background-image: linear-gradient(90deg, rgba(255,255,255,0.25) 50%, transparent 50%);
+  background-size: 14px 1px;
+  background-repeat: repeat-x;
+  height: 1px;
+}
+
+/* ---- Utility: hard shadow brutalist ---- */
+.shadow-brutal {
+  box-shadow: 6px 6px 0 0 #FF4500;
+}
+.shadow-brutal-acid {
+  box-shadow: 6px 6px 0 0 #EAFF00;
+}
