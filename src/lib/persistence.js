@@ -16,6 +16,7 @@
 // "It is not down in any map; true places never are." — Herman Melville
 // "The real voyage of discovery is not seeking new lands but seeing with new eyes." — Marcel Proust
 // "Wherever you go, go with all your heart." — Confucius
+// "One's destination is never a place but a new way of seeing things." — Henry Miller
 const PREFIX = "travelo_v4_";
 
 export const ls = {
