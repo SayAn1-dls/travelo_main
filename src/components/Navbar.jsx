@@ -1,52 +1,42 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { AirplaneTilt, ChatCircleDots, Globe, MapPin, Receipt, CreditCard, SignOut } from "@phosphor-icons/react";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
-
-const NAV_LINKS = [
-  { to: "/dashboard", label: "HQ" },
-  { to: "/trips", label: "MISSIONS" },
-  { to: "/explore", label: "EXPLORE" },
-  { to: "/book", label: "LOGISTICS" },
-  { to: "/bookings", label: "LEDGER" },
-  { to: "/payment", label: "BOARDING" },
-  { to: "/squad-mail", label: "SQUAD MAIL" },
-];
+import { AirplaneTilt, SignOut } from "@phosphor-icons/react";
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user, logout } = useAuth(); const location = useLocation();
+  if (!user) return null;
 
-  const handleLogout = () => {
-    logout();
-    toast.success("SESSION ENDED. SEE YOU NEXT MISSION.");
-    navigate("/");
-  };
+  const links = [
+    { label: "HQ", path: "/dashboard" },
+    { label: "MISSIONS", path: "/trips" },
+    { label: "LOGISTICS", path: "/book" },
+    { label: "LEDGER", path: "/bookings" },
+    { label: "VAULT", path: "/explore" },
+    { label: "MAIL", path: "/squad-mail" },
+    { label: "PAYMENT", path: "/payment" },
+  ];
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-[100] px-10 py-6 flex items-center justify-between bg-[#030303]/80 backdrop-blur-3xl border-b border-white/5">
-      <Link to="/dashboard" className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
-          <AirplaneTilt size={22} weight="fill" className="text-white" />
-        </div>
-        <span className="text-3xl font-[900] tracking-tighter font-bebas uppercase">travelo.</span>
+    <nav className="fixed top-0 left-0 right-0 z-[1000] p-6 flex items-center justify-between">
+      <Link to="/dashboard" className="flex items-center gap-3 no-underline bg-black/60 backdrop-blur-3xl border border-white/10 px-6 py-4 rounded-2xl shadow-2xl group transition-all hover:border-orange-500/50">
+        <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center rotate-[-10deg] group-hover:rotate-0 transition-transform"><AirplaneTilt size={24} weight="fill" /></div>
+        <span className="text-3xl font-[900] font-bebas uppercase tracking-tighter">TRAVELO<span className="text-orange-500">.</span></span>
       </Link>
-      <div className="hidden lg:flex items-center gap-2">
-        {NAV_LINKS.map(({ to, label }) => {
-          const isActive = location.pathname === to;
-          return (
-            <Link key={to} to={to}>
-              <button className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs font-bebas transition-all ${isActive ? "bg-orange-500 text-white" : "text-white/30 hover:text-white hover:bg-white/5"}`}>{label}</button>
-            </Link>
-          );
-        })}
+
+      <div className="hidden lg:flex items-center gap-2 bg-black/60 backdrop-blur-3xl border border-white/10 p-2 rounded-[2rem] shadow-2xl">
+        {links.map((link) => (
+          <Link key={link.path} to={link.path} className={`font-black text-[10px] tracking-[0.2em] px-6 py-3 rounded-xl no-underline transition-all ${location.pathname === link.path ? 'bg-orange-500 text-white shadow-[0_0_15px_rgba(255,77,0,0.3)]' : 'text-white/30 hover:text-white hover:bg-white/5'}`}>
+            {link.label}
+          </Link>
+        ))}
       </div>
-      <div className="flex items-center gap-6">
-        <span className="text-white/30 font-black uppercase text-xs tracking-[0.3em] hidden md:block font-bebas">{user?.name?.split(" ")[0]}</span>
-        <button onClick={handleLogout} className="text-white/20 hover:text-red-400 transition-colors" title="Sign Out">
-          <SignOut size={24} weight="bold" />
-        </button>
+
+      <div className="flex items-center gap-4 bg-black/60 backdrop-blur-3xl border border-white/10 p-2 rounded-2xl shadow-2xl">
+         <div className="flex flex-col items-end px-4 border-r border-white/10">
+            <span className="text-xl font-[900] font-bebas text-cyan-500 italic">{user.name?.split(' ')[0]}</span>
+            <span className="text-[8px] font-black text-white/20 uppercase">OPERATIVE</span>
+         </div>
+         <button onClick={logout} className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-500 hover:bg-orange-500 hover:text-white transition-all"><SignOut size={24} weight="bold" /></button>
       </div>
     </nav>
   );
