@@ -84,7 +84,14 @@ export default function MicButton({ disabled, onInterim, onFinal, size = 'md', l
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
       if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
-        toast.error('Mic blocked — allow microphone access for this site and try again.');
+        if (window.self !== window.top) {
+          toast.error('This preview frame blocks the microphone. Open the app in its own tab and the mic will work.', {
+            duration: 10000,
+            action: { label: 'Open in new tab', onClick: () => window.open(window.location.href, '_blank') },
+          });
+        } else {
+          toast.error('Mic blocked — click the lock icon in the address bar and allow the microphone, then try again.');
+        }
       } else if (err.name === 'NotFoundError') {
         toast.error('No microphone found on this device.');
       } else {

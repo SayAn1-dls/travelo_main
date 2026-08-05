@@ -445,8 +445,16 @@ function VoiceNoteButton({ disabled, onBlob }) {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
-      if (err.name === 'NotAllowedError' || err.name === 'SecurityError') toast.error('Mic blocked — allow microphone access and try again.');
-      else if (err.name === 'NotFoundError') toast.error('No microphone found.');
+      if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
+        if (window.self !== window.top) {
+          toast.error('This preview frame blocks the microphone. Open the app in its own tab and the mic will work.', {
+            duration: 10000,
+            action: { label: 'Open in new tab', onClick: () => window.open(window.location.href, '_blank') },
+          });
+        } else {
+          toast.error('Mic blocked — click the lock icon in the address bar and allow the microphone, then try again.');
+        }
+      } else if (err.name === 'NotFoundError') toast.error('No microphone found.');
       else toast.error(`Mic error: ${err.message || err.name}`);
       return;
     }

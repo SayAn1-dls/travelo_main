@@ -171,6 +171,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ BUG FIX VERIFIED (9/9 tests passed). User reported 'invite emails not going' — fix applied and confirmed working. Test 1: POST /api/trips/{trip_id}/invite with sayanbhatt2005@gmail.com → 200 with sent=[{email, link}], failed=[], completed in 0.76s (real SMTP handshake >= 0.5s) ✅. Test 2: CRITICAL LOG CHECK: backend logs show '[EMAIL sent via gmail] to=sayanbhatt2005@gmail.com' (real Gmail SMTP confirmed) ✅. Test 3: NO new '[EMAIL console fallback]' line added (old fallback code no longer used) ✅. Test 4: GET /api/trips/{trip_id}/invites → token field PRESENT in response (intentional for copy-link fallback UI, owner-only endpoint) ✅. Test 5: GET /api/invites/{token} (no auth) → valid invite info with trip details ✅. Test 6: Regression tests passed (without auth → 401, invalid email → 422) ✅. Real email sent to owner's inbox (sayanbhatt2005@gmail.com). Fix details: (1) Real Gmail SMTP now used with multipart plain+HTML and proper headers, success log '[EMAIL sent via gmail]' ✅. (2) Server no longer silently pretends success when email creds missing — reports address in 'failed' with 'reason' and magic 'link' ✅. (3) Invite response entries include magic link ✅. (4) GET /api/trips/{id}/invites includes token (owner-only, for copy-link fallback UI) ✅. BUG FIX COMPLETE: Invite emails now working via real Gmail SMTP."
+      - working: true
+        agent: "testing"
+        comment: "✅ BUG FIX RE-VERIFIED (7/7 tests passed). User requested verification that 'mail have to go to the OTHER user whom I invite' — CONFIRMED WORKING. Test 1: POST /api/trips/{trip_id}/invite with emails=['travelo.squad.test@gmail.com'] (DIFFERENT address than owner smoke@travelo.app) → 200 with sent=[{email:'travelo.squad.test@gmail.com', link}], failed=[], completed in 0.75s (real SMTP handshake >= 0.5s) ✅. Test 2: CRITICAL LOG CHECK: backend logs show '[EMAIL sent via gmail] to=travelo.squad.test@gmail.com subject=Smoke added you to the Reminder Test City trip on TRAVELO' (real Gmail SMTP confirmed, email sent to OTHER user NOT owner) ✅. Test 3: NO new '[EMAIL console fallback]' line added (real SMTP used, not fallback) ✅. Test 4: Magic link works for OTHER user: extracted token from link → POST /api/invites/{token}/accept as friend@travelo.app (DIFFERENT user) → 200 with {trip_id, room_id, place}, friend successfully joined trip ✅. Test 5: Email HTML has plain fallback link: verified 'Button not working? Open this link' text present in _invite_email_html function ✅. Test 6: Regression test: POST /api/voice/transcribe with gTTS-generated audio 'hello world trip to goa' → 200 with text='Hello world trip to Goa' containing 'goa' keyword ✅. CRITICAL CONFIRMATION: Emails are dispatched via REAL Gmail SMTP to the OTHER user (travelo.squad.test@gmail.com), NOT to the owner (smoke@travelo.app). Total emails sent: 1 (as requested, AT MOST 2). BUG FIX VERIFIED: Invite emails go to the OTHER user via real Gmail SMTP."
   - task: "Destination intel guide (AI + wiki images)"
     implemented: true
     working: true
@@ -510,6 +513,18 @@ agent_communication:
       Real email sent to owner's inbox (sayanbhatt2005@gmail.com) as instructed (AT MOST 1 email sent).
       Fix details verified: (1) Real Gmail SMTP now used with multipart plain+HTML, proper headers (From, To, Reply-To, Date, Message-ID), success log '[EMAIL sent via gmail]' ✅. (2) Server no longer silently pretends success when email creds missing — raises RuntimeError with clear message, would report address in 'failed' with 'reason' and magic 'link' ✅. (3) Invite response entries include magic link ✅. (4) GET /api/trips/{id}/invites includes token (owner-only endpoint, intentional for copy-link fallback UI) ✅.
       BUG FIX COMPLETE: Invite emails now working via real Gmail SMTP. All requirements met.
+  - agent: "testing"
+    message: >
+      ✅ BUG FIX RE-VERIFICATION COMPLETE - EMAILS GO TO OTHER USER (7/7 tests passed).
+      User requested: "mail have to go to the OTHER user whom I invite" — CONFIRMED WORKING.
+      Test 1: POST /api/trips/{trip_id}/invite with emails=['travelo.squad.test@gmail.com'] (DIFFERENT address than owner smoke@travelo.app) → 200 with sent=[{email:'travelo.squad.test@gmail.com', link}], failed=[], completed in 0.75s (real SMTP >= 0.5s) ✅.
+      Test 2: CRITICAL LOG CHECK: Backend logs show '[EMAIL sent via gmail] to=travelo.squad.test@gmail.com subject=Smoke added you to the Reminder Test City trip on TRAVELO' ✅. Email sent to OTHER user (travelo.squad.test@gmail.com), NOT to owner (smoke@travelo.app) ✅.
+      Test 3: NO new '[EMAIL console fallback]' line (real Gmail SMTP used, not fallback) ✅.
+      Test 4: Magic link works for OTHER user: extracted token → POST /api/invites/{token}/accept as friend@travelo.app (DIFFERENT user than owner) → 200 with {trip_id, room_id, place}, friend successfully joined trip ✅.
+      Test 5: Email HTML has plain fallback link: verified 'Button not working? Open this link' text present in _invite_email_html function at line 1199 ✅.
+      Test 6: Regression test: POST /api/voice/transcribe with gTTS audio 'hello world trip to goa' → 200 with text='Hello world trip to Goa' containing 'goa' ✅.
+      CRITICAL CONFIRMATION: Emails are dispatched via REAL Gmail SMTP to the OTHER user (travelo.squad.test@gmail.com), NOT to the owner (smoke@travelo.app). Total emails sent: 1 (as requested, AT MOST 2).
+      BUG FIX RE-VERIFIED: Invite emails go to the OTHER user via real Gmail SMTP. All requirements met.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.

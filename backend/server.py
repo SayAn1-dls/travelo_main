@@ -1195,6 +1195,10 @@ def _invite_email_html(inviter: str, place: str, dates: str, link: str) -> str:
     <div style="font-family:{mono};font-size:10px;letter-spacing:2px;color:#666666;margin-top:14px;text-transform:uppercase;">
       one click = trip plan + squad chat. no codes. no app switching.
     </div>
+    <div style="font-family:{mono};font-size:11px;color:#888888;margin-top:14px;word-break:break-all;">
+      Button not working? Open this link:<br/>
+      <a href="{link}" style="color:#EAFF00;text-decoration:underline;">{link}</a>
+    </div>
   </td></tr>
 
   <!-- perks row -->
