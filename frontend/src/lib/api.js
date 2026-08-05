@@ -63,9 +63,12 @@ export const api = {
   room: (id) => request(`/rooms/${id}`),
   roomMessages: (id, after) => request(`/rooms/${id}/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`),
   sendRoomMessage: (id, payload) => request(`/rooms/${id}/messages`, { method: 'POST', body: payload }),
+  markRoomRead: (id) => request(`/rooms/${id}/read`, { method: 'POST' }),
+  roomReads: (id) => request(`/rooms/${id}/reads`),
   // Trip email invites
   inviteToTrip: (tripId, payload) => request(`/trips/${tripId}/invite`, { method: 'POST', body: payload }),
   tripInvites: (tripId) => request(`/trips/${tripId}/invites`),
+  sendTripReminder: (tripId) => request(`/trips/${tripId}/send-reminder`, { method: 'POST' }),
   inviteInfo: (token) => request(`/invites/${token}`, { auth: false }),
   acceptInvite: (token) => request(`/invites/${token}/accept`, { method: 'POST' }),
   // Destination intel guide

@@ -34,6 +34,7 @@ export default function SquadChatPage() {
   const [panel, setPanel] = useState(null); // null | 'create' | 'join'
   const [panelValue, setPanelValue] = useState(params.get('create') || '');
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [reads, setReads] = useState({});
   const lastTsRef = useRef(null);
   const pollRef = useRef(null);
   const scrollRef = useRef(null);
@@ -72,6 +73,7 @@ export default function SquadChatPage() {
     pollRef.current = setInterval(async () => {
       try {
         const fresh = await api.roomMessages(roomId, lastTsRef.current);
+        api.roomReads(roomId).then(setReads).catch(() => {});
         if (fresh.length) {
           setMessages((prev) => {
             const known = new Set(prev.map((m) => m.id));
@@ -80,6 +82,7 @@ export default function SquadChatPage() {
             lastTsRef.current = add[add.length - 1].created_at;
             return [...prev, ...add];
           });
+          api.markRoomRead(roomId).catch(() => {});
           loadRooms();
         }
       } catch (e) { /* transient */ }
@@ -90,11 +93,14 @@ export default function SquadChatPage() {
     setActiveRoom(room);
     setMobileChatOpen(true);
     setMessages([]);
+    setReads({});
     lastTsRef.current = null;
     try {
       const msgs = await api.roomMessages(room.id);
       setMessages(msgs);
       if (msgs.length) lastTsRef.current = msgs[msgs.length - 1].created_at;
+      api.markRoomRead(room.id).catch(() => {});
+      api.roomReads(room.id).then(setReads).catch(() => {});
     } catch (e) {
       toast.error('Could not load messages');
     }
@@ -307,6 +313,8 @@ export default function SquadChatPage() {
                   );
                 }
                 const mine = m.user_id === user?.id;
+                const others = (activeRoom.members || []).filter((mm) => mm.id !== user?.id);
+                const seenByAll = mine && others.length > 0 && others.every((mm) => reads[mm.id] && reads[mm.id] >= m.created_at);
                 return (
                   <motion.div
                     key={m.id}
@@ -346,6 +354,15 @@ export default function SquadChatPage() {
                       {m.text && <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.text}</p>}
                       <p className={`mt-1 text-right font-mono text-[9px] ${mine ? 'text-black/50' : 'text-white/30'}`}>
                         {timeOf(m.created_at)}
+                        {mine && (
+                          <span
+                            className={`ml-1.5 font-bold ${seenByAll ? 'text-black' : 'text-black/40'}`}
+                            title={seenByAll ? 'Seen by everyone' : 'Sent'}
+                            data-testid={`ticks-${m.id}`}
+                          >
+                            {seenByAll ? '✓✓' : '✓'}
+                          </span>
+                        )}
                       </p>
                     </div>
                   </motion.div>

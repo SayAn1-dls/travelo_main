@@ -49,6 +49,7 @@ export default function TripDetailPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [invites, setInvites] = useState([]);
+  const [hyping, setHyping] = useState(false);
 
   const loadInvites = useCallback(() => {
     api.tripInvites(id).then(setInvites).catch(() => {});
@@ -379,6 +380,31 @@ export default function TripDetailPage() {
                   ))}
                 </div>
               )}
+
+              {/* pre-trip hype email */}
+              <button
+                onClick={async () => {
+                  setHyping(true);
+                  try {
+                    const res = await api.sendTripReminder(trip.id);
+                    toast.success(`Hype email + packing checklist fired at ${res.sent.length} squad member(s) 🔥`);
+                    loadNotifications();
+                  } catch (err) {
+                    toast.error(err.message || 'Could not send hype email');
+                  } finally {
+                    setHyping(false);
+                  }
+                }}
+                disabled={hyping}
+                className="mt-4 flex w-full items-center justify-center gap-2 border border-acid/50 bg-acid/5 px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-acid transition hover:bg-acid hover:text-black disabled:opacity-50"
+                data-testid="send-hype-btn"
+              >
+                {hyping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
+                Send pre-trip hype email + packing list
+              </button>
+              <p className="mt-2 text-center font-mono text-[8px] uppercase tracking-[0.2em] text-white/30">
+                also fires automatically 3 days before departure
+              </p>
             </div>
 
             {/* Squad ledger */}

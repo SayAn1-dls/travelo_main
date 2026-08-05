@@ -135,6 +135,7 @@ class TripPlanRequest(BaseModel):
     end_date: str
     budget: float = Field(..., ge=0)
     members: List[MemberIn] = Field(..., min_length=1, max_length=20)
+    origin_url: str = Field("", max_length=200)
 
 
 class ExpenseRequest(BaseModel):
@@ -564,6 +565,8 @@ async def create_trip(req: TripPlanRequest, user=Depends(get_current_user)):
         "budget": round(req.budget, 2),
         "members": members,
         "settlements": [],
+        "origin_url": req.origin_url.strip(),
+        "reminder_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await trip_plans.insert_one({**trip})
@@ -1588,6 +1591,212 @@ async def transcribe_voice(file: UploadFile = File(...), language: Optional[str]
         tmp_path.unlink(missing_ok=True)
 
 
+# ---------------------------------------------------------------- pre-trip hype reminders (T-minus 3 days)
+DEFAULT_CHECKLIST = [
+    "Passport / ID + printed & digital copies",
+    "Phone charger + power bank (fully juiced)",
+    "Weather-appropriate layers — check the forecast tonight",
+    "Comfortable walking shoes (broken in, not brand new)",
+    "Meds, band-aids and that one painkiller someone always needs",
+    "Sunscreen + sunglasses (non-negotiable)",
+    "Cash in small notes + one backup card",
+    "Reusable water bottle",
+    "Offline maps downloaded for the destination",
+    "Good vibes. Leave the drama at home.",
+]
+
+PACKING_PROMPT = (
+    "You write hype pre-trip emails for TRAVELO. A squad leaves for {place} on {start_date}. "
+    "Return ONLY raw valid JSON (no fences) with keys: "
+    "hype_line (one savage-but-loving sentence, max 90 chars, to fire up the squad), "
+    "checklist (array of exactly 10 short packing checklist items SPECIFIC to {place} and its typical weather/culture — "
+    "practical, punchy, max 60 chars each)."
+)
+
+
+async def _reminder_content(place: str, start_date: str) -> dict:
+    import json as _json
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    key = os.environ.get("EMERGENT_LLM_KEY")
+    fallback = {"hype_line": "3 days. Pack smart, sleep early, dream big.", "checklist": DEFAULT_CHECKLIST}
+    if not key:
+        return fallback
+    try:
+        chat = LlmChat(api_key=key, session_id=f"remind-{uuid.uuid4()}",
+                       system_message="You answer in strict JSON only.").with_model("openai", "gpt-5.4")
+        resp = await chat.send_message(UserMessage(text=PACKING_PROMPT.format(place=place, start_date=start_date)))
+        text = resp if isinstance(resp, str) else str(resp)
+        data = _json.loads(text[text.find("{"):text.rfind("}") + 1])
+        checklist = [str(x)[:70] for x in (data.get("checklist") or [])][:10] or DEFAULT_CHECKLIST
+        return {"hype_line": str(data.get("hype_line") or fallback["hype_line"])[:110], "checklist": checklist}
+    except Exception as e:  # noqa: BLE001
+        logger.error("Reminder content generation failed: %s", e)
+        return fallback
+
+
+def _reminder_email_html(place: str, dates: str, squad: int, days_left: int, hype: str,
+                         checklist: List[str], link: str) -> str:
+    display = "'Arial Black', Impact, 'Helvetica Neue', Arial, sans-serif"
+    mono = "'Courier New', Courier, monospace"
+    items = "".join(
+        f'<tr><td style="padding:9px 18px;border-bottom:1px dashed #2a2a2a;font-family:{mono};font-size:13px;color:#dddddd;">'
+        f'<span style="color:#EAFF00;font-weight:bold;">&#9744;</span>&nbsp;&nbsp;{item}</td></tr>'
+        for item in checklist
+    )
+    return f"""<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background-color:#030303;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#030303;padding:32px 12px;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+  <tr><td style="background-color:#FF4500;padding:14px 28px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-family:{display};font-size:24px;font-weight:900;letter-spacing:4px;color:#000000;">TRAVELO &#9992;</td>
+      <td align="right" style="font-family:{mono};font-size:10px;font-weight:bold;letter-spacing:3px;color:#000000;">T-MINUS {days_left} DAYS</td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="background-color:#EAFF00;padding:8px 0;">
+    <div style="font-family:{display};font-size:13px;font-weight:900;letter-spacing:3px;color:#000000;white-space:nowrap;overflow:hidden;">{place.upper()} &#10038; PACK YOUR BAGS &#10038; {place.upper()} &#10038; PACK YOUR BAGS &#10038; {place.upper()} &#10038; PACK YOUR BAGS &#10038;</div>
+  </td></tr>
+
+  <tr><td style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:44px 32px 20px;">
+    <div style="font-family:{mono};font-size:11px;letter-spacing:5px;color:#EAFF00;text-transform:uppercase;">// FINAL COUNTDOWN</div>
+    <div style="font-family:{display};font-size:52px;line-height:0.92;color:#ffffff;text-transform:uppercase;margin-top:18px;font-weight:900;">
+      {days_left} DAYS<br/>UNTIL<br/><span style="color:#FF4500;font-style:italic;">{place.upper()}.</span>
+    </div>
+    <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;color:#EAFF00;margin-top:20px;">
+      &ldquo;{hype}&rdquo;
+    </div>
+    <div style="font-family:{mono};font-size:11px;letter-spacing:2px;color:#888888;margin-top:16px;text-transform:uppercase;">
+      {dates} &#183; squad of {squad}
+    </div>
+  </td></tr>
+
+  <tr><td style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:10px 32px 22px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px dashed #444444;background-color:#000000;">
+      <tr><td style="background-color:#EAFF00;padding:10px 18px;font-family:{display};font-size:16px;font-weight:900;letter-spacing:3px;color:#000000;text-transform:uppercase;">
+        THE PACKING CHECKLIST
+      </td></tr>
+      {items}
+    </table>
+  </td></tr>
+
+  <tr><td align="center" style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:8px 32px 40px;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="background-color:#FF4500;border:3px solid #EAFF00;">
+        <a href="{link}" style="display:inline-block;font-family:{display};font-size:18px;font-weight:900;letter-spacing:3px;color:#000000;text-decoration:none;text-transform:uppercase;padding:16px 40px;">
+          OPEN THE TRIP PLAN &#8594;
+        </a>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="background-color:#FF4500;padding:8px 0;">
+    <div style="font-family:{display};font-size:13px;font-weight:900;letter-spacing:3px;color:#000000;white-space:nowrap;overflow:hidden;">STOP DREAMING &#10038; START PACKING &#10038; STOP DREAMING &#10038; START PACKING &#10038; STOP DREAMING &#10038; START PACKING &#10038;</div>
+  </td></tr>
+
+  <tr><td align="center" style="background-color:#000000;padding:16px 24px;border:1px solid #1a1a1a;border-top:none;">
+    <div style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#555555;text-transform:uppercase;">
+      See you at the airport. &mdash; TRAVELO
+    </div>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+
+async def _trip_squad_emails(trip: dict) -> List[str]:
+    emails = set()
+    owner = await users_col.find_one({"id": trip["user_id"]}, {"_id": 0, "email": 1})
+    if owner and owner.get("email"):
+        emails.add(owner["email"])
+    for m in trip.get("members", []):
+        if m.get("user_id"):
+            u = await users_col.find_one({"id": m["user_id"]}, {"_id": 0, "email": 1})
+            if u and u.get("email"):
+                emails.add(u["email"])
+    async for inv in trip_invites.find({"trip_id": trip["id"], "status": "accepted"}, {"_id": 0, "email": 1}):
+        if inv.get("email"):
+            emails.add(inv["email"])
+    return sorted(emails)
+
+
+async def _send_trip_reminder(trip: dict, days_left: int) -> List[str]:
+    recipients = await _trip_squad_emails(trip)
+    if not recipients:
+        return []
+    content = await _reminder_content(trip["place"], trip["start_date"])
+    origin = trip.get("origin_url") or os.environ.get("APP_URL", "")
+    link = f"{origin}/planner/{trip['id']}" if origin else "#"
+    dates = f"{trip['start_date']} → {trip['end_date']}"
+    html = _reminder_email_html(trip["place"], dates, len(trip.get("members", [])),
+                                days_left, content["hype_line"], content["checklist"], link)
+    sent = []
+    for email in recipients:
+        try:
+            await send_email(email, f"{days_left} days until {trip['place']} — the packing checklist is here 🔥", html)
+            sent.append(email)
+        except Exception as e:  # noqa: BLE001
+            logger.error("Reminder email to %s failed: %s", email, e)
+    await trip_plans.update_one({"id": trip["id"]}, {"$set": {"reminder_sent": True,
+                                                              "reminder_sent_at": datetime.now(timezone.utc).isoformat()}})
+    await _notify(trip["id"], "info", f"Pre-trip hype email + packing checklist sent to {len(sent)} squad member(s).")
+    return sent
+
+
+@api.post("/trips/{trip_id}/send-reminder")
+async def send_reminder_now(trip_id: str, user=Depends(get_current_user)):
+    trip = await _get_trip_or_404(trip_id, user["id"])
+    try:
+        start = datetime.fromisoformat(trip["start_date"]).date()
+        days_left = max(0, (start - datetime.now(timezone.utc).date()).days)
+    except ValueError:
+        days_left = 3
+    sent = await _send_trip_reminder(trip, days_left or 3)
+    return {"sent": sent}
+
+
+async def _reminder_loop():
+    """Hourly scan: trips departing within 3 days that haven't been hyped yet."""
+    while True:
+        try:
+            today = datetime.now(timezone.utc).date()
+            async for trip in trip_plans.find({"reminder_sent": {"$ne": True}}, {"_id": 0}):
+                try:
+                    start = datetime.fromisoformat(trip["start_date"]).date()
+                except (ValueError, KeyError):
+                    continue
+                days_left = (start - today).days
+                if 0 <= days_left <= 3:
+                    logger.info("Auto reminder firing for trip %s (%s, T-%d)", trip["id"], trip["place"], days_left)
+                    await _send_trip_reminder(trip, days_left)
+        except Exception as e:  # noqa: BLE001
+            logger.error("Reminder loop error: %s", e)
+        await asyncio.sleep(3600)
+
+
+# ---------------------------------------------------------------- read receipts (squad chat)
+@api.post("/rooms/{room_id}/read")
+async def mark_room_read(room_id: str, user=Depends(get_current_user)):
+    await _get_room_for_member(room_id, user["id"])
+    await rooms_col.update_one(
+        {"id": room_id},
+        {"$set": {f"reads.{user['id']}": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"ok": True}
+
+
+@api.get("/rooms/{room_id}/reads")
+async def get_room_reads(room_id: str, user=Depends(get_current_user)):
+    room = await _get_room_for_member(room_id, user["id"])
+    return room.get("reads", {})
+
+
 app.include_router(api)
 
 app.add_middleware(
@@ -1607,6 +1816,8 @@ async def startup():
     await payment_transactions.create_index("session_id")
     # Idempotent Stripe catalog setup in background thread (sync SDK calls)
     threading.Thread(target=_setup_catalog, daemon=True).start()
+    # Hourly pre-trip reminder scanner
+    asyncio.create_task(_reminder_loop())
 
 
 def _setup_catalog():

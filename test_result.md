@@ -280,6 +280,34 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ RECEIPT EMAIL WIRING WORKING PERFECTLY (4/4 tests passed). Test 4a - Create booking: POST /api/bookings (manali, explorer, 1 traveler, 2026-11-10 to 2026-11-16) → 200 with booking_id ✅. Test 4b - Checkout with origin_url: POST /api/payments/checkout {booking_id, origin_url='https://example.com'} → 200 with valid https://checkout.stripe.com URL and session_id ✅. Test 4c - Payment status: GET /api/payments/status/{session_id} → status='initiated' (expected for unpaid session) ✅. Test 4d - MongoDB verification: Queried payment_transactions collection by session_id → found transaction with origin_url='https://example.com' stored correctly ✅. All payment checkout and origin_url storage working correctly."
+  - task: "Trip reminder emails (manual endpoint + 3-day scheduler)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. Trip reminder emails with AI-generated packing checklist. POST /api/trips/{trip_id}/send-reminder sends pre-trip hype email to all squad members (owner + members + accepted invites). Uses GPT-5.4 to generate hype_line and packing checklist. Sets reminder_sent flag to prevent duplicate sends. Hourly scheduler (_reminder_loop) auto-sends reminders for trips departing within 3 days that haven't been hyped yet. Creates info notification after sending."
+      - working: true
+        agent: "testing"
+        comment: "✅ TRIP REMINDER EMAILS WORKING PERFECTLY (8/8 tests passed). Test 1 - Create trip: POST /api/trips with start_date=today+2 days, end_date=today+6 days → trip created with reminder_sent=false ✅. Test 2 - Send reminder: POST /api/trips/{trip_id}/send-reminder (120s timeout for LLM) → completed in 4.03s, sent to ['smoke@travelo.app'] ✅. Test 3 - Verify flag: GET /api/trips/{trip_id} → reminder_sent=true ✅. Test 4 - Notification: GET /api/trips/{trip_id}/notifications → contains 'Pre-trip hype email + packing checklist sent to 1 squad member(s).' ✅. Test 5 - Auth: without auth → 401 ✅, other user's trip → 404 ✅, bad trip ID → 404 ✅. Test 6 - Scheduler logs: grep backend logs for 'Reminder loop' errors → NONE found (hourly loop running without exceptions) ✅. Test 7 - Cleanup: DELETE /api/trips/{trip_id} → 200 ✅. LLM integration (GPT-5.4) working correctly for packing checklist generation. Gmail SMTP configured (real emails sent to smoke@travelo.app). Scheduler task running without errors."
+  - task: "Read receipts: POST /api/rooms/{id}/read + GET reads"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. Read receipts for squad chat rooms. POST /api/rooms/{room_id}/read marks room as read for current user (stores ISO timestamp in rooms.reads.{user_id}). GET /api/rooms/{room_id}/reads returns object mapping user_id → ISO timestamp for all members who have read the room. Membership-based access control (404 for non-members). Auth required."
+      - working: true
+        agent: "testing"
+        comment: "✅ READ RECEIPTS WORKING PERFECTLY (9/9 tests passed). Test 1 - Mark as read: POST /api/rooms/{room_id}/read as friend → {ok: true} ✅. Test 2 - Get reads: GET /api/rooms/{room_id}/reads as smoke → object with friend's user_id and recent timestamp (0.0s ago) ✅. Test 3 - Timestamp update: POST read again after 1s → timestamp updated from 2026-08-05T18:00:39.565750+00:00 to 2026-08-05T18:00:55.998377+00:00 ✅. Test 4 - Non-member permissions: registered fresh user → POST read → 404 ✅, GET reads → 404 ✅. Test 5 - Auth: without auth → POST read → 401 ✅, GET reads → 401 ✅. All read receipt features working: timestamp storage, retrieval, updates, membership-based access control."
 
 frontend:
   - task: "Cinematic Landing + quotes rotator + marquee"
@@ -332,7 +360,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 10
+  test_sequence: 11
 
 test_plan:
   current_focus: []
@@ -460,6 +488,12 @@ agent_communication:
       FEATURE 3 - AUDIO VOICE NOTES: Test 3a - Upload audio: Generated audio using gTTS → POST /api/rooms/{room_id}/media with audio/mpeg → 200 with message {type='media', media_type='audio', media_url='/api/media/{id}'} ✅. Test 3b - GET media URL without auth → 200 with content-type audio/mpeg ✅. Test 3c - Room preview: GET /api/rooms → room's last_message.preview == '🎤 Voice note' ✅. Test 3d - Upload .txt file → 400 ✅.
       FEATURE 4 - RECEIPT EMAIL WIRING: Test 4a - Create booking (manali, explorer, 1 traveler) → 200 ✅. Test 4b - Checkout with origin_url: POST /api/payments/checkout {booking_id, origin_url='https://example.com'} → 200 with valid https://checkout.stripe.com URL ✅. Test 4c - Payment status → status='initiated' (expected for unpaid) ✅. Test 4d - MongoDB verification: Queried payment_transactions by session_id → found transaction with origin_url='https://example.com' stored correctly ✅.
       ALL 4 NEW TRAVELO BACKEND FEATURES ARE FULLY FUNCTIONAL AND TESTED. COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS, VOICE TRANSCRIPTION, HINDI VOICE MODE, TRIP INVITES LIST, AUDIO VOICE NOTES, RECEIPT EMAIL WIRING) IS FULLY FUNCTIONAL.
+  - agent: "testing"
+    message: >
+      ✅ 2 NEW FEATURES BACKEND TESTING COMPLETE - ALL TESTS PASSED (17/17 tests).
+      FEATURE 1 - TRIP REMINDER EMAILS: Test 1 - Create trip with start_date=today+2 days → reminder_sent=false ✅. Test 2 - POST /api/trips/{trip_id}/send-reminder (120s timeout) → completed in 4.03s, sent to ['smoke@travelo.app'] ✅. Test 3 - reminder_sent flag now true ✅. Test 4 - Notification contains 'Pre-trip hype email + packing checklist sent to 1 squad member(s).' ✅. Test 5 - Auth/permissions: without auth → 401 ✅, other user's trip → 404 ✅, bad trip ID → 404 ✅. Test 6 - Scheduler logs: NO 'Reminder loop' errors found (hourly loop running without exceptions) ✅. Test 7 - Cleanup: trip deleted ✅. LLM integration (GPT-5.4) working for packing checklist generation. Gmail SMTP configured (real email sent to smoke@travelo.app). Scheduler task running correctly.
+      FEATURE 2 - READ RECEIPTS: Test 1 - POST /api/rooms/{room_id}/read as friend → {ok: true} ✅. Test 2 - GET /api/rooms/{room_id}/reads as smoke → object with friend's user_id and recent timestamp (0.0s ago) ✅. Test 3 - POST read again after 1s → timestamp updated (2026-08-05T18:00:39.565750+00:00 → 2026-08-05T18:00:55.998377+00:00) ✅. Test 4 - Non-member permissions: POST read → 404 ✅, GET reads → 404 ✅. Test 5 - Auth: without auth → POST read → 401 ✅, GET reads → 401 ✅. All read receipt features working: timestamp storage, retrieval, updates, membership-based access control.
+      COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS, VOICE TRANSCRIPTION, HINDI VOICE MODE, TRIP INVITES LIST, AUDIO VOICE NOTES, RECEIPT EMAIL WIRING, TRIP REMINDER EMAILS, READ RECEIPTS) IS FULLY FUNCTIONAL AND TESTED.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.

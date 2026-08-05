@@ -78,7 +78,7 @@ export default function TripWizardPage() {
         { name: `${user.name} (You)`, contribution: parseFloat(myContribution) || 0, payment_handle: myHandle.trim() },
         ...companions.map((c) => ({ name: c.name.trim(), contribution: parseFloat(c.contribution) || 0, payment_handle: c.payment_handle.trim() })),
       ];
-      const trip = await api.createTrip({ place: place.trim(), start_date: startDate, end_date: endDate, budget: parseFloat(budget), members });
+      const trip = await api.createTrip({ place: place.trim(), start_date: startDate, end_date: endDate, budget: parseFloat(budget), members, origin_url: window.location.origin });
       toast.success('Trip plan locked in. Time to spend wisely.');
       navigate(`/planner/${trip.id}`);
     } catch (err) {
