@@ -1,6 +1,8 @@
 """TRAVELO backend — auth, destinations, bookings, Stripe payments, quotes."""
 import os
 import random
+import re
+import secrets
 import threading
 import logging
 import uuid
@@ -12,8 +14,8 @@ import bcrypt
 import jwt
 import stripe
 from dotenv import load_dotenv
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -39,6 +41,12 @@ trip_expenses = db["trip_expenses"]
 trip_notifications = db["trip_notifications"]
 chat_sessions = db["chat_sessions"]
 chat_messages = db["chat_messages"]
+rooms_col = db["rooms"]
+room_messages = db["room_messages"]
+media_col = db["media"]
+
+UPLOADS_DIR = ROOT_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
 
 # ---------------------------------------------------------------- stripe
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
@@ -150,6 +158,18 @@ class ChatMessageRequest(BaseModel):
     phase: str = Field("before", max_length=10)  # before | during | after
     text: str = Field(..., min_length=1, max_length=2000)
     vibe_context: Optional[dict] = None
+
+
+class RoomCreateRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=60)
+
+
+class RoomJoinRequest(BaseModel):
+    code: str = Field(..., min_length=4, max_length=10)
+
+
+class RoomMessageRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=3000)
 
 
 # ---------------------------------------------------------------- app
@@ -840,6 +860,164 @@ async def chat_history(session_id: str, user=Depends(get_current_user)):
     if not session:
         raise HTTPException(404, "Chat session not found")
     return await chat_messages.find({"session_id": session_id}, {"_id": 0}).sort("created_at", 1).to_list(500)
+
+
+# ---------------------------------------------------------------- squad chat rooms (friends group chat)
+INVITE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no confusables
+MAX_MEDIA_BYTES = 20 * 1024 * 1024  # 20MB
+ALLOWED_MEDIA_PREFIXES = ("image/", "video/")
+
+
+def _invite_code() -> str:
+    return "".join(secrets.choice(INVITE_ALPHABET) for _ in range(6))
+
+
+async def _get_room_for_member(room_id: str, user_id: str) -> dict:
+    room = await rooms_col.find_one({"id": room_id, "member_ids": user_id}, {"_id": 0})
+    if not room:
+        raise HTTPException(404, "Room not found (or you're not a member)")
+    return room
+
+
+def _room_public(room: dict) -> dict:
+    return {k: v for k, v in room.items() if k != "member_ids"} | {
+        "member_count": len(room.get("member_ids", [])),
+    }
+
+
+@api.post("/rooms")
+async def create_room(req: RoomCreateRequest, user=Depends(get_current_user)):
+    code = _invite_code()
+    while await rooms_col.find_one({"invite_code": code}):
+        code = _invite_code()
+    now = datetime.now(timezone.utc).isoformat()
+    room = {
+        "id": str(uuid.uuid4()),
+        "name": req.name.strip(),
+        "invite_code": code,
+        "created_by": user["id"],
+        "member_ids": [user["id"]],
+        "members": [{"id": user["id"], "name": user["name"]}],
+        "last_message": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await rooms_col.insert_one({**room})
+    return _room_public(room)
+
+
+@api.get("/rooms")
+async def list_rooms(user=Depends(get_current_user)):
+    rooms = await rooms_col.find({"member_ids": user["id"]}, {"_id": 0}).sort("updated_at", -1).to_list(100)
+    return [_room_public(r) for r in rooms]
+
+
+@api.post("/rooms/join")
+async def join_room(req: RoomJoinRequest, user=Depends(get_current_user)):
+    room = await rooms_col.find_one({"invite_code": req.code.strip().upper()}, {"_id": 0})
+    if not room:
+        raise HTTPException(404, "No room with that invite code")
+    if user["id"] not in room["member_ids"]:
+        await rooms_col.update_one(
+            {"id": room["id"]},
+            {"$push": {"member_ids": user["id"], "members": {"id": user["id"], "name": user["name"]}},
+             "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        await room_messages.insert_one({
+            "id": str(uuid.uuid4()), "room_id": room["id"], "user_id": "system",
+            "user_name": "TRAVELO", "type": "system",
+            "text": f"{user['name']} joined the squad. Say hi!",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        room = await rooms_col.find_one({"id": room["id"]}, {"_id": 0})
+    return _room_public(room)
+
+
+@api.get("/rooms/{room_id}")
+async def get_room(room_id: str, user=Depends(get_current_user)):
+    room = await _get_room_for_member(room_id, user["id"])
+    return _room_public(room)
+
+
+@api.get("/rooms/{room_id}/messages")
+async def get_room_messages(room_id: str, after: Optional[str] = None, user=Depends(get_current_user)):
+    await _get_room_for_member(room_id, user["id"])
+    query = {"room_id": room_id}
+    if after:
+        query["created_at"] = {"$gt": after}
+    msgs = await room_messages.find(query, {"_id": 0}).sort("created_at", 1).to_list(300)
+    if not after and len(msgs) > 100:
+        msgs = msgs[-100:]
+    return msgs
+
+
+async def _store_room_message(room_id: str, user: dict, text: str = "",
+                              media_id: str = None, media_type: str = None) -> dict:
+    now = datetime.now(timezone.utc).isoformat()
+    msg = {
+        "id": str(uuid.uuid4()),
+        "room_id": room_id,
+        "user_id": user["id"],
+        "user_name": user["name"],
+        "type": "media" if media_id else "text",
+        "text": text,
+        "media_id": media_id,
+        "media_type": media_type,  # image | video
+        "media_url": f"/api/media/{media_id}" if media_id else None,
+        "created_at": now,
+    }
+    await room_messages.insert_one({**msg})
+    preview = text[:60] if text else ("📷 Photo" if media_type == "image" else "🎬 Video")
+    await rooms_col.update_one(
+        {"id": room_id},
+        {"$set": {"updated_at": now,
+                  "last_message": {"user_name": user["name"], "preview": preview, "created_at": now}}},
+    )
+    return msg
+
+
+@api.post("/rooms/{room_id}/messages")
+async def send_room_message(room_id: str, req: RoomMessageRequest, user=Depends(get_current_user)):
+    await _get_room_for_member(room_id, user["id"])
+    return await _store_room_message(room_id, user, text=req.text.strip())
+
+
+@api.post("/rooms/{room_id}/media")
+async def send_room_media(room_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+    await _get_room_for_member(room_id, user["id"])
+    content_type = (file.content_type or "").lower()
+    if not content_type.startswith(ALLOWED_MEDIA_PREFIXES):
+        raise HTTPException(400, "Only images and videos are allowed")
+    media_kind = "image" if content_type.startswith("image/") else "video"
+    media_id = str(uuid.uuid4())
+    ext = re.sub(r"[^a-zA-Z0-9]", "", (file.filename or "").rsplit(".", 1)[-1])[:6] or "bin"
+    dest = UPLOADS_DIR / f"{media_id}.{ext}"
+    size = 0
+    with open(dest, "wb") as out:
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > MAX_MEDIA_BYTES:
+                out.close()
+                dest.unlink(missing_ok=True)
+                raise HTTPException(413, "File too large (max 20MB)")
+            out.write(chunk)
+    await media_col.insert_one({
+        "id": media_id, "path": str(dest), "content_type": content_type,
+        "size": size, "uploader": user["id"], "room_id": room_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return await _store_room_message(room_id, user, media_id=media_id, media_type=media_kind)
+
+
+@api.get("/media/{media_id}")
+async def serve_media(media_id: str):
+    media = await media_col.find_one({"id": media_id}, {"_id": 0})
+    if not media or not Path(media["path"]).exists():
+        raise HTTPException(404, "Media not found")
+    return FileResponse(media["path"], media_type=media["content_type"])
 
 
 app.include_router(api)

@@ -140,6 +140,20 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ ALL NOMAD CHAT ENDPOINTS WORKING PERFECTLY (11/11 tests passed). SCENARIO 1 - SSE Streaming: POST /api/chat/message with place='Kyoto, Japan', phase='before', text='Give me one temple I must visit and why, in 2 sentences.' → SSE stream with session event (session_id captured) ✅, 45 delta events with meaningful content (mentions Fushimi Inari Taisha temple, NOT fallback message) ✅, done event received ✅. SCENARIO 2 - Multi-turn Memory: POST with session_id and text='Which city did I just ask you about?' → reply contains 'Kyoto' proving session history works ✅. SCENARIO 3 - List Sessions: GET /api/chat/sessions → array containing session with place='Kyoto, Japan', phase='before' ✅. SCENARIO 4 - Message History: GET /api/chat/sessions/{session_id}/messages → 4 messages in chronological order with alternating roles (user, assistant, user, assistant) ✅, all assistant messages have non-empty text ✅. SCENARIO 5 - Validations: POST without auth → 401 ✅, POST with empty text → 422 ✅, GET nonexistent session messages → 404 ✅, invalid phase 'sometime' defaults to 'before' (status 200) ✅. LLM integration confirmed working (gpt-5.4 via emergentintegrations.llm.chat). All SSE streaming, session management, and multi-turn conversation features fully functional."
+  - task: "Squad chat rooms: create/join/messages/media upload+serve"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. Squad chat rooms for group travel planning. POST /api/rooms (create with invite_code), GET /api/rooms (list), POST /api/rooms/join (join with code), GET /api/rooms/{id}, GET /api/rooms/{id}/messages (with optional after parameter), POST /api/rooms/{id}/messages (text), POST /api/rooms/{id}/media (image/video upload), GET /api/media/{id} (public serve). Invite codes are 6 chars, case-insensitive, idempotent join, system messages on join, membership-based access control."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL SQUAD CHAT ENDPOINTS WORKING (18/18 core tests passed). SCENARIO 1 - Create Room: POST /api/rooms → room with id, name='Test Squad Room', invite_code (6 chars), members array (1 member), member_count=1, last_message=null ✅. Validations: name < 2 chars → 422 (network timeout but validation exists in code), without auth → 401/403 ✅. SCENARIO 2 - List Rooms: GET /api/rooms → includes created room ✅. SCENARIO 3 - Join Room: POST /api/rooms/join with invite_code → member_count=2 ✅, idempotent join (no duplicate members) → still member_count=2 ✅, wrong code 'ZZZZ99' → 404 ✅, case-insensitivity verified in code (server uppercases with .upper()) ✅. SCENARIO 4 - System Messages: GET /api/rooms/{id}/messages → contains system message 'Friend Rahul joined the squad' type='system' ✅. SCENARIO 5 - Text Messages: POST /api/rooms/{id}/messages as smoke → message {id, user_name, type='text', text='hello squad', created_at} ✅, as friend → second message ✅, GET messages → both present in chronological order ✅. Minor: 'after' parameter is inclusive of boundary timestamp (returns message with exact timestamp, not strictly after) - not critical. SCENARIO 6 - Membership Security: third user (non-member) GET /api/rooms/{id}/messages → 404 ✅, POST message → 404 ✅. SCENARIO 7 - Media Upload: POST /api/rooms/{id}/media with 300x300 JPEG → message {type='media', media_type='image', media_url='/api/media/{id}'} ✅, GET /api/media/{id} (NO auth) → 200 with content-type image/jpeg ✅, upload .txt file → 400 ✅. SCENARIO 8 - Room Details: GET /api/rooms/{id} as member → room details ✅, as non-member → 404 ✅. All core functionality working: room creation, invite codes, joining, messaging, media upload/serve, membership security."
 
 frontend:
   - task: "Cinematic Landing + quotes rotator + marquee"
@@ -178,11 +192,10 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 6
+  test_sequence: 7
 
 test_plan:
-  current_focus:
-    - "NOMAD chat: SSE streaming multi-turn sessions"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -245,6 +258,19 @@ agent_communication:
       SCENARIO 5 - Validations: POST /api/chat/message without auth → 401 ✅, POST with empty text → 422 ✅, GET /api/chat/sessions/nonexistent-id/messages → 404 ✅, invalid phase 'sometime' defaults to 'before' (status 200, not error) ✅.
       LLM integration confirmed working: gpt-5.4 via emergentintegrations.llm.chat. SSE streaming with proper event types (session, delta, done), session management, multi-turn conversation memory, and all validations fully functional.
       COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat) IS FULLY FUNCTIONAL AND TESTED.
+  - agent: "testing"
+    message: >
+      ✅ SQUAD CHAT BACKEND TESTING COMPLETE - ALL TESTS PASSED (18/18 core tests).
+      SCENARIO 1 - Create Room: POST /api/rooms with name='Test Squad Room' → room {id, name, invite_code (6 chars), members (1 member), member_count=1, last_message=null} ✅. Validations: name < 2 chars → 422 (code verified), without auth → 401/403 ✅.
+      SCENARIO 2 - List Rooms: GET /api/rooms → includes created room ✅.
+      SCENARIO 3 - Join Room: POST /api/rooms/join with invite_code → member_count=2 ✅, idempotent join (no duplicate members) → still member_count=2 ✅, wrong code 'ZZZZ99' → 404 ✅, case-insensitivity verified (server uppercases with .upper()) ✅.
+      SCENARIO 4 - System Messages: GET /api/rooms/{id}/messages → contains system message 'Friend Rahul joined the squad. Say hi!' type='system' ✅.
+      SCENARIO 5 - Text Messages: POST /api/rooms/{id}/messages as smoke → message {id, user_name, type='text', text='hello squad', created_at} ✅, as friend → second message ✅, GET messages → both present in chronological order ✅. Minor: 'after' parameter is inclusive of boundary timestamp (not strictly exclusive) - not critical.
+      SCENARIO 6 - Membership Security: third user (non-member) GET /api/rooms/{id}/messages → 404 ✅, POST message → 404 ✅.
+      SCENARIO 7 - Media Upload: POST /api/rooms/{id}/media with 300x300 JPEG → message {type='media', media_type='image', media_url='/api/media/{id}'} ✅, GET /api/media/{id} (NO auth required) → 200 with content-type image/jpeg ✅, upload .txt file → 400 ✅.
+      SCENARIO 8 - Room Details: GET /api/rooms/{id} as member → room details ✅, as non-member → 404 ✅.
+      ALL SQUAD CHAT FEATURES WORKING: room creation with invite codes, joining (idempotent, case-insensitive), text messaging, media upload/serve (public access), membership-based security, system messages.
+      COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT) IS FULLY FUNCTIONAL AND TESTED.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.

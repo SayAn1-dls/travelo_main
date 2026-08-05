@@ -56,6 +56,13 @@ export const api = {
   tripNotifications: (tripId) => request(`/trips/${tripId}/notifications`),
   // Vibe lab
   analyzeVibe: (payload) => request('/collage/analyze', { method: 'POST', body: payload }),
+  // Squad chat rooms
+  createRoom: (payload) => request('/rooms', { method: 'POST', body: payload }),
+  rooms: () => request('/rooms'),
+  joinRoom: (payload) => request('/rooms/join', { method: 'POST', body: payload }),
+  room: (id) => request(`/rooms/${id}`),
+  roomMessages: (id, after) => request(`/rooms/${id}/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`),
+  sendRoomMessage: (id, payload) => request(`/rooms/${id}/messages`, { method: 'POST', body: payload }),
 };
 
 export default api;

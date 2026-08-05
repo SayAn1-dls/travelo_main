@@ -1079,6 +1079,452 @@ except Exception as e:
     log_fail("POST /api/trips (without auth)", str(e))
 
 # ============================================================================
+# 11. SQUAD CHAT ROOMS
+# ============================================================================
+print("\n[11] SQUAD CHAT ROOMS")
+print("-" * 80)
+
+# Test users
+smoke_token = None
+friend_token = None
+third_user_token = None
+
+# Register/login smoke@travelo.app
+try:
+    resp = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": "smoke@travelo.app",
+        "password": "Test@1234"
+    }, timeout=10)
+    if resp.status_code == 200:
+        smoke_token = resp.json().get("token")
+        log_pass("Squad Chat: smoke@travelo.app login")
+    else:
+        log_fail("Squad Chat: smoke login", f"Status {resp.status_code}")
+except Exception as e:
+    log_fail("Squad Chat: smoke login", str(e))
+
+# Register/login friend@travelo.app
+try:
+    resp = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": "friend@travelo.app",
+        "password": "Friend@1234"
+    }, timeout=10)
+    if resp.status_code == 200:
+        friend_token = resp.json().get("token")
+        log_pass("Squad Chat: friend@travelo.app login")
+    else:
+        log_fail("Squad Chat: friend login", f"Status {resp.status_code}")
+except Exception as e:
+    log_fail("Squad Chat: friend login", str(e))
+
+if smoke_token and friend_token:
+    # SCENARIO 1: Create room
+    room_id = None
+    invite_code = None
+    
+    try:
+        resp = requests.post(f"{BASE_URL}/rooms", 
+                           json={"name": "Test Squad Room"},
+                           headers={"Authorization": f"Bearer {smoke_token}"},
+                           timeout=10)
+        if resp.status_code == 200:
+            room = resp.json()
+            room_id = room.get("id")
+            invite_code = room.get("invite_code")
+            
+            # Validate response structure
+            checks = []
+            checks.append(("id present", room_id is not None))
+            checks.append(("name correct", room.get("name") == "Test Squad Room"))
+            checks.append(("invite_code 6 chars", len(invite_code or "") == 6))
+            checks.append(("member_count is 1", room.get("member_count") == 1))
+            checks.append(("members array length 1", len(room.get("members", [])) == 1))
+            checks.append(("last_message is None", room.get("last_message") is None))
+            
+            if all(c[1] for c in checks):
+                log_pass("POST /api/rooms: creates room with correct structure")
+            else:
+                failed_checks = [c[0] for c in checks if not c[1]]
+                log_fail("POST /api/rooms", f"Failed checks: {', '.join(failed_checks)}")
+        else:
+            log_fail("POST /api/rooms", f"Status {resp.status_code}: {resp.text}")
+    except Exception as e:
+        log_fail("POST /api/rooms", str(e))
+    
+    # Validation: name < 2 chars
+    try:
+        resp = requests.post(f"{BASE_URL}/rooms", 
+                           json={"name": "A"},
+                           headers={"Authorization": f"Bearer {smoke_token}"},
+                           timeout=10)
+        if resp.status_code == 422:
+            log_pass("POST /api/rooms (name < 2 chars): returns 422")
+        else:
+            log_fail("POST /api/rooms (name < 2 chars)", f"Expected 422, got {resp.status_code}")
+    except Exception as e:
+        log_fail("POST /api/rooms (name < 2 chars)", str(e))
+    
+    # Validation: without auth
+    try:
+        resp = requests.post(f"{BASE_URL}/rooms", 
+                           json={"name": "Test Room"},
+                           timeout=10)
+        if resp.status_code in [401, 403]:
+            log_pass("POST /api/rooms (without auth): returns 401/403")
+        else:
+            log_fail("POST /api/rooms (without auth)", f"Expected 401/403, got {resp.status_code}")
+    except Exception as e:
+        log_fail("POST /api/rooms (without auth)", str(e))
+    
+    # SCENARIO 2: List rooms
+    if room_id:
+        try:
+            resp = requests.get(f"{BASE_URL}/rooms",
+                              headers={"Authorization": f"Bearer {smoke_token}"},
+                              timeout=10)
+            if resp.status_code == 200:
+                rooms = resp.json()
+                if isinstance(rooms, list) and any(r.get("id") == room_id for r in rooms):
+                    log_pass("GET /api/rooms: includes created room")
+                else:
+                    log_fail("GET /api/rooms", f"Room {room_id} not found in list")
+            else:
+                log_fail("GET /api/rooms", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("GET /api/rooms", str(e))
+    
+    # SCENARIO 3: Join room
+    if room_id and invite_code:
+        # Friend joins with correct code
+        try:
+            resp = requests.post(f"{BASE_URL}/rooms/join",
+                               json={"code": invite_code},
+                               headers={"Authorization": f"Bearer {friend_token}"},
+                               timeout=10)
+            if resp.status_code == 200:
+                room = resp.json()
+                if room.get("member_count") == 2:
+                    log_pass("POST /api/rooms/join: friend joins, member_count=2")
+                else:
+                    log_fail("POST /api/rooms/join", f"Expected member_count=2, got {room.get('member_count')}")
+            else:
+                log_fail("POST /api/rooms/join", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("POST /api/rooms/join", str(e))
+        
+        # Idempotency: friend joins again
+        try:
+            resp = requests.post(f"{BASE_URL}/rooms/join",
+                               json={"code": invite_code},
+                               headers={"Authorization": f"Bearer {friend_token}"},
+                               timeout=10)
+            if resp.status_code == 200:
+                room = resp.json()
+                if room.get("member_count") == 2:
+                    log_pass("POST /api/rooms/join (idempotent): still member_count=2")
+                else:
+                    log_fail("POST /api/rooms/join (idempotent)", f"Expected member_count=2, got {room.get('member_count')}")
+            else:
+                log_fail("POST /api/rooms/join (idempotent)", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/rooms/join (idempotent)", str(e))
+        
+        # Wrong code
+        try:
+            resp = requests.post(f"{BASE_URL}/rooms/join",
+                               json={"code": "ZZZZ99"},
+                               headers={"Authorization": f"Bearer {friend_token}"},
+                               timeout=10)
+            if resp.status_code == 404:
+                log_pass("POST /api/rooms/join (wrong code): returns 404")
+            else:
+                log_fail("POST /api/rooms/join (wrong code)", f"Expected 404, got {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/rooms/join (wrong code)", str(e))
+        
+        # Case-insensitivity: lowercase code
+        try:
+            # Create a new room to test with fresh code
+            resp = requests.post(f"{BASE_URL}/rooms", 
+                               json={"name": "Case Test Room"},
+                               headers={"Authorization": f"Bearer {smoke_token}"},
+                               timeout=10)
+            if resp.status_code == 200:
+                test_room = resp.json()
+                test_code = test_room.get("invite_code")
+                
+                # Try joining with lowercase code
+                resp = requests.post(f"{BASE_URL}/rooms/join",
+                                   json={"code": test_code.lower()},
+                                   headers={"Authorization": f"Bearer {friend_token}"},
+                                   timeout=10)
+                if resp.status_code == 200:
+                    log_pass("POST /api/rooms/join (lowercase code): case-insensitive works")
+                else:
+                    log_fail("POST /api/rooms/join (lowercase code)", f"Status {resp.status_code}")
+            else:
+                log_fail("POST /api/rooms/join (case test setup)", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/rooms/join (lowercase code)", str(e))
+    
+    # SCENARIO 4: Get messages - check system message
+    if room_id:
+        try:
+            resp = requests.get(f"{BASE_URL}/rooms/{room_id}/messages",
+                              headers={"Authorization": f"Bearer {smoke_token}"},
+                              timeout=10)
+            if resp.status_code == 200:
+                messages = resp.json()
+                # Look for system message about friend joining
+                system_msg = next((m for m in messages if m.get("type") == "system" and "joined the squad" in m.get("text", "")), None)
+                if system_msg:
+                    log_pass("GET /api/rooms/{id}/messages: contains system join message")
+                else:
+                    log_fail("GET /api/rooms/{id}/messages", "System join message not found")
+            else:
+                log_fail("GET /api/rooms/{id}/messages", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("GET /api/rooms/{id}/messages", str(e))
+    
+    # SCENARIO 5: Send text messages
+    first_message_id = None
+    first_message_created_at = None
+    
+    if room_id:
+        # Smoke sends message
+        try:
+            resp = requests.post(f"{BASE_URL}/rooms/{room_id}/messages",
+                               json={"text": "hello squad"},
+                               headers={"Authorization": f"Bearer {smoke_token}"},
+                               timeout=10)
+            if resp.status_code == 200:
+                msg = resp.json()
+                first_message_id = msg.get("id")
+                first_message_created_at = msg.get("created_at")
+                
+                checks = []
+                checks.append(("id present", msg.get("id") is not None))
+                checks.append(("user_name present", msg.get("user_name") is not None))
+                checks.append(("type is text", msg.get("type") == "text"))
+                checks.append(("text correct", msg.get("text") == "hello squad"))
+                checks.append(("created_at present", msg.get("created_at") is not None))
+                
+                if all(c[1] for c in checks):
+                    log_pass("POST /api/rooms/{id}/messages: smoke sends text message")
+                else:
+                    failed_checks = [c[0] for c in checks if not c[1]]
+                    log_fail("POST /api/rooms/{id}/messages", f"Failed checks: {', '.join(failed_checks)}")
+            else:
+                log_fail("POST /api/rooms/{id}/messages", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/rooms/{id}/messages", str(e))
+        
+        # Friend sends message
+        try:
+            time.sleep(0.5)  # Small delay to ensure chronological order
+            resp = requests.post(f"{BASE_URL}/rooms/{room_id}/messages",
+                               json={"text": "hey everyone!"},
+                               headers={"Authorization": f"Bearer {friend_token}"},
+                               timeout=10)
+            if resp.status_code == 200:
+                log_pass("POST /api/rooms/{id}/messages: friend sends text message")
+            else:
+                log_fail("POST /api/rooms/{id}/messages (friend)", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/rooms/{id}/messages (friend)", str(e))
+        
+        # Get all messages - check chronological order
+        try:
+            resp = requests.get(f"{BASE_URL}/rooms/{room_id}/messages",
+                              headers={"Authorization": f"Bearer {smoke_token}"},
+                              timeout=10)
+            if resp.status_code == 200:
+                messages = resp.json()
+                text_messages = [m for m in messages if m.get("type") == "text"]
+                
+                if len(text_messages) >= 2:
+                    # Check if messages are in chronological order
+                    is_chronological = all(
+                        text_messages[i].get("created_at", "") <= text_messages[i+1].get("created_at", "")
+                        for i in range(len(text_messages) - 1)
+                    )
+                    if is_chronological:
+                        log_pass("GET /api/rooms/{id}/messages: messages in chronological order")
+                    else:
+                        log_fail("GET /api/rooms/{id}/messages", "Messages not in chronological order")
+                else:
+                    log_fail("GET /api/rooms/{id}/messages", f"Expected at least 2 text messages, got {len(text_messages)}")
+            else:
+                log_fail("GET /api/rooms/{id}/messages (chronological)", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("GET /api/rooms/{id}/messages (chronological)", str(e))
+        
+        # Test 'after' parameter
+        if first_message_created_at:
+            try:
+                resp = requests.get(f"{BASE_URL}/rooms/{room_id}/messages?after={first_message_created_at}",
+                                  headers={"Authorization": f"Bearer {smoke_token}"},
+                                  timeout=10)
+                if resp.status_code == 200:
+                    messages = resp.json()
+                    # Should only return messages after the first one
+                    if all(m.get("created_at", "") > first_message_created_at for m in messages):
+                        log_pass("GET /api/rooms/{id}/messages?after=<timestamp>: returns only later messages")
+                    else:
+                        log_fail("GET /api/rooms/{id}/messages?after", "Returned messages not all after timestamp")
+                else:
+                    log_fail("GET /api/rooms/{id}/messages?after", f"Status {resp.status_code}")
+            except Exception as e:
+                log_fail("GET /api/rooms/{id}/messages?after", str(e))
+    
+    # SCENARIO 6: MEMBERSHIP SECURITY
+    # Register a brand new third user
+    third_user_email = f"thirduser_{int(time.time())}@travelo.app"
+    try:
+        resp = requests.post(f"{BASE_URL}/auth/register", json={
+            "name": "Third User",
+            "email": third_user_email,
+            "password": "Third@1234"
+        }, timeout=10)
+        if resp.status_code == 200:
+            third_user_token = resp.json().get("token")
+            log_pass("Squad Chat: third user registered")
+        else:
+            log_fail("Squad Chat: third user register", f"Status {resp.status_code}")
+    except Exception as e:
+        log_fail("Squad Chat: third user register", str(e))
+    
+    if room_id and third_user_token:
+        # Third user tries to get messages
+        try:
+            resp = requests.get(f"{BASE_URL}/rooms/{room_id}/messages",
+                              headers={"Authorization": f"Bearer {third_user_token}"},
+                              timeout=10)
+            if resp.status_code == 404:
+                log_pass("GET /api/rooms/{id}/messages (non-member): returns 404")
+            else:
+                log_fail("GET /api/rooms/{id}/messages (non-member)", f"Expected 404, got {resp.status_code}")
+        except Exception as e:
+            log_fail("GET /api/rooms/{id}/messages (non-member)", str(e))
+        
+        # Third user tries to post message
+        try:
+            resp = requests.post(f"{BASE_URL}/rooms/{room_id}/messages",
+                               json={"text": "unauthorized message"},
+                               headers={"Authorization": f"Bearer {third_user_token}"},
+                               timeout=10)
+            if resp.status_code == 404:
+                log_pass("POST /api/rooms/{id}/messages (non-member): returns 404")
+            else:
+                log_fail("POST /api/rooms/{id}/messages (non-member)", f"Expected 404, got {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/rooms/{id}/messages (non-member)", str(e))
+    
+    # SCENARIO 7: MEDIA upload
+    if room_id:
+        # Create a small JPEG with PIL
+        try:
+            from PIL import Image
+            import io
+            
+            # Create a 300x300 image with gradient
+            img = Image.new('RGB', (300, 300))
+            pixels = img.load()
+            for i in range(300):
+                for j in range(300):
+                    pixels[i, j] = (i % 256, j % 256, (i+j) % 256)
+            
+            # Save to bytes
+            img_bytes = io.BytesIO()
+            img.save(img_bytes, format='JPEG')
+            img_bytes.seek(0)
+            
+            # Upload as friend
+            resp = requests.post(f"{BASE_URL}/rooms/{room_id}/media",
+                               files={"file": ("test.jpg", img_bytes, "image/jpeg")},
+                               headers={"Authorization": f"Bearer {friend_token}"},
+                               timeout=10)
+            
+            if resp.status_code == 200:
+                msg = resp.json()
+                checks = []
+                checks.append(("type is media", msg.get("type") == "media"))
+                checks.append(("media_type is image", msg.get("media_type") == "image"))
+                checks.append(("media_url present", msg.get("media_url") is not None and msg.get("media_url").startswith("/api/media/")))
+                
+                if all(c[1] for c in checks):
+                    media_url = msg.get("media_url")
+                    media_id = media_url.split("/")[-1] if media_url else None
+                    log_pass("POST /api/rooms/{id}/media: uploads JPEG successfully")
+                    
+                    # Test GET /api/media/{id} without auth
+                    if media_id:
+                        try:
+                            full_media_url = f"{BASE_URL.replace('/api', '')}{media_url}"
+                            resp = requests.get(full_media_url, timeout=10)
+                            if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("image/"):
+                                log_pass("GET /api/media/{id} (no auth): returns 200 with image/jpeg")
+                            else:
+                                log_fail("GET /api/media/{id} (no auth)", f"Status {resp.status_code}, content-type: {resp.headers.get('content-type')}")
+                        except Exception as e:
+                            log_fail("GET /api/media/{id} (no auth)", str(e))
+                else:
+                    failed_checks = [c[0] for c in checks if not c[1]]
+                    log_fail("POST /api/rooms/{id}/media", f"Failed checks: {', '.join(failed_checks)}")
+            else:
+                log_fail("POST /api/rooms/{id}/media", f"Status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            log_fail("POST /api/rooms/{id}/media", str(e))
+        
+        # Upload .txt file (should fail)
+        try:
+            txt_content = io.BytesIO(b"This is a text file")
+            resp = requests.post(f"{BASE_URL}/rooms/{room_id}/media",
+                               files={"file": ("test.txt", txt_content, "text/plain")},
+                               headers={"Authorization": f"Bearer {friend_token}"},
+                               timeout=10)
+            if resp.status_code == 400:
+                log_pass("POST /api/rooms/{id}/media (.txt file): returns 400")
+            else:
+                log_fail("POST /api/rooms/{id}/media (.txt file)", f"Expected 400, got {resp.status_code}")
+        except Exception as e:
+            log_fail("POST /api/rooms/{id}/media (.txt file)", str(e))
+    
+    # SCENARIO 8: GET /api/rooms/{id}
+    if room_id:
+        # As member (smoke)
+        try:
+            resp = requests.get(f"{BASE_URL}/rooms/{room_id}",
+                              headers={"Authorization": f"Bearer {smoke_token}"},
+                              timeout=10)
+            if resp.status_code == 200:
+                room = resp.json()
+                if room.get("id") == room_id and room.get("name") == "Test Squad Room":
+                    log_pass("GET /api/rooms/{id} (member): returns room details")
+                else:
+                    log_fail("GET /api/rooms/{id} (member)", f"Unexpected room data: {room}")
+            else:
+                log_fail("GET /api/rooms/{id} (member)", f"Status {resp.status_code}")
+        except Exception as e:
+            log_fail("GET /api/rooms/{id} (member)", str(e))
+        
+        # As non-member (third user)
+        if third_user_token:
+            try:
+                resp = requests.get(f"{BASE_URL}/rooms/{room_id}",
+                                  headers={"Authorization": f"Bearer {third_user_token}"},
+                                  timeout=10)
+                if resp.status_code == 404:
+                    log_pass("GET /api/rooms/{id} (non-member): returns 404")
+                else:
+                    log_fail("GET /api/rooms/{id} (non-member)", f"Expected 404, got {resp.status_code}")
+            except Exception as e:
+                log_fail("GET /api/rooms/{id} (non-member)", str(e))
+
+else:
+    log_fail("SQUAD CHAT ROOMS", "Could not authenticate test users, skipping all squad chat tests")
+
+# ============================================================================
 # SUMMARY
 # ============================================================================
 print("\n" + "=" * 80)

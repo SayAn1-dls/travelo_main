@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Plus, Loader2, Trash2, Users, Bell, BellRing, Wallet,
   UtensilsCrossed, BedDouble, Plane, Car, Sparkles, Package, ExternalLink, X, Send, CheckCircle2,
+  MessagesSquare,
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -174,13 +175,22 @@ export default function TripDetailPage() {
               <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-blaze" /> squad of {trip.members.length}</span>
             </p>
           </div>
-          <button
-            onClick={deleteTrip}
-            className="flex items-center gap-2 border border-white/15 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50 transition hover:border-blaze hover:text-blaze"
-            data-testid="delete-trip-btn"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Delete plan
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to={`/squad?create=${encodeURIComponent(trip.place)}`}
+              className="flex items-center gap-2 border border-acid/40 bg-acid/5 px-4 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-acid transition hover:bg-acid hover:text-black"
+              data-testid="open-squad-chat-btn"
+            >
+              <MessagesSquare className="h-3.5 w-3.5" /> Squad chat
+            </Link>
+            <button
+              onClick={deleteTrip}
+              className="flex items-center gap-2 border border-white/15 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50 transition hover:border-blaze hover:text-blaze"
+              data-testid="delete-trip-btn"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete plan
+            </button>
+          </div>
         </div>
 
         {/* Finance strip */}

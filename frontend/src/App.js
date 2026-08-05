@@ -17,14 +17,15 @@ import TripPlannerPage from '@/pages/TripPlannerPage';
 import TripWizardPage from '@/pages/TripWizardPage';
 import TripDetailPage from '@/pages/TripDetailPage';
 import VibeLabPage from '@/pages/VibeLabPage';
+import SquadChatPage from '@/pages/SquadChatPage';
 import NotFound from '@/pages/NotFound';
 import NomadWidget from '@/components/NomadWidget';
 
 function NomadFloating() {
   const { user } = useAuth();
   const location = useLocation();
-  // hidden on /vibe-lab (full NOMAD chat lives there) and for guests
-  if (!user || location.pathname === '/vibe-lab') return null;
+  // hidden on /vibe-lab (full NOMAD chat lives there), /squad (chat page with own input) and for guests
+  if (!user || location.pathname === '/vibe-lab' || location.pathname === '/squad') return null;
   return <NomadWidget />;
 }
 
@@ -62,6 +63,7 @@ function App() {
             <Route path="/planner/new" element={<Protected><TripWizardPage /></Protected>} />
             <Route path="/planner/:id" element={<Protected><TripDetailPage /></Protected>} />
             <Route path="/vibe-lab" element={<Protected><VibeLabPage /></Protected>} />
+            <Route path="/squad" element={<Protected><SquadChatPage /></Protected>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <NomadFloating />
