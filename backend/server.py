@@ -628,16 +628,24 @@ VIBE_FALLBACK = {
     "mood": "epic",
     "palette": ["#FF4500", "#EAFF00", "#141414"],
     "hashtags": ["#travelo", "#wanderlust", "#tripdump", "#goldenhour", "#squadgoals"],
+    "photo_type": "friends",
+    "scrapbook_labels": ["take us back", "no bad days", "squad forever"],
 }
+
+PHOTO_TYPES = {"friends", "couple", "solo", "family", "scenery"}
 
 VIBE_PROMPT = (
     "You are TRAVELO's vibe analyst. Look at these trip photos and capture their collective vibe. "
+    "First judge WHO is in the photos: a group of friends, a couple, a solo traveler, a family, or pure scenery with no clear people. "
     "Return ONLY raw valid JSON (no markdown, no code fences) with exactly these keys: "
     "vibe_title (2-4 punchy words in caps energy, e.g. 'GOLDEN HOUR CHAOS'), "
-    "caption (one short, warm-but-savage social-story sentence, max 90 characters), "
+    "caption (one short, warm-but-savage social-story sentence, max 90 characters, matched to who is in the photos), "
     "mood (a single lowercase word), "
     "palette (array of exactly 3 hex color strings pulled from the photos' dominant tones, dark-theme friendly), "
-    "hashtags (array of exactly 5 lowercase hashtags starting with #)."
+    "hashtags (array of exactly 5 lowercase hashtags starting with #, matched to the photo type), "
+    "photo_type (exactly one of: friends, couple, solo, family, scenery), "
+    "scrapbook_labels (array of exactly 3 short handwritten-sticker phrases, lowercase, max 18 chars each, matched to the photo type — "
+    "e.g. friends: 'squad forever'; couple: 'just us two'; family: 'the whole gang'; solo: 'my own map')."
 )
 
 
@@ -668,7 +676,13 @@ async def analyze_collage(req: CollageAnalyzeRequest, user=Depends(get_current_u
             "mood": str(data.get("mood") or VIBE_FALLBACK["mood"])[:20],
             "palette": (list(data.get("palette") or [])[:3] or VIBE_FALLBACK["palette"]),
             "hashtags": (list(data.get("hashtags") or [])[:5] or VIBE_FALLBACK["hashtags"]),
+            "photo_type": str(data.get("photo_type") or "scenery").lower().strip(),
+            "scrapbook_labels": [str(x)[:22] for x in (data.get("scrapbook_labels") or [])][:3],
         }
+        if result["photo_type"] not in PHOTO_TYPES:
+            result["photo_type"] = "scenery"
+        while len(result["scrapbook_labels"]) < 3:
+            result["scrapbook_labels"].append(VIBE_FALLBACK["scrapbook_labels"][len(result["scrapbook_labels"])])
         while len(result["palette"]) < 3:
             result["palette"].append(VIBE_FALLBACK["palette"][len(result["palette"])])
         return {**result, "source": "ai"}

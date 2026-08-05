@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   UploadCloud, X, Sparkles, Loader2, Download, Share2, Copy,
-  LayoutGrid, Film, Image as ImageIcon, Wand2,
+  LayoutGrid, Film, Image as ImageIcon, Wand2, Sticker, Newspaper,
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -12,10 +12,29 @@ const W = 1080;
 const H = 1920;
 
 const TEMPLATES = [
+  { id: 'scrapbook', label: 'Scrapbook', icon: Sticker },
+  { id: 'magazine', label: 'Magazine', icon: Newspaper },
   { id: 'grid', label: 'Grid', icon: LayoutGrid },
   { id: 'filmstrip', label: 'Filmstrip', icon: Film },
   { id: 'polaroid', label: 'Polaroid', icon: ImageIcon },
 ];
+
+// AI-detected photo type → themed auto-edit
+const TYPE_THEMES = {
+  friends: { accent: '#FF4500', doodles: ['\u2726', '\u2605', '!!'], name: 'FRIENDS TRIP' },
+  couple: { accent: '#E5476B', doodles: ['\u2665', '\u2661', '\u00d7\u00d7'], name: 'COUPLE TRIP' },
+  family: { accent: '#E08C1F', doodles: ['\u2600', '\u273f', '\u2665'], name: 'FAMILY TRIP' },
+  solo: { accent: '#2F7BFF', doodles: ['\u27b3', '\u2727', '~'], name: 'SOLO MISSION' },
+  scenery: { accent: '#0E9F6E', doodles: ['\u2727', '\u25b3', '~'], name: 'PURE SCENERY' },
+};
+
+const AUTO_TEMPLATE = {
+  friends: 'scrapbook',
+  couple: 'scrapbook',
+  family: 'polaroid',
+  solo: 'magazine',
+  scenery: 'grid',
+};
 
 // ---------- helpers ----------
 function readAndDownscale(file, maxDim = 1400, quality = 0.82) {
@@ -122,6 +141,190 @@ function drawHeader(ctx, vibe) {
   ctx.fillText(mood, W - 60 - mw, 78);
 }
 
+// ---------- scrapbook & magazine renderers ----------
+function drawTapedPhoto(ctx, img, cx, cy, w, h, rot) {
+  ctx.save();
+  ctx.translate(cx + w / 2, cy + h / 2);
+  ctx.rotate(rot);
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = 28;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.shadowBlur = 0;
+  drawCover(ctx, img, -w / 2 + 18, -h / 2 + 18, w - 36, h - 36);
+  // tape strips on top corners
+  ctx.fillStyle = 'rgba(248,216,120,0.82)';
+  ctx.save();
+  ctx.translate(-w / 2 + 30, -h / 2 + 6);
+  ctx.rotate(-0.5);
+  ctx.fillRect(-70, -22, 150, 44);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(w / 2 - 30, -h / 2 + 6);
+  ctx.rotate(0.5);
+  ctx.fillRect(-80, -22, 150, 44);
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawScrapbook(ctx, imgs, vibe) {
+  const theme = TYPE_THEMES[vibe.photo_type] || TYPE_THEMES.scenery;
+  // paper background
+  ctx.fillStyle = '#f4ecd9';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(0,0,0,0.045)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 72) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 72) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  // doodles around edges (deterministic)
+  ctx.textAlign = 'left';
+  for (let i = 0; i < 16; i++) {
+    const glyph = theme.doodles[i % theme.doodles.length];
+    const gx = (i * 263) % (W - 100) + 40;
+    const gy = i % 2 === 0 ? 90 + (i * 97) % 240 : 1280 + (i * 131) % 560;
+    ctx.save();
+    ctx.translate(gx, gy);
+    ctx.rotate((((i * 53) % 40) - 20) * (Math.PI / 180));
+    ctx.font = `${34 + (i * 7) % 26}px "Permanent Marker"`;
+    ctx.fillStyle = theme.accent + '66';
+    ctx.fillText(glyph, 0, 0);
+    ctx.restore();
+  }
+  // header
+  ctx.font = '26px "Space Mono"';
+  ctx.fillStyle = '#6a6250';
+  ctx.fillText('TRAVELO \u2708 MEMORY SCRAPBOOK', 60, 78);
+  const tag = theme.name;
+  ctx.fillStyle = theme.accent;
+  const tw = ctx.measureText(tag).width;
+  ctx.fillText(tag, W - 60 - tw, 78);
+  // taped photos cascade
+  const n = imgs.length;
+  const cardW = n <= 2 ? 660 : 540;
+  const cardH = cardW * 1.05;
+  const zoneTop = 150, zoneBottom = 1370 - cardH;
+  imgs.forEach((img, i) => {
+    const t = n === 1 ? 0.5 : i / (n - 1);
+    const cx = 70 + (W - 140 - cardW) * (i % 2 === 0 ? 0.05 + t * 0.35 : 0.72 - t * 0.3);
+    const cy = zoneTop + Math.max(0, zoneBottom - zoneTop) * t;
+    const rot = (((i * 61) % 15) - 7) * (Math.PI / 180);
+    drawTapedPhoto(ctx, img, cx, cy, cardW, cardH, rot);
+  });
+  // scrapbook sticker labels
+  const labels = vibe.scrapbook_labels || [];
+  const spots = [[W - 470, 260, 5], [80, 900, -4], [W - 520, 1330, 3]];
+  labels.slice(0, 3).forEach((label, i) => {
+    const [lx, ly, deg] = spots[i];
+    ctx.save();
+    ctx.translate(lx, ly);
+    ctx.rotate(deg * (Math.PI / 180));
+    ctx.font = '46px "Permanent Marker"';
+    ctx.fillStyle = '#232323';
+    ctx.fillText(label, 0, 0);
+    ctx.strokeStyle = theme.accent;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-4, 16);
+    ctx.lineTo(ctx.measureText(label).width + 4, 20);
+    ctx.stroke();
+    ctx.restore();
+  });
+  // footer: highlighted title + caption
+  const title = (vibe.vibe_title || 'WANDER MODE ON').toUpperCase();
+  const ts = fitFont(ctx, title, 'Bebas Neue', W - 140, 120);
+  ctx.font = `${ts}px "Bebas Neue"`;
+  const titleW = ctx.measureText(title).width;
+  ctx.fillStyle = theme.accent;
+  ctx.fillRect(48, 1580, titleW + 44, ts * 0.92);
+  ctx.fillStyle = '#171717';
+  ctx.fillText(title, 68, 1580 + ts * 0.78);
+  ctx.font = '34px "Space Grotesk"';
+  ctx.fillStyle = '#3a3a32';
+  wrapText(ctx, `\u201c${vibe.caption}\u201d`, W - 130).slice(0, 2).forEach((l, i) => ctx.fillText(l, 62, 1745 + i * 44));
+  ctx.font = '26px "Space Mono"';
+  ctx.fillStyle = theme.accent;
+  ctx.fillText((vibe.hashtags || []).join(' '), 62, 1846);
+  ctx.fillStyle = '#8a8272';
+  ctx.font = '24px "Space Mono"';
+  ctx.fillText('MADE IN THE VIBE LAB \u2726 TRAVELO', 62, 1890);
+}
+
+function drawMagazine(ctx, imgs, vibe) {
+  const theme = TYPE_THEMES[vibe.photo_type] || TYPE_THEMES.scenery;
+  const accent = vibe.palette[1] || '#EAFF00';
+  // full-bleed cover
+  drawCover(ctx, imgs[0], 0, 0, W, H);
+  let g = ctx.createLinearGradient(0, 0, 0, 520);
+  g.addColorStop(0, 'rgba(0,0,0,0.62)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, 520);
+  g = ctx.createLinearGradient(0, 1050, 0, H);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.85)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 1050, W, H - 1050);
+  // masthead
+  ctx.textAlign = 'center';
+  ctx.font = '170px "Bebas Neue"';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('TRAVELO', W / 2, 200);
+  ctx.font = '26px "Space Mono"';
+  ctx.fillStyle = accent;
+  ctx.fillText(`THE WANDER ISSUE \u00b7 ${theme.name} \u00b7 MOOD: ${(vibe.mood || 'epic').toUpperCase()}`, W / 2, 252);
+  ctx.textAlign = 'left';
+  // coverlines
+  (vibe.scrapbook_labels || []).slice(0, 3).forEach((line, i) => {
+    ctx.font = '30px "Space Mono"';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`\u25b8 ${line.toUpperCase()}`, 60, 380 + i * 56);
+  });
+  // inset thumbnails on right edge
+  imgs.slice(1, 4).forEach((img, i) => {
+    const tx = W - 250, ty = 620 + i * 310;
+    ctx.save();
+    ctx.translate(tx + 100, ty + 130);
+    ctx.rotate(((i % 2 === 0 ? 1 : -1) * 3) * (Math.PI / 180));
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = 30;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-105, -135, 210, 270);
+    ctx.shadowBlur = 0;
+    drawCover(ctx, img, -93, -123, 186, 246);
+    ctx.restore();
+  });
+  // headline block
+  const title = (vibe.vibe_title || 'WANDER MODE ON').toUpperCase();
+  const ts = fitFont(ctx, title, 'Bebas Neue', W - 160, 150);
+  ctx.font = `${ts}px "Bebas Neue"`;
+  ctx.fillStyle = accent;
+  ctx.fillRect(60, 1500, 130, 12);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(title, 60, 1500 + ts);
+  ctx.font = '34px "Space Grotesk"';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  wrapText(ctx, vibe.caption, W - 340).slice(0, 2).forEach((l, i) => ctx.fillText(l, 62, 1690 + i * 44));
+  ctx.font = '26px "Space Mono"';
+  ctx.fillStyle = accent;
+  ctx.fillText((vibe.hashtags || []).join(' '), 62, 1800);
+  // barcode
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(W - 262, 1742, 202, 108);
+  ctx.fillStyle = '#000000';
+  let bx = W - 246;
+  for (let i = 0; i < 26 && bx < W - 78; i++) {
+    const bw = 3 + ((i * 37) % 7);
+    ctx.fillRect(bx, 1756, bw, 60);
+    bx += bw + 3;
+  }
+  ctx.font = '20px "Space Mono"';
+  ctx.fillText('TRV\u00b72026\u00b7WANDER', W - 246, 1840);
+  // brand footer
+  ctx.font = '24px "Space Mono"';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('MADE IN THE VIBE LAB \u2726 TRAVELO', 62, 1890);
+}
+
 function gridRects(n) {
   const top = 120, bottom = 1520, gap = 14;
   const fh = bottom - top;
@@ -154,6 +357,7 @@ async function renderCollage(template, dataUrls, vibe) {
     document.fonts.load('130px "Bebas Neue"'),
     document.fonts.load('34px "Space Grotesk"'),
     document.fonts.load('26px "Space Mono"'),
+    document.fonts.load('46px "Permanent Marker"'),
   ]);
   const imgs = await Promise.all(dataUrls.map(loadImage));
   const canvas = document.createElement('canvas');
@@ -161,6 +365,15 @@ async function renderCollage(template, dataUrls, vibe) {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
   const [c1, c2, c3] = [vibe.palette[0] || '#FF4500', vibe.palette[1] || '#EAFF00', vibe.palette[2] || '#141414'];
+
+  if (template === 'scrapbook') {
+    drawScrapbook(ctx, imgs, vibe);
+    return canvas;
+  }
+  if (template === 'magazine') {
+    drawMagazine(ctx, imgs, vibe);
+    return canvas;
+  }
 
   // background
   if (template === 'polaroid') {
@@ -267,10 +480,18 @@ export default function VibeLabPage() {
     try {
       const result = await api.analyzeVibe({ images: photos.map((p) => p.split(',')[1]) });
       setVibe(result);
-      toast.success(result.source === 'ai' ? 'Vibe decoded by AI. It has opinions.' : 'Vibe locked in.');
+      // AI auto-edit: pick the template that matches who's in the photos
+      const auto = AUTO_TEMPLATE[result.photo_type] || 'grid';
+      setTemplate(auto);
+      const typeName = (TYPE_THEMES[result.photo_type] || TYPE_THEMES.scenery).name.toLowerCase();
+      toast.success(
+        result.source === 'ai'
+          ? `AI detected a ${typeName} — auto-edit applied.`
+          : 'Vibe locked in.'
+      );
       // auto-render collage
       setRendering(true);
-      const canvas = await renderCollage(template, photos, result);
+      const canvas = await renderCollage(auto, photos, result);
       canvasRef.current = canvas;
       setCollageUrl(canvas.toDataURL('image/png'));
     } catch (err) {
@@ -425,11 +646,20 @@ export default function VibeLabPage() {
                   data-testid="vibe-result"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="bg-acid px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-black">
-                      Mood: {vibe.mood}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="bg-acid px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-black">
+                        Mood: {vibe.mood}
+                      </span>
+                      <span
+                        className="px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-white"
+                        style={{ backgroundColor: (TYPE_THEMES[vibe.photo_type] || TYPE_THEMES.scenery).accent }}
+                        data-testid="vibe-detected-type"
+                      >
+                        Detected: {(TYPE_THEMES[vibe.photo_type] || TYPE_THEMES.scenery).name}
+                      </span>
+                    </div>
                     <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                      {vibe.source === 'ai' ? '\u2726 decoded by AI' : 'house vibe'}
+                      {vibe.source === 'ai' ? '\u2726 decoded by AI \u00b7 auto-edit applied' : 'house vibe'}
                     </span>
                   </div>
                   <h3 className="mt-4 font-display text-5xl uppercase leading-none" data-testid="vibe-title">{vibe.vibe_title}</h3>

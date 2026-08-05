@@ -55,7 +55,7 @@ export default function Dashboard() {
             [bookings ? fmt(totalSpent) : '—', 'Invested in life'],
           ].map(([num, label]) => (
             <div key={label} className="bg-ink p-6 text-center md:p-8">
-              <div className="font-display text-4xl text-acid md:text-6xl">{num}</div>
+              <div className="font-display text-3xl text-acid sm:text-4xl md:text-6xl">{num}</div>
               <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-white/50">{label}</div>
             </div>
           ))}

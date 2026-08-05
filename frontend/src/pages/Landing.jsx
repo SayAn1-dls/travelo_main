@@ -44,7 +44,7 @@ export default function Landing() {
             transition={{ delay: 0.2 }}
             className="mb-6 font-mono text-xs uppercase tracking-[0.4em] text-acid"
           >
-            Est. 2026 — Planet Earth · 24 destinations · 3 tiers · zero excuses
+            Est. 2026 — Planet Earth · 30 destinations · 3 tiers · zero excuses
           </motion.p>
 
           <h1 className="font-display uppercase leading-[0.82]" data-testid="hero-headline">
@@ -100,7 +100,7 @@ export default function Landing() {
             className="group flex items-center gap-2 font-mono text-sm uppercase tracking-[0.25em] text-acid hover:text-white"
             data-testid="see-all-destinations"
           >
-            All 12 destinations <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            All 30 destinations <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </motion.div>
 
@@ -123,7 +123,7 @@ export default function Landing() {
       <section className="mx-auto max-w-7xl px-5 py-20 md:px-8">
         <div className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-4">
           {[
-            ['24', 'Destinations'],
+            ['30', 'Destinations'],
             ['6', 'Continents'],
             ['3', 'Savage tiers'],
             ['∞', 'Bragging rights'],
@@ -143,7 +143,7 @@ export default function Landing() {
         </motion.h2>
         <div className="space-y-px bg-white/10">
           {[
-            { n: '01', icon: Globe2, title: 'Pick a place', desc: '24 hand-picked destinations from Ladakh to Bora Bora. Every single one worth crossing the planet for.' },
+            { n: '01', icon: Globe2, title: 'Pick a place', desc: '30 hand-picked destinations from Ladakh to Bora Bora. Every single one worth crossing the planet for.' },
             { n: '02', icon: CalendarCheck, title: 'Lock your dates', desc: 'Choose dates, squad size and your tier — Explorer, Elite, or full Legend mode.' },
             { n: '03', icon: CreditCard, title: 'Pay and pack', desc: 'Secure Stripe checkout. Instant confirmation. Your only job left is the suitcase.' },
           ].map((step) => (
