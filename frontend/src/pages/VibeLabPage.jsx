@@ -684,7 +684,7 @@ export default function VibeLabPage() {
               </div>
 
               {/* template switch */}
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {TEMPLATES.map((t) => (
                   <button
                     key={t.id}
