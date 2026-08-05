@@ -44,6 +44,8 @@ chat_messages = db["chat_messages"]
 rooms_col = db["rooms"]
 room_messages = db["room_messages"]
 media_col = db["media"]
+trip_invites = db["trip_invites"]
+guides_col = db["guides"]
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -170,6 +172,11 @@ class RoomJoinRequest(BaseModel):
 
 class RoomMessageRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=3000)
+
+
+class TripInviteRequest(BaseModel):
+    emails: List[EmailStr] = Field(..., min_length=1, max_length=10)
+    origin_url: str
 
 
 # ---------------------------------------------------------------- app
@@ -536,7 +543,7 @@ async def create_trip(req: TripPlanRequest, user=Depends(get_current_user)):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await trip_plans.insert_one({**trip})
-    await _notify(trip["id"], "info", f"Trip to {trip['place']} created. Squad of {len(members)}. Pool: ${sum(m['contribution'] for m in members):,.0f}. Budget: ${trip['budget']:,.0f}.")
+    await _notify(trip["id"], "info", f"Trip to {trip['place']} created. Squad of {len(members)}. Pool: ₹{sum(m['contribution'] for m in members):,.0f}. Budget: ₹{trip['budget']:,.0f}.")
     return await _full_trip(trip)
 
 
@@ -586,8 +593,8 @@ async def add_expense(trip_id: str, req: ExpenseRequest, user=Depends(get_curren
     per_head = round(req.amount / len(trip["members"]), 2)
     await _notify(
         trip_id, "expense",
-        f"{member_map[req.paid_by]['name']} spent ${req.amount:,.2f} on \"{req.description.strip()}\". "
-        f"Everyone owes them ${per_head:,.2f}. Pay them back, squad!",
+        f"{member_map[req.paid_by]['name']} spent ₹{req.amount:,.2f} on \"{req.description.strip()}\". "
+        f"Everyone owes them ₹{per_head:,.2f}. Pay them back, squad!",
         req.paid_by,
     )
     return await _full_trip(trip)
@@ -619,7 +626,7 @@ async def settle_up(trip_id: str, req: SettleRequest, user=Depends(get_current_u
     trip["settlements"] = trip.get("settlements", []) + [settlement]
     await _notify(
         trip_id, "settlement",
-        f"{member_map[req.from_member]['name']} paid back ${req.amount:,.2f} to {member_map[req.to_member]['name']}. Respect.",
+        f"{member_map[req.from_member]['name']} paid back ₹{req.amount:,.2f} to {member_map[req.to_member]['name']}. Respect.",
         req.from_member,
     )
     return await _full_trip(trip)
@@ -637,7 +644,7 @@ async def remind_debtors(trip_id: str, user=Depends(get_current_user)):
         creditor = member_map[s["to_member"]]["name"]
         await _notify(
             trip_id, "reminder",
-            f"REMINDER: {debtor} still owes ${s['amount']:,.2f} to {creditor}. The trip is over. Pay up!",
+            f"REMINDER: {debtor} still owes ₹{s['amount']:,.2f} to {creditor}. The trip is over. Pay up!",
             s["from_member"],
         )
         reminded.append(debtor)
@@ -1018,6 +1025,270 @@ async def serve_media(media_id: str):
     if not media or not Path(media["path"]).exists():
         raise HTTPException(404, "Media not found")
     return FileResponse(media["path"], media_type=media["content_type"])
+
+
+# ---------------------------------------------------------------- email (Gmail SMTP)
+import asyncio
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS", "")
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "")
+EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "console")
+
+
+def _send_email_sync(to_email: str, subject: str, html: str):
+    if EMAIL_PROVIDER != "gmail" or not GMAIL_ADDRESS or not GMAIL_APP_PASSWORD:
+        logger.info("[EMAIL console fallback] to=%s subject=%s", to_email, subject)
+        return
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"TRAVELO <{GMAIL_ADDRESS}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html, "html"))
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
+        server.starttls()
+        server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+        server.sendmail(GMAIL_ADDRESS, [to_email], msg.as_string())
+
+
+async def send_email(to_email: str, subject: str, html: str):
+    await asyncio.to_thread(_send_email_sync, to_email, subject, html)
+
+
+def _invite_email_html(inviter: str, place: str, dates: str, link: str) -> str:
+    return f"""
+<div style="background:#030303;padding:40px 20px;font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:520px;margin:0 auto;border:1px solid #333;">
+    <div style="background:#FF4500;padding:14px 24px;">
+      <span style="font-size:22px;font-weight:900;letter-spacing:2px;color:#000;">TRAVELO ✈</span>
+    </div>
+    <div style="padding:32px 24px;background:#0a0a0a;">
+      <p style="color:#EAFF00;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin:0;">// Squad summons</p>
+      <h1 style="color:#fff;font-size:30px;line-height:1.1;margin:12px 0 8px;text-transform:uppercase;">
+        {inviter} added you<br/>to the <span style="color:#FF4500;">{place}</span> trip.
+      </h1>
+      <p style="color:#999;font-size:14px;margin:8px 0 24px;">{dates} · trip plan + group chat, all in one place. No app switching. No excuses.</p>
+      <a href="{link}" style="display:inline-block;background:#EAFF00;color:#000;font-weight:900;font-size:14px;letter-spacing:2px;text-transform:uppercase;padding:16px 32px;text-decoration:none;">
+        YES, I'M IN →
+      </a>
+      <p style="color:#555;font-size:11px;margin-top:28px;">One click joins you to the trip plan and the squad chat automatically.<br/>Didn't expect this? Just ignore it.</p>
+    </div>
+    <div style="background:#000;padding:12px 24px;">
+      <span style="color:#444;font-size:10px;letter-spacing:2px;text-transform:uppercase;">Stop dreaming. Start packing. — TRAVELO</span>
+    </div>
+  </div>
+</div>"""
+
+
+# ---------------------------------------------------------------- trip invites (email -> auto-join trip + chat)
+async def _ensure_trip_room(trip: dict, user: dict) -> dict:
+    room = await rooms_col.find_one({"trip_id": trip["id"]}, {"_id": 0})
+    if room:
+        return room
+    code = _invite_code()
+    while await rooms_col.find_one({"invite_code": code}):
+        code = _invite_code()
+    now = datetime.now(timezone.utc).isoformat()
+    room = {
+        "id": str(uuid.uuid4()),
+        "name": trip["place"],
+        "trip_id": trip["id"],
+        "invite_code": code,
+        "created_by": user["id"],
+        "member_ids": [user["id"]],
+        "members": [{"id": user["id"], "name": user["name"]}],
+        "last_message": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await rooms_col.insert_one({**room})
+    return room
+
+
+@api.post("/trips/{trip_id}/invite")
+async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_current_user)):
+    trip = await _get_trip_or_404(trip_id, user["id"])
+    room = await _ensure_trip_room(trip, user)
+    dates = f"{trip['start_date']} → {trip['end_date']}"
+    sent, failed = [], []
+    for email in req.emails:
+        email_l = str(email).lower()
+        token = secrets.token_urlsafe(24)
+        await trip_invites.insert_one({
+            "id": str(uuid.uuid4()),
+            "token": token,
+            "trip_id": trip["id"],
+            "room_id": room["id"],
+            "email": email_l,
+            "invited_by": user["id"],
+            "invited_by_name": user["name"],
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        link = f"{req.origin_url}/invite/{token}"
+        try:
+            await send_email(
+                email_l,
+                f"{user['name'].split(' ')[0]} added you to the {trip['place']} trip on TRAVELO",
+                _invite_email_html(user["name"].split(" ")[0], trip["place"], dates, link),
+            )
+            sent.append(email_l)
+        except Exception as e:  # noqa: BLE001
+            logger.error("Invite email to %s failed: %s", email_l, e)
+            failed.append({"email": email_l, "link": link})
+    await _notify(trip["id"], "info", f"{user['name']} invited {len(req.emails)} friend(s) by email. Waiting for them to say yes.")
+    return {"sent": sent, "failed": failed}
+
+
+@api.get("/invites/{token}")
+async def invite_info(token: str):
+    invite = await trip_invites.find_one({"token": token}, {"_id": 0})
+    if not invite:
+        raise HTTPException(404, "Invite not found or expired")
+    trip = await trip_plans.find_one({"id": invite["trip_id"]}, {"_id": 0})
+    if not trip:
+        raise HTTPException(404, "Trip no longer exists")
+    return {
+        "status": invite["status"],
+        "invited_by_name": invite["invited_by_name"],
+        "email": invite["email"],
+        "trip": {
+            "place": trip["place"],
+            "start_date": trip["start_date"],
+            "end_date": trip["end_date"],
+            "member_count": len(trip.get("members", [])),
+            "budget": trip.get("budget"),
+        },
+    }
+
+
+@api.post("/invites/{token}/accept")
+async def accept_invite(token: str, user=Depends(get_current_user)):
+    invite = await trip_invites.find_one({"token": token}, {"_id": 0})
+    if not invite:
+        raise HTTPException(404, "Invite not found or expired")
+    trip = await trip_plans.find_one({"id": invite["trip_id"]}, {"_id": 0})
+    if not trip:
+        raise HTTPException(404, "Trip no longer exists")
+    # add to trip members (linked to their account) if not present
+    already = any(m.get("user_id") == user["id"] for m in trip.get("members", []))
+    if not already and trip["user_id"] != user["id"]:
+        member = {
+            "id": str(uuid.uuid4()),
+            "name": user["name"],
+            "contribution": 0.0,
+            "payment_handle": "",
+            "is_owner": False,
+            "user_id": user["id"],
+        }
+        await trip_plans.update_one({"id": trip["id"]}, {"$push": {"members": member}})
+        await _notify(trip["id"], "info", f"{user['name']} accepted the email invite and joined the {trip['place']} squad!")
+    # join the squad chat room
+    room = await rooms_col.find_one({"id": invite["room_id"]}, {"_id": 0})
+    if room and user["id"] not in room["member_ids"]:
+        await rooms_col.update_one(
+            {"id": room["id"]},
+            {"$push": {"member_ids": user["id"], "members": {"id": user["id"], "name": user["name"]}},
+             "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        await room_messages.insert_one({
+            "id": str(uuid.uuid4()), "room_id": room["id"], "user_id": "system",
+            "user_name": "TRAVELO", "type": "system",
+            "text": f"{user['name']} accepted the invite and joined the squad. Say hi!",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    await trip_invites.update_one({"token": token}, {"$set": {"status": "accepted", "accepted_by": user["id"],
+                                                              "accepted_at": datetime.now(timezone.utc).isoformat()}})
+    return {"trip_id": trip["id"], "room_id": invite["room_id"], "place": trip["place"]}
+
+
+# ---------------------------------------------------------------- destination intel guide (AI + wikipedia images)
+GUIDE_PROMPT = (
+    "You are TRAVELO's destination intelligence writer. Create a rich travel guide for {name}, {country}. "
+    "Return ONLY raw valid JSON (no markdown fences) with exactly these keys: "
+    "overview (an engaging 150-word paragraph: history, culture, vibe — real knowledge, no fluff), "
+    "top_spots (array of exactly 7 objects: {{name (real famous place), description (2-3 factual sentences), "
+    "why_go (one punchy sentence), best_time (short, e.g. 'sunrise' or 'Oct-Mar')}}), "
+    "underrated (array of exactly 4 objects: {{name (real lesser-known/hidden place nearby), description (2 factual sentences why it's a hidden gem)}}), "
+    "getting_there (object: {{by_air (nearest airport + how to reach the destination from it), "
+    "by_train (nearest railway station + connection details, or 'No rail access' + alternative), "
+    "by_road (major highways/bus routes and drive times from the nearest big city)}}), "
+    "getting_around (2 sentences on local transport: metro/taxis/rickshaws/rentals with rough costs), "
+    "food (array of exactly 5 objects: {{dish (must-try local dish/drink), description (one sentence)}}), "
+    "tips (array of exactly 5 short practical traveler tips: money, etiquette, safety, timing, packing)."
+)
+
+
+async def _wiki_thumb(client, query: str) -> Optional[str]:
+    try:
+        r = await client.get(
+            f"https://en.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}",
+            timeout=8, follow_redirects=True,
+        )
+        if r.status_code == 200:
+            data = r.json()
+            thumb = (data.get("thumbnail") or {}).get("source")
+            if thumb:
+                return thumb  # native thumbnail size — upscaling 404s on small originals
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+@api.get("/destinations/{dest_id}/guide")
+async def destination_guide(dest_id: str):
+    import json as _json
+    import httpx
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    dest = DEST_MAP.get(dest_id)
+    if not dest:
+        raise HTTPException(404, "Destination not found")
+    cached = await guides_col.find_one({"destination_id": dest_id}, {"_id": 0})
+    if cached:
+        return cached["data"]
+
+    key = os.environ.get("EMERGENT_LLM_KEY")
+    if not key:
+        raise HTTPException(503, "Guide engine unavailable")
+    try:
+        chat = LlmChat(
+            api_key=key,
+            session_id=f"guide-{dest_id}-{uuid.uuid4()}",
+            system_message="You write factual, vivid travel guides and answer in strict JSON only.",
+        ).with_model("openai", "gpt-5.4")
+        response = await chat.send_message(UserMessage(text=GUIDE_PROMPT.format(name=dest["name"], country=dest["country"])))
+        text = response if isinstance(response, str) else str(response)
+        start, end = text.find("{"), text.rfind("}")
+        data = _json.loads(text[start:end + 1])
+    except Exception as e:  # noqa: BLE001
+        logger.error("Guide generation failed for %s: %s", dest_id, e)
+        raise HTTPException(502, "Guide generation failed — try again in a moment")
+
+    # enrich spots with wikipedia images (parallel)
+    async with httpx.AsyncClient(headers={
+        "User-Agent": "TraveloGuide/1.0 (https://travelo.app; contact@travelo.app) python-httpx",
+        "Accept": "application/json",
+    }) as client:
+        spots = data.get("top_spots", [])[:7]
+        gems = data.get("underrated", [])[:4]
+        thumbs = await asyncio.gather(
+            *[_wiki_thumb(client, s.get("name", "")) for s in spots],
+            *[_wiki_thumb(client, g.get("name", "")) for g in gems],
+        )
+    for i, s in enumerate(spots):
+        s["image"] = thumbs[i] or dest["image"]
+    for j, g in enumerate(gems):
+        g["image"] = thumbs[len(spots) + j] or dest["image"]
+    data["top_spots"] = spots
+    data["underrated"] = gems
+    data["destination_id"] = dest_id
+
+    await guides_col.insert_one({"destination_id": dest_id, "data": data,
+                                 "generated_at": datetime.now(timezone.utc).isoformat()})
+    return data
 
 
 app.include_router(api)

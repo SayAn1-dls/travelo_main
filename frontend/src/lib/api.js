@@ -63,6 +63,12 @@ export const api = {
   room: (id) => request(`/rooms/${id}`),
   roomMessages: (id, after) => request(`/rooms/${id}/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`),
   sendRoomMessage: (id, payload) => request(`/rooms/${id}/messages`, { method: 'POST', body: payload }),
+  // Trip email invites
+  inviteToTrip: (tripId, payload) => request(`/trips/${tripId}/invite`, { method: 'POST', body: payload }),
+  inviteInfo: (token) => request(`/invites/${token}`, { auth: false }),
+  acceptInvite: (token) => request(`/invites/${token}/accept`, { method: 'POST' }),
+  // Destination intel guide
+  destinationGuide: (id) => request(`/destinations/${id}/guide`, { auth: false }),
 };
 
 export default api;

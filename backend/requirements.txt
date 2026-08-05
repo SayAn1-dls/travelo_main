@@ -9,3 +9,4 @@ bcrypt>=4.2.1
 stripe>=13.0.0,<15
 python-multipart>=0.0.20
 emergentintegrations
+httpx>=0.28.0

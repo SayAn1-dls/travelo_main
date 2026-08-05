@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Plus, Users, Loader2, ArrowRight, Wallet } from 'lucide-react';
 import api from '@/lib/api';
 
-const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
 export default function TripPlannerPage() {
   const [trips, setTrips] = useState(null);

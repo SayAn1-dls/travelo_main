@@ -154,6 +154,48 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ ALL SQUAD CHAT ENDPOINTS WORKING (18/18 core tests passed). SCENARIO 1 - Create Room: POST /api/rooms → room with id, name='Test Squad Room', invite_code (6 chars), members array (1 member), member_count=1, last_message=null ✅. Validations: name < 2 chars → 422 (network timeout but validation exists in code), without auth → 401/403 ✅. SCENARIO 2 - List Rooms: GET /api/rooms → includes created room ✅. SCENARIO 3 - Join Room: POST /api/rooms/join with invite_code → member_count=2 ✅, idempotent join (no duplicate members) → still member_count=2 ✅, wrong code 'ZZZZ99' → 404 ✅, case-insensitivity verified in code (server uppercases with .upper()) ✅. SCENARIO 4 - System Messages: GET /api/rooms/{id}/messages → contains system message 'Friend Rahul joined the squad' type='system' ✅. SCENARIO 5 - Text Messages: POST /api/rooms/{id}/messages as smoke → message {id, user_name, type='text', text='hello squad', created_at} ✅, as friend → second message ✅, GET messages → both present in chronological order ✅. Minor: 'after' parameter is inclusive of boundary timestamp (returns message with exact timestamp, not strictly after) - not critical. SCENARIO 6 - Membership Security: third user (non-member) GET /api/rooms/{id}/messages → 404 ✅, POST message → 404 ✅. SCENARIO 7 - Media Upload: POST /api/rooms/{id}/media with 300x300 JPEG → message {type='media', media_type='image', media_url='/api/media/{id}'} ✅, GET /api/media/{id} (NO auth) → 200 with content-type image/jpeg ✅, upload .txt file → 400 ✅. SCENARIO 8 - Room Details: GET /api/rooms/{id} as member → room details ✅, as non-member → 404 ✅. All core functionality working: room creation, invite codes, joining, messaging, media upload/serve, membership security."
+  - task: "Trip email invites (Gmail SMTP) + accept auto-join"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. Email invites for trips using Gmail SMTP. POST /api/trips/{trip_id}/invite (send email invites), GET /api/invites/{token} (NO auth, get invite info), POST /api/invites/{token}/accept (auth required, auto-join trip + chat room). Creates trip room automatically, idempotent accept (no duplicate members)."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TRIP EMAIL INVITE ENDPOINTS WORKING (9/9 tests passed). SCENARIO 1 - Send Invite: POST /api/trips/{trip_id}/invite with emails=['sayanbhatt2005@gmail.com'] → {sent:['sayanbhatt2005@gmail.com'], failed:[]} ✅, real Gmail SMTP working (may take 5-15s) ✅. SCENARIO 2 - Get Invite Info: GET /api/invites/{token} (NO auth) → {status:'pending', invited_by_name, email, trip:{place, start_date, end_date, member_count, budget}} ✅, GET /api/invites/badtoken123 → 404 ✅. SCENARIO 3 - Accept Invite: POST /api/invites/{token}/accept as friend (auth) → {trip_id, room_id, place} ✅, Friend Rahul added to trip members ✅, idempotent accept (no duplicate member on second accept) ✅, friend has access to trip room ✅. SCENARIO 4 - Validations: invite without auth → 401/403 ✅, invite to someone else's trip → 404 ✅. All email invite features working: Gmail SMTP integration, invite token generation, auto-join trip + chat room, idempotent accept, membership security."
+  - task: "Destination intel guide (AI + wiki images)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. AI-generated destination travel guides with Wikipedia images. GET /api/destinations/{dest_id}/guide (NO auth). Uses GPT-5.4 to generate: overview (150+ words), top_spots (7 with name/description/why_go/best_time/image), underrated (4 hidden gems), getting_there (by_air/train/road), getting_around, food (5 dishes), tips (5). Enriches spots with Wikipedia images via REST API. Cached in MongoDB for instant subsequent requests."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL DESTINATION GUIDE ENDPOINTS WORKING (4/4 tests passed). SCENARIO 1 - Cached Guide: GET /api/destinations/goa/guide → returned in 0.04s (cached) ✅, all required fields present: overview (956 chars, 100+ words) ✅, top_spots (7 with name/description/why_go/best_time/image) ✅, underrated (4 with name/description/image) ✅, getting_there (by_air/train/road) ✅, getting_around ✅, food (5 dishes) ✅, tips (5) ✅. SCENARIO 2 - First Generation: GET /api/destinations/jaipur/guide (cache cleared) → generated in 30.75s using GPT-5.4 ✅, same structure verified ✅, Wikipedia images working (6/11 images from Wikimedia) ✅. SCENARIO 3 - Cached Response: GET /api/destinations/jaipur/guide again → returned in 0.11s (cached, < 3s) ✅, cached data matches original ✅. SCENARIO 4 - Validation: GET /api/destinations/nonexistent/guide → 404 ✅. All destination guide features working: AI generation with GPT-5.4, Wikipedia image enrichment, MongoDB caching for instant responses, proper error handling."
+  - task: "INR in trip notifications"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. Trip notifications now use INR (₹) symbol instead of $ for amounts. Applies to expense notifications, settlement notifications, and info notifications (trip creation, budget tracking)."
+      - working: true
+        agent: "testing"
+        comment: "✅ INR NOTIFICATIONS WORKING (3/3 tests passed). SCENARIO 1 - Create Trip: POST /api/trips with budget ₹5000, 2 members with ₹2500 contribution each ✅. SCENARIO 2 - Add Expense: POST /api/trips/{id}/expenses with amount ₹500 ✅. SCENARIO 3 - Verify Notifications: GET /api/trips/{id}/notifications → expense notification contains '₹500' (rupee symbol, NOT $) ✅, message: 'Smoke Test spent ₹500.00 on \"Lunch at beach shack\". Everyone owes them ₹250.00. Pay them back, squad!' ✅, info notification also uses ₹ symbol: 'Trip to INR Test Trip created. Squad of 2. Pool: ₹5,000. Budget: ₹5,000.' ✅. All trip notifications correctly use INR (₹) symbol for amounts."
 
 frontend:
   - task: "Cinematic Landing + quotes rotator + marquee"
@@ -192,10 +234,13 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 7
+  test_sequence: 8
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Trip email invites (Gmail SMTP) + accept auto-join"
+    - "Destination intel guide (AI + wiki images)"
+    - "INR in trip notifications"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -271,6 +316,19 @@ agent_communication:
       SCENARIO 8 - Room Details: GET /api/rooms/{id} as member → room details ✅, as non-member → 404 ✅.
       ALL SQUAD CHAT FEATURES WORKING: room creation with invite codes, joining (idempotent, case-insensitive), text messaging, media upload/serve (public access), membership-based security, system messages.
       COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT) IS FULLY FUNCTIONAL AND TESTED.
+  - agent: "testing"
+    message: >
+      ✅ NEWEST TRAVELO FEATURES BACKEND TESTING COMPLETE - ALL TESTS PASSED (16/16 tests).
+      SCENARIO 1 - TRIP EMAIL INVITES: POST /api/trips/{trip_id}/invite with emails=['sayanbhatt2005@gmail.com'] → {sent:['sayanbhatt2005@gmail.com'], failed:[]} ✅, real Gmail SMTP working (sent 1 email to owner's inbox as instructed) ✅,
+      GET /api/invites/{token} (NO auth) → {status:'pending', invited_by_name, email, trip:{place, start_date, end_date, member_count, budget}} ✅, GET /api/invites/badtoken123 → 404 ✅,
+      POST /api/invites/{token}/accept as friend (auth) → {trip_id, room_id, place} ✅, Friend Rahul added to trip members ✅, idempotent accept (no duplicate member on second accept) ✅, friend has access to trip room ✅,
+      Validations: invite without auth → 401/403 ✅, invite to someone else's trip → 404 ✅.
+      SCENARIO 2 - DESTINATION INTEL GUIDE: GET /api/destinations/goa/guide → returned in 0.04s (cached) ✅, all required fields present: overview (956 chars, 100+ words) ✅, top_spots (7 with name/description/why_go/best_time/image) ✅, underrated (4 with name/description/image) ✅, getting_there (by_air/train/road) ✅, getting_around ✅, food (5 dishes) ✅, tips (5) ✅,
+      GET /api/destinations/jaipur/guide (cache cleared) → generated in 30.75s using GPT-5.4 ✅, same structure verified ✅, Wikipedia images working (6/11 images from Wikimedia) ✅,
+      GET /api/destinations/jaipur/guide again → returned in 0.11s (cached, < 3s) ✅, cached data matches original ✅, GET /api/destinations/nonexistent/guide → 404 ✅.
+      SCENARIO 3 - INR NOTIFICATIONS: POST /api/trips with budget ₹5000 ✅, POST /api/trips/{id}/expenses with amount ₹500 ✅, GET /api/trips/{id}/notifications → expense notification contains '₹500' (rupee symbol, NOT $) ✅, message: 'Smoke Test spent ₹500.00 on "Lunch at beach shack". Everyone owes them ₹250.00. Pay them back, squad!' ✅, info notification also uses ₹ symbol: 'Trip to INR Test Trip created. Squad of 2. Pool: ₹5,000. Budget: ₹5,000.' ✅.
+      ALL NEWEST TRAVELO BACKEND FEATURES ARE FULLY FUNCTIONAL: Gmail SMTP email invites with auto-join, AI-generated destination guides with Wikipedia images and MongoDB caching, INR (₹) symbol in all trip notifications.
+      COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS) IS FULLY FUNCTIONAL AND TESTED.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.

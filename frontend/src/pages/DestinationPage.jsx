@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Star, Clock, MapPin, Check } from 'lucide-react';
 import api from '@/lib/api';
+import DestinationIntel from '@/components/DestinationIntel';
 
 const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
@@ -146,6 +147,9 @@ export default function DestinationPage() {
           </button>
         </div>
       </section>
+
+      {/* THE INTEL — AI knowledge dossier */}
+      <DestinationIntel dest={dest} />
     </div>
   );
 }

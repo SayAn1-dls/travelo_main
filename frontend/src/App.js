@@ -18,6 +18,7 @@ import TripWizardPage from '@/pages/TripWizardPage';
 import TripDetailPage from '@/pages/TripDetailPage';
 import VibeLabPage from '@/pages/VibeLabPage';
 import SquadChatPage from '@/pages/SquadChatPage';
+import InvitePage from '@/pages/InvitePage';
 import NotFound from '@/pages/NotFound';
 import NomadWidget from '@/components/NomadWidget';
 
@@ -64,6 +65,7 @@ function App() {
             <Route path="/planner/:id" element={<Protected><TripDetailPage /></Protected>} />
             <Route path="/vibe-lab" element={<Protected><VibeLabPage /></Protected>} />
             <Route path="/squad" element={<Protected><SquadChatPage /></Protected>} />
+            <Route path="/invite/:token" element={<InvitePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <NomadFloating />

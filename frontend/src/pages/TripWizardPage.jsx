@@ -6,7 +6,7 @@ import { ArrowRight, ArrowLeft, Loader2, MapPin, Users, Wallet } from 'lucide-re
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
-const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n || 0);
+const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 const toISO = (d) => d.toISOString().slice(0, 10);
 const STEPS = ['Where', 'Squad', 'Dates', 'Budget', 'Review'];
 
@@ -162,7 +162,7 @@ export default function TripWizardPage() {
                         min="0"
                         value={myContribution}
                         onChange={(e) => setMyContribution(e.target.value)}
-                        placeholder="MONEY YOU BRING ($)"
+                        placeholder="MONEY YOU BRING (₹)"
                         className={inputCls}
                         data-testid="wizard-my-contribution"
                       />
@@ -193,7 +193,7 @@ export default function TripWizardPage() {
                           min="0"
                           value={c.contribution}
                           onChange={setComp(i, 'contribution')}
-                          placeholder="MONEY THEY BRING ($)"
+                          placeholder="MONEY THEY BRING (₹)"
                           className={inputCls}
                           data-testid={`wizard-member-contribution-${i}`}
                         />
@@ -240,7 +240,7 @@ export default function TripWizardPage() {
                   min="1"
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
-                  placeholder="TRIP BUDGET ($)"
+                  placeholder="TRIP BUDGET (₹)"
                   className={`${inputCls} py-6 text-lg`}
                   data-testid="wizard-budget-input"
                 />

@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 
-const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n || 0);
-const fmt0 = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n || 0);
+const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
+const fmt0 = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 
 const CATEGORIES = [
   { id: 'general', label: 'General', icon: Package },
@@ -46,6 +46,8 @@ export default function TripDetailPage() {
   const [notifications, setNotifications] = useState([]);
   const [showExpense, setShowExpense] = useState(false);
   const [busyAction, setBusyAction] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
 
   const loadNotifications = useCallback(() => {
     api.tripNotifications(id).then(setNotifications).catch(() => {});
@@ -309,6 +311,52 @@ export default function TripDetailPage() {
 
           {/* RIGHT 1/3 — ledger, settle, notifications */}
           <div className="space-y-10">
+            {/* Invite friends by email */}
+            <div className="border border-blaze/40 bg-blaze/5 p-5" data-testid="invite-by-email-box">
+              <h2 className="flex items-center gap-2 font-display text-2xl uppercase"><Send className="h-5 w-5 text-blaze" /> Add friends by Gmail</h2>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
+                They get an email — one click and they're in the trip + squad chat. No codes.
+              </p>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const email = inviteEmail.trim();
+                  if (!email) return;
+                  setInviting(true);
+                  try {
+                    const res = await api.inviteToTrip(trip.id, { emails: [email], origin_url: window.location.origin });
+                    if (res.sent.length) toast.success(`Invite emailed to ${email}. They'll auto-join when they say yes.`);
+                    else toast.error('Email failed to send — check the address.');
+                    setInviteEmail('');
+                    loadNotifications();
+                  } catch (err) {
+                    toast.error(err.message || 'Invite failed');
+                  } finally {
+                    setInviting(false);
+                  }
+                }}
+                className="mt-4 flex gap-2"
+              >
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="FRIEND@GMAIL.COM"
+                  className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-3 py-2.5 font-mono text-xs text-white placeholder:text-white/30 outline-none focus:border-blaze"
+                  data-testid="invite-email-input"
+                />
+                <button
+                  type="submit"
+                  disabled={inviting}
+                  className="flex items-center gap-1.5 bg-blaze px-4 font-mono text-[10px] font-bold uppercase tracking-widest text-black transition hover:bg-blaze-hover disabled:opacity-50"
+                  data-testid="invite-send-btn"
+                >
+                  {inviting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Invite'}
+                </button>
+              </form>
+            </div>
+
             {/* Squad ledger */}
             <div>
               <h2 className="flex items-center gap-2 font-display text-3xl uppercase"><Wallet className="h-6 w-6 text-blaze" /> Squad ledger</h2>
@@ -466,7 +514,7 @@ function ExpenseModal({ trip, onClose, onSubmit }) {
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="AMOUNT ($)"
+            placeholder="AMOUNT (₹)"
             className={inputCls}
             data-testid="expense-amount-input"
           />
