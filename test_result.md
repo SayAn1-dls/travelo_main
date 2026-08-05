@@ -224,6 +224,62 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ REDESIGNED INVITE EMAIL WORKING (1/1 test passed). Test: POST /api/trips/{trip_id}/invite with emails=['sayanbhatt2005@gmail.com'], origin_url='https://example.com' → 200 with {sent:['sayanbhatt2005@gmail.com'], failed:[]} ✅. Email sent successfully in 0.06s ✅. Backend logs verified: no SMTP errors, using console fallback (expected in test environment) ✅. Email HTML includes: TRAVELO branding with ✈️, orange (#FF4500) top bar, yellow (#EAFF00) marquee strip with destination name, brutalist typography, boarding pass ticket with dashed borders, destination/dates/passenger info, 'JOIN THE SQUAD' CTA button. Gmail SMTP integration ready (smtp.gmail.com:587 with STARTTLS)."
+  - task: "Hindi voice mode (transcribe language + NOMAD hindi replies)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. Hindi voice transcription and chat. POST /api/voice/transcribe accepts language='hi' form field, uses Whisper-1 with Hindi language parameter. POST /api/chat/message accepts language='hi' in request body, NOMAD system message instructs LLM to reply entirely in Hindi (Devanagari script)."
+      - working: true
+        agent: "testing"
+        comment: "✅ HINDI VOICE MODE WORKING PERFECTLY (3/3 tests passed). Test 1a - Hindi transcription: Generated Hindi audio 'मुझे मनाली में बर्फ देखनी है' using gTTS → POST /api/voice/transcribe with language='hi' → 200 with transcribed text 'मुझे मनाली में बर्फ देखनी है।' ✅, contains Devanagari script ✅, contains 'मनाली' ✅. Test 1b - NOMAD Hindi chat: POST /api/chat/message with language='hi', text='मनाली में 2 दिन का प्लान दो, छोटा जवाब' → SSE stream with accumulated reply primarily in Hindi (235 Devanagari chars vs 225 Latin alpha chars) ✅, reply starts with 'बिलकुल. 2 दिन में Manali को ऐसे मारो...' ✅. Test 1c - English still works: POST /api/chat/message with language='en' → reply in English (510 Latin alpha chars, 0 Devanagari) ✅. Whisper-1 Hindi transcription and GPT-5.4 Hindi chat replies working correctly."
+  - task: "Trip invites list endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. GET /api/trips/{trip_id}/invites endpoint returns array of invites for a trip. Each invite has email, status (pending|accepted), created_at. SECURITY: 'token' field excluded from response (line 1392: projection {'_id': 0, 'token': 0})."
+      - working: true
+        agent: "testing"
+        comment: "✅ TRIP INVITES LIST WORKING PERFECTLY (3/3 tests passed). Test 2a - Get invites as trip owner: GET /api/trips/{trip_id}/invites → 200 with array of 4 invites ✅, each invite has email, status='pending', created_at ✅, SECURITY: 'token' field NOT exposed ✅. Test 2b - Without auth: GET /api/trips/{trip_id}/invites without auth → 401 ✅. Test 2c - Other user's trip: GET /api/trips/{trip_id}/invites as friend (not trip owner) → 404 ✅. All security and access control working correctly."
+  - task: "Audio voice notes in squad rooms"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. Audio voice notes in squad chat rooms. POST /api/rooms/{room_id}/media accepts audio files (audio/mpeg, audio/wav, etc.), stores with media_type='audio', returns message with type='media', media_type='audio', media_url. Room's last_message.preview shows '🎤 Voice note' for audio (line 1010-1011)."
+      - working: true
+        agent: "testing"
+        comment: "✅ AUDIO VOICE NOTES WORKING PERFECTLY (4/4 tests passed). Test 3a - Upload audio: Generated audio using gTTS → POST /api/rooms/{room_id}/media with audio/mpeg → 200 with message {type='media', media_type='audio', media_url='/api/media/{id}'} ✅. Test 3b - GET media URL: GET /api/media/{id} without auth → 200 with content-type audio/mpeg ✅. Test 3c - Room preview: GET /api/rooms → room's last_message.preview == '🎤 Voice note' ✅. Test 3d - Validation: Upload .txt file → 400 ✅. All audio voice note features working correctly."
+  - task: "Receipt email wiring (origin_url in payment_transactions)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW FEATURE. Receipt email wiring for payment confirmation. POST /api/payments/checkout accepts origin_url in request body, stores it in payment_transactions MongoDB collection (line 351). This enables sending receipt emails with correct return URL after payment confirmation."
+      - working: true
+        agent: "testing"
+        comment: "✅ RECEIPT EMAIL WIRING WORKING PERFECTLY (4/4 tests passed). Test 4a - Create booking: POST /api/bookings (manali, explorer, 1 traveler, 2026-11-10 to 2026-11-16) → 200 with booking_id ✅. Test 4b - Checkout with origin_url: POST /api/payments/checkout {booking_id, origin_url='https://example.com'} → 200 with valid https://checkout.stripe.com URL and session_id ✅. Test 4c - Payment status: GET /api/payments/status/{session_id} → status='initiated' (expected for unpaid session) ✅. Test 4d - MongoDB verification: Queried payment_transactions collection by session_id → found transaction with origin_url='https://example.com' stored correctly ✅. All payment checkout and origin_url storage working correctly."
 
 frontend:
   - task: "Cinematic Landing + quotes rotator + marquee"
@@ -276,7 +332,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 9
+  test_sequence: 10
 
 test_plan:
   current_focus: []
@@ -396,6 +452,14 @@ agent_communication:
       Backend logs: 2 successful POST /api/voice/transcribe requests with 200 OK responses (1 from widget, 1 from Vibe Lab).
       MIC BUG FIX VERIFIED: Old Web Speech API completely replaced with MediaRecorder + Whisper transcription. All states (idle → recording → transcribing → idle) working correctly. Fake audio device (Chromium args) working as expected.
       COMPLETE TRAVELO FRONTEND MIC FEATURE IS FULLY FUNCTIONAL AND TESTED.
+  - agent: "testing"
+    message: >
+      ✅ 4 NEW FEATURES BACKEND TESTING COMPLETE - ALL TESTS PASSED (14/14 tests).
+      FEATURE 1 - HINDI VOICE MODE: Test 1a - Hindi transcription: Generated Hindi audio 'मुझे मनाली में बर्फ देखनी है' using gTTS → POST /api/voice/transcribe with language='hi' → 200 with transcribed text 'मुझे मनाली में बर्फ देखनी है।' containing Devanagari script and 'मनाली' ✅. Test 1b - NOMAD Hindi chat: POST /api/chat/message with language='hi', text='मनाली में 2 दिन का प्लान दो, छोटा जवाब' → SSE stream with accumulated reply primarily in Hindi (235 Devanagari chars vs 225 Latin alpha chars) ✅. Test 1c - English still works: POST /api/chat/message with language='en' → reply in English (510 Latin alpha chars, 0 Devanagari) ✅.
+      FEATURE 2 - TRIP INVITES LIST: Test 2a - Get invites as trip owner: GET /api/trips/{trip_id}/invites → 200 with array of 4 invites, each with email, status='pending', created_at ✅, SECURITY: 'token' field NOT exposed ✅. Test 2b - Without auth → 401 ✅. Test 2c - Other user's trip → 404 ✅.
+      FEATURE 3 - AUDIO VOICE NOTES: Test 3a - Upload audio: Generated audio using gTTS → POST /api/rooms/{room_id}/media with audio/mpeg → 200 with message {type='media', media_type='audio', media_url='/api/media/{id}'} ✅. Test 3b - GET media URL without auth → 200 with content-type audio/mpeg ✅. Test 3c - Room preview: GET /api/rooms → room's last_message.preview == '🎤 Voice note' ✅. Test 3d - Upload .txt file → 400 ✅.
+      FEATURE 4 - RECEIPT EMAIL WIRING: Test 4a - Create booking (manali, explorer, 1 traveler) → 200 ✅. Test 4b - Checkout with origin_url: POST /api/payments/checkout {booking_id, origin_url='https://example.com'} → 200 with valid https://checkout.stripe.com URL ✅. Test 4c - Payment status → status='initiated' (expected for unpaid) ✅. Test 4d - MongoDB verification: Queried payment_transactions by session_id → found transaction with origin_url='https://example.com' stored correctly ✅.
+      ALL 4 NEW TRAVELO BACKEND FEATURES ARE FULLY FUNCTIONAL AND TESTED. COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS, VOICE TRANSCRIPTION, HINDI VOICE MODE, TRIP INVITES LIST, AUDIO VOICE NOTES, RECEIPT EMAIL WIRING) IS FULLY FUNCTIONAL.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.

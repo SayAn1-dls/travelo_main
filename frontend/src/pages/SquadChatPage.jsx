@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Users, Plus, LogIn, Send, Loader2, Copy, Paperclip, ArrowLeft,
-  MessagesSquare, Ticket,
+  MessagesSquare, Ticket, Mic, Square,
 } from 'lucide-react';
 import api, { getToken } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -144,7 +144,7 @@ export default function SquadChatPage() {
 
   const sendMedia = async (file) => {
     if (!file || !activeRoom) return;
-    if (!/^(image|video)\//.test(file.type)) return toast.error('Images and videos only.');
+    if (!/^(image|video|audio)\//.test(file.type)) return toast.error('Images, videos and audio only.');
     if (file.size > MAX_MEDIA_BYTES) return toast.error('Max 20MB per file.');
     setUploading(true);
     try {
@@ -333,6 +333,16 @@ export default function SquadChatPage() {
                           <source src={`${MEDIA_BASE}${m.media_url}`} />
                         </video>
                       )}
+                      {m.type === 'media' && m.media_type === 'audio' && (
+                        <div className="flex items-center gap-2" data-testid="voice-note-bubble">
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center ${mine ? 'bg-black/15' : 'bg-blaze/15'}`}>
+                            <Mic className={`h-4 w-4 ${mine ? 'text-black' : 'text-blaze'}`} />
+                          </span>
+                          <audio controls preload="metadata" className="h-10 w-52 max-w-full sm:w-64">
+                            <source src={`${MEDIA_BASE}${m.media_url}`} />
+                          </audio>
+                        </div>
+                      )}
                       {m.text && <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.text}</p>}
                       <p className={`mt-1 text-right font-mono text-[9px] ${mine ? 'text-black/50' : 'text-white/30'}`}>
                         {timeOf(m.created_at)}
@@ -370,6 +380,7 @@ export default function SquadChatPage() {
               >
                 <Paperclip className="h-4 w-4" />
               </button>
+              <VoiceNoteButton disabled={uploading} onBlob={(file) => sendMedia(file)} />
               <input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
@@ -390,5 +401,97 @@ export default function SquadChatPage() {
         )}
       </main>
     </div>
+  );
+}
+
+/**
+ * WhatsApp-style voice note recorder — tap to record, tap again to send.
+ * Records real audio (MediaRecorder) and hands the file to onBlob for upload.
+ */
+function VoiceNoteButton({ disabled, onBlob }) {
+  const [recording, setRecording] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const recorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => {
+    clearInterval(timerRef.current);
+    try { recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop(); } catch (e) { /* noop */ }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+  }, []);
+
+  const start = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) return toast.error('Microphone not supported in this browser.');
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      if (err.name === 'NotAllowedError' || err.name === 'SecurityError') toast.error('Mic blocked — allow microphone access and try again.');
+      else if (err.name === 'NotFoundError') toast.error('No microphone found.');
+      else toast.error(`Mic error: ${err.message || err.name}`);
+      return;
+    }
+    streamRef.current = stream;
+    chunksRef.current = [];
+    const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+    const mime = candidates.find((c) => window.MediaRecorder?.isTypeSupported?.(c)) || '';
+    let recorder;
+    try {
+      recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    } catch (e) {
+      recorder = new MediaRecorder(stream);
+    }
+    recorderRef.current = recorder;
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
+    recorder.onstop = () => {
+      const type = recorder.mimeType || mime || 'audio/webm';
+      const blob = new Blob(chunksRef.current, { type });
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      clearInterval(timerRef.current);
+      setElapsed(0);
+      setRecording(false);
+      if (blob.size < 1000) return toast.info('That was too quick — hold it and speak.');
+      const ext = type.includes('mp4') ? 'mp4' : 'webm';
+      onBlob(new File([blob], `voice-note.${ext}`, { type }));
+    };
+    recorder.start(250);
+    setRecording(true);
+    setElapsed(0);
+    timerRef.current = setInterval(() => {
+      setElapsed((s) => {
+        if (s + 1 >= 60) { try { recorder.stop(); } catch (e) { /* noop */ } }
+        return s + 1;
+      });
+    }, 1000);
+  };
+
+  const toggle = () => {
+    if (recording) { try { recorderRef.current?.stop(); } catch (e) { /* noop */ } return; }
+    start();
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={disabled}
+      title={recording ? 'Stop & send voice note' : 'Record a voice note'}
+      className={`flex h-10 shrink-0 items-center justify-center gap-1.5 transition disabled:opacity-40 ${
+        recording ? 'animate-pulse bg-blaze px-3 text-black' : 'w-10 border border-white/20 text-white/70 hover:border-blaze hover:text-blaze'
+      }`}
+      data-testid="voice-note-btn"
+    >
+      {recording ? (
+        <>
+          <Square className="h-4 w-4" />
+          <span className="font-mono text-[10px] font-bold">{elapsed}s</span>
+        </>
+      ) : (
+        <Mic className="h-4 w-4" />
+      )}
+    </button>
   );
 }

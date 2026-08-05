@@ -21,7 +21,7 @@ function pickMimeType() {
  * Firefox, Safari), sends it to the backend, Whisper transcribes, onFinal(text)
  * auto-sends. onInterim gets status text for the input placeholder.
  */
-export default function MicButton({ disabled, onInterim, onFinal, size = 'md' }) {
+export default function MicButton({ disabled, onInterim, onFinal, size = 'md', language = 'en' }) {
   const [phase, setPhase] = useState('idle'); // idle | recording | transcribing
   const [elapsed, setElapsed] = useState(0);
   const recorderRef = useRef(null);
@@ -50,6 +50,7 @@ export default function MicButton({ disabled, onInterim, onFinal, size = 'md' })
       const ext = mime.includes('mp4') ? 'mp4' : mime.includes('ogg') ? 'ogg' : 'webm';
       const fd = new FormData();
       fd.append('file', new File([blob], `voice.${ext}`, { type: mime || 'audio/webm' }));
+      if (language) fd.append('language', language);
       const res = await fetch(`${API_BASE}/voice/transcribe`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${getToken()}` },

@@ -48,6 +48,11 @@ export default function TripDetailPage() {
   const [busyAction, setBusyAction] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [invites, setInvites] = useState([]);
+
+  const loadInvites = useCallback(() => {
+    api.tripInvites(id).then(setInvites).catch(() => {});
+  }, [id]);
 
   const loadNotifications = useCallback(() => {
     api.tripNotifications(id).then(setNotifications).catch(() => {});
@@ -62,7 +67,8 @@ export default function TripDetailPage() {
         navigate('/planner');
       });
     loadNotifications();
-  }, [id, navigate, loadNotifications]);
+    loadInvites();
+  }, [id, navigate, loadNotifications, loadInvites]);
 
   if (!trip) {
     return (
@@ -329,6 +335,7 @@ export default function TripDetailPage() {
                     else toast.error('Email failed to send — check the address.');
                     setInviteEmail('');
                     loadNotifications();
+                    loadInvites();
                   } catch (err) {
                     toast.error(err.message || 'Invite failed');
                   } finally {
@@ -355,6 +362,23 @@ export default function TripDetailPage() {
                   {inviting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Invite'}
                 </button>
               </form>
+
+              {/* pending invite list */}
+              {invites.length > 0 && (
+                <div className="mt-4 space-y-2" data-testid="invite-status-list">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-white/40">Invite status</p>
+                  {invites.map((inv) => (
+                    <div key={inv.id} className="flex items-center justify-between gap-2 border border-white/10 bg-black/30 px-3 py-2" data-testid={`invite-row-${inv.id}`}>
+                      <span className="truncate font-mono text-[11px] text-white/70">{inv.email}</span>
+                      {inv.status === 'accepted' ? (
+                        <span className="shrink-0 bg-acid px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Joined ✓</span>
+                      ) : (
+                        <span className="shrink-0 bg-blaze px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Pending…</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Squad ledger */}

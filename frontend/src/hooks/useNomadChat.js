@@ -10,6 +10,7 @@ const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export default function useNomadChat({ vibe = null, onReply } = {}) {
   const [phase, setPhase] = useState('before');
   const [place, setPlace] = useState('');
+  const [language, setLanguage] = useState('en'); // en | hi
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [streaming, setStreaming] = useState(false);
@@ -18,6 +19,8 @@ export default function useNomadChat({ vibe = null, onReply } = {}) {
   onReplyRef.current = onReply;
   const vibeRef = useRef(vibe);
   vibeRef.current = vibe;
+  const languageRef = useRef(language);
+  languageRef.current = language;
 
   // restore latest session once
   useEffect(() => {
@@ -66,6 +69,7 @@ export default function useNomadChat({ vibe = null, onReply } = {}) {
           place,
           phase,
           text,
+          language: languageRef.current,
           vibe_context: v ? { vibe_title: v.vibe_title, mood: v.mood, photo_type: v.photo_type } : null,
         }),
       });
@@ -93,7 +97,7 @@ export default function useNomadChat({ vibe = null, onReply } = {}) {
         }
       }
       setMessages((m) => [...m, { id: `a-${Date.now()}`, role: 'assistant', text: full }]);
-      if (onReplyRef.current) onReplyRef.current(full, { spoken });
+      if (onReplyRef.current) onReplyRef.current(full, { spoken, language: languageRef.current });
       return full;
     } finally {
       setStreaming(false);
@@ -104,6 +108,7 @@ export default function useNomadChat({ vibe = null, onReply } = {}) {
   return {
     phase, setPhase,
     place, setPlace,
+    language, setLanguage,
     sessionId, messages,
     streaming, streamText,
     send, newChat,

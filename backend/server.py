@@ -14,7 +14,7 @@ import bcrypt
 import jwt
 import stripe
 from dotenv import load_dotenv
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File, Form
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -160,6 +160,7 @@ class ChatMessageRequest(BaseModel):
     phase: str = Field("before", max_length=10)  # before | during | after
     text: str = Field(..., min_length=1, max_length=2000)
     vibe_context: Optional[dict] = None
+    language: str = Field("en", max_length=5)  # en | hi
 
 
 class RoomCreateRequest(BaseModel):
@@ -347,6 +348,7 @@ async def create_checkout(req: CheckoutRequest, user=Depends(get_current_user)):
         "user_id": user["id"],
         "booking_id": booking["id"],
         "lookup_key": lookup_key,
+        "origin_url": req.origin_url,
         "amount": float((price.unit_amount or 0) * quantity) / 100.0,
         "currency": price.currency,
         "status": "initiated",
@@ -358,19 +360,41 @@ async def create_checkout(req: CheckoutRequest, user=Depends(get_current_user)):
 
 
 async def _mark_paid(session_id: str, extra: dict):
-    """Idempotent: flip transaction to paid + confirm linked booking."""
+    """Idempotent: flip transaction to paid + confirm linked booking + email receipt."""
     res = await payment_transactions.update_one(
         {"session_id": session_id, "payment_status": {"$ne": "paid"}},
         {"$set": {"status": "completed", "payment_status": "paid",
                   "updated_at": datetime.now(timezone.utc), **extra}},
     )
     record = await payment_transactions.find_one({"session_id": session_id})
+    booking = None
     if record and record.get("booking_id"):
         await bookings_col.update_one(
             {"id": record["booking_id"]},
             {"$set": {"status": "confirmed", "paid_at": datetime.now(timezone.utc).isoformat()}},
         )
+        booking = await bookings_col.find_one({"id": record["booking_id"]}, {"_id": 0})
+    # send receipt only on the first flip to paid (webhook/poll race-safe)
+    if res.modified_count and booking:
+        import asyncio as _asyncio
+        _asyncio.create_task(_send_receipt_email(booking, record))
     return res
+
+
+async def _send_receipt_email(booking: dict, txn: dict):
+    try:
+        buyer = await users_col.find_one({"id": booking["user_id"]}, {"_id": 0, "password": 0})
+        if not buyer or not buyer.get("email"):
+            return
+        html = _booking_receipt_html(buyer["name"].split(" ")[0], booking, txn)
+        await send_email(
+            buyer["email"],
+            f"PAID. Your {booking['destination_name']} trip is locked in — TRAVELO receipt",
+            html,
+        )
+        logger.info("Receipt email sent to %s for booking %s", buyer["email"], booking["id"])
+    except Exception as e:  # noqa: BLE001
+        logger.error("Receipt email failed for booking %s: %s", booking.get("id"), e)
 
 
 @api.get("/payments/status/{session_id}")
@@ -748,7 +772,7 @@ PHASE_BRIEFS = {
 }
 
 
-def _nomad_system(place: str, phase: str, vibe: Optional[dict]) -> str:
+def _nomad_system(place: str, phase: str, vibe: Optional[dict], language: str = "en") -> str:
     base = (
         "You are NOMAD, TRAVELO's AI travel co-pilot — bold, warm, a little savage, deeply knowledgeable "
         "about world travel. You talk like the TRAVELO brand: punchy, confident, zero fluff. "
@@ -762,6 +786,11 @@ def _nomad_system(place: str, phase: str, vibe: Optional[dict]) -> str:
         vt, mood, ptype = vibe.get("vibe_title"), vibe.get("mood"), vibe.get("photo_type")
         if vt or mood or ptype:
             base += f" Context from their recent trip photos: vibe '{vt}', mood {mood}, group type {ptype}. Reference it naturally when relevant."
+    if language == "hi":
+        base += (
+            " IMPORTANT: Reply ENTIRELY in Hindi (Devanagari script), in a friendly conversational tone "
+            "like talking to a dost. Keep place names in their common form. Do not reply in English."
+        )
     return base
 
 
@@ -808,7 +837,7 @@ async def nomad_chat(req: ChatMessageRequest, user=Depends(get_current_user)):
         "role": "user", "text": req.text, "created_at": now,
     })
 
-    system_message = _nomad_system(session.get("place", ""), phase, session.get("vibe_context"))
+    system_message = _nomad_system(session.get("place", ""), phase, session.get("vibe_context"), req.language)
     if history:
         transcript = "\n".join(
             f"{'TRAVELER' if m['role'] == 'user' else 'NOMAD'}: {m['text']}" for m in history
@@ -872,7 +901,7 @@ async def chat_history(session_id: str, user=Depends(get_current_user)):
 # ---------------------------------------------------------------- squad chat rooms (friends group chat)
 INVITE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no confusables
 MAX_MEDIA_BYTES = 20 * 1024 * 1024  # 20MB
-ALLOWED_MEDIA_PREFIXES = ("image/", "video/")
+ALLOWED_MEDIA_PREFIXES = ("image/", "video/", "audio/")
 
 
 def _invite_code() -> str:
@@ -974,7 +1003,14 @@ async def _store_room_message(room_id: str, user: dict, text: str = "",
         "created_at": now,
     }
     await room_messages.insert_one({**msg})
-    preview = text[:60] if text else ("📷 Photo" if media_type == "image" else "🎬 Video")
+    if text:
+        preview = text[:60]
+    elif media_type == "image":
+        preview = "📷 Photo"
+    elif media_type == "audio":
+        preview = "🎤 Voice note"
+    else:
+        preview = "🎬 Video"
     await rooms_col.update_one(
         {"id": room_id},
         {"$set": {"updated_at": now,
@@ -994,8 +1030,13 @@ async def send_room_media(room_id: str, file: UploadFile = File(...), user=Depen
     await _get_room_for_member(room_id, user["id"])
     content_type = (file.content_type or "").lower()
     if not content_type.startswith(ALLOWED_MEDIA_PREFIXES):
-        raise HTTPException(400, "Only images and videos are allowed")
-    media_kind = "image" if content_type.startswith("image/") else "video"
+        raise HTTPException(400, "Only images, videos and audio are allowed")
+    if content_type.startswith("image/"):
+        media_kind = "image"
+    elif content_type.startswith("audio/"):
+        media_kind = "audio"
+    else:
+        media_kind = "video"
     media_id = str(uuid.uuid4())
     ext = re.sub(r"[^a-zA-Z0-9]", "", (file.filename or "").rsplit(".", 1)[-1])[:6] or "bin"
     dest = UPLOADS_DIR / f"{media_id}.{ext}"
@@ -1172,6 +1213,118 @@ def _invite_email_html(inviter: str, place: str, dates: str, link: str) -> str:
 </html>"""
 
 
+def _booking_receipt_html(name: str, booking: dict, txn: dict) -> str:
+    display = "'Arial Black', Impact, 'Helvetica Neue', Arial, sans-serif"
+    mono = "'Courier New', Courier, monospace"
+    origin = (txn or {}).get("origin_url") or ""
+    trips_link = f"{origin}/dashboard" if origin else "#"
+    amount = f"${booking['amount']:,.0f}"
+    session_short = (txn or {}).get("session_id", "")[-12:].upper()
+    paid_date = datetime.now(timezone.utc).strftime("%d %b %Y")
+    return f"""<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background-color:#030303;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#030303;padding:32px 12px;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+  <!-- top bar -->
+  <tr><td style="background-color:#FF4500;padding:14px 28px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-family:{display};font-size:24px;font-weight:900;letter-spacing:4px;color:#000000;">TRAVELO &#9992;</td>
+      <td align="right" style="font-family:{mono};font-size:10px;font-weight:bold;letter-spacing:3px;color:#000000;">PAYMENT RECEIPT</td>
+    </tr></table>
+  </td></tr>
+
+  <!-- acid strip -->
+  <tr><td style="background-color:#EAFF00;padding:8px 0;">
+    <div style="font-family:{display};font-size:13px;font-weight:900;letter-spacing:3px;color:#000000;white-space:nowrap;overflow:hidden;">PAID &#10038; CONFIRMED &#10038; PACK YOUR BAGS &#10038; PAID &#10038; CONFIRMED &#10038; PACK YOUR BAGS &#10038; PAID &#10038; CONFIRMED &#10038;</div>
+  </td></tr>
+
+  <!-- hero -->
+  <tr><td style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:44px 32px 20px;">
+    <div style="font-family:{mono};font-size:11px;letter-spacing:5px;color:#EAFF00;text-transform:uppercase;">// PAYMENT CONFIRMED &#10003;</div>
+    <div style="font-family:{display};font-size:46px;line-height:0.95;color:#ffffff;text-transform:uppercase;margin-top:18px;font-weight:900;">
+      {name}, IT'S<br/><span style="color:#EAFF00;">OFFICIAL.</span><br/><span style="color:#FF4500;font-style:italic;">{booking['destination_name'].upper()}</span><br/>IS HAPPENING.
+    </div>
+    <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;color:#EAFF00;margin-top:20px;">
+      &ldquo;pack your bags, legend.&rdquo;
+    </div>
+  </td></tr>
+
+  <!-- boarding pass -->
+  <tr><td style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:22px 32px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px dashed #444444;background-color:#000000;">
+      <tr><td style="padding:18px 22px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;padding-bottom:4px;">DESTINATION</td>
+            <td align="right" style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;padding-bottom:4px;">DATES</td>
+          </tr>
+          <tr>
+            <td style="font-family:{display};font-size:22px;color:#ffffff;text-transform:uppercase;">{booking['destination_name'].upper()}, {booking['country'].upper()}</td>
+            <td align="right" style="font-family:{mono};font-size:13px;color:#EAFF00;">{booking['start_date']} &#8594; {booking['end_date']}</td>
+          </tr>
+          <tr><td colspan="2" style="border-bottom:1px dashed #333333;padding-top:14px;"></td></tr>
+          <tr>
+            <td style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;padding-top:12px;">SQUAD &#215; TIER</td>
+            <td align="right" style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;padding-top:12px;">STATUS</td>
+          </tr>
+          <tr>
+            <td style="font-family:{display};font-size:16px;color:#ffffff;text-transform:uppercase;">&#215;{booking['travelers']} &#183; {booking['tier'].upper()}</td>
+            <td align="right"><span style="font-family:{mono};font-size:11px;font-weight:bold;color:#000000;background-color:#EAFF00;padding:3px 10px;letter-spacing:2px;">CONFIRMED &#10003;</span></td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- receipt block -->
+  <tr><td style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:0 32px 22px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #2a2a2a;">
+      <tr>
+        <td style="padding:16px 22px;border-right:1px solid #2a2a2a;">
+          <div style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;">AMOUNT PAID</div>
+          <div style="font-family:{display};font-size:30px;color:#EAFF00;margin-top:4px;">{amount} <span style="font-size:12px;color:#777777;">USD</span></div>
+        </td>
+        <td style="padding:16px 22px;">
+          <div style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;">RECEIPT REF &#183; {paid_date}</div>
+          <div style="font-family:{mono};font-size:14px;color:#ffffff;margin-top:6px;">{session_short}</div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- CTA -->
+  <tr><td align="center" style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:8px 32px 40px;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="background-color:#FF4500;border:3px solid #EAFF00;">
+        <a href="{trips_link}" style="display:inline-block;font-family:{display};font-size:18px;font-weight:900;letter-spacing:3px;color:#000000;text-decoration:none;text-transform:uppercase;padding:16px 40px;">
+          VIEW MY TRIPS &#8594;
+        </a>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <!-- bottom marquee -->
+  <tr><td style="background-color:#FF4500;padding:8px 0;">
+    <div style="font-family:{display};font-size:13px;font-weight:900;letter-spacing:3px;color:#000000;white-space:nowrap;overflow:hidden;">STOP DREAMING &#10038; START PACKING &#10038; STOP DREAMING &#10038; START PACKING &#10038; STOP DREAMING &#10038; START PACKING &#10038;</div>
+  </td></tr>
+
+  <!-- footer -->
+  <tr><td align="center" style="background-color:#000000;padding:16px 24px;border:1px solid #1a1a1a;border-top:none;">
+    <div style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#555555;text-transform:uppercase;">
+      Stripe test mode receipt &mdash; TRAVELO
+    </div>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+
 # ---------------------------------------------------------------- trip invites (email -> auto-join trip + chat)
 async def _ensure_trip_room(trip: dict, user: dict) -> dict:
     room = await rooms_col.find_one({"trip_id": trip["id"]}, {"_id": 0})
@@ -1230,6 +1383,14 @@ async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_
             failed.append({"email": email_l, "link": link})
     await _notify(trip["id"], "info", f"{user['name']} invited {len(req.emails)} friend(s) by email. Waiting for them to say yes.")
     return {"sent": sent, "failed": failed}
+
+
+@api.get("/trips/{trip_id}/invites")
+async def list_trip_invites(trip_id: str, user=Depends(get_current_user)):
+    await _get_trip_or_404(trip_id, user["id"])
+    return await trip_invites.find(
+        {"trip_id": trip_id}, {"_id": 0, "token": 0}
+    ).sort("created_at", -1).to_list(50)
 
 
 @api.get("/invites/{token}")
@@ -1387,12 +1548,13 @@ VOICE_EXTS = {"webm", "mp4", "mp3", "wav", "m4a", "mpeg", "mpga", "ogg"}
 
 
 @api.post("/voice/transcribe")
-async def transcribe_voice(file: UploadFile = File(...), user=Depends(get_current_user)):
+async def transcribe_voice(file: UploadFile = File(...), language: Optional[str] = Form(None), user=Depends(get_current_user)):
     from emergentintegrations.llm.openai import OpenAISpeechToText
 
     key = os.environ.get("EMERGENT_LLM_KEY")
     if not key:
         raise HTTPException(503, "Transcription unavailable")
+    lang = language if language in {"en", "hi"} else None
     content_type = (file.content_type or "").lower()
     ext = re.sub(r"[^a-z0-9]", "", (file.filename or "voice.webm").rsplit(".", 1)[-1].lower()) or "webm"
     if ext == "ogg":
@@ -1409,13 +1571,12 @@ async def transcribe_voice(file: UploadFile = File(...), user=Depends(get_curren
         with open(tmp_path, "wb") as f:
             f.write(data)
         stt = OpenAISpeechToText(api_key=key)
+        kwargs = {"model": "whisper-1", "response_format": "json",
+                  "prompt": "A traveler talking to a travel assistant about trips, destinations, packing, food and plans."}
+        if lang:
+            kwargs["language"] = lang
         with open(tmp_path, "rb") as audio_file:
-            response = await stt.transcribe(
-                file=audio_file,
-                model="whisper-1",
-                response_format="json",
-                prompt="A traveler talking to a travel assistant about trips, destinations, packing, food and plans.",
-            )
+            response = await stt.transcribe(file=audio_file, **kwargs)
         text = (getattr(response, "text", "") or "").strip()
         return {"text": text}
     except HTTPException:

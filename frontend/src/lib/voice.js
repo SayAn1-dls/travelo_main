@@ -32,7 +32,7 @@ export function createRecognizer({ onInterim, onFinal, onEnd, onError }) {
   return rec;
 }
 
-export function speak(text, { onEnd } = {}) {
+export function speak(text, { onEnd, lang = 'en' } = {}) {
   if (!voiceOutputSupported()) return;
   const clean = String(text)
     .replace(/\*\*/g, '')
@@ -43,9 +43,12 @@ export function speak(text, { onEnd } = {}) {
   const u = new SpeechSynthesisUtterance(clean);
   u.rate = 1.03;
   u.pitch = 1;
+  u.lang = lang === 'hi' ? 'hi-IN' : 'en-US';
   const voices = window.speechSynthesis.getVoices();
+  const prefix = lang === 'hi' ? 'hi' : 'en';
   const preferred =
-    voices.find((v) => v.lang.startsWith('en') && /Google|Samantha|Daniel|Aria/i.test(v.name)) ||
+    voices.find((v) => v.lang.toLowerCase().startsWith(prefix) && /Google|Samantha|Daniel|Aria|Lekha/i.test(v.name)) ||
+    voices.find((v) => v.lang.toLowerCase().startsWith(prefix)) ||
     voices.find((v) => v.lang.startsWith('en'));
   if (preferred) u.voice = preferred;
   if (onEnd) u.onend = onEnd;

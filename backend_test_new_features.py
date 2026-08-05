@@ -1,355 +1,528 @@
-"""TRAVELO Backend API Test Suite - NEW FEATURES ONLY"""
-import requests
+#!/usr/bin/env python3
+"""Backend tests for TRAVELO - 4 NEW features (Hindi voice, trip invites list, audio voice notes, receipt email wiring)"""
+import os
+import sys
 import time
-import json
-import base64
-from io import BytesIO
-from PIL import Image, ImageDraw
+import requests
+from datetime import datetime, timedelta
+from pymongo import MongoClient
+from gtts import gTTS
+import tempfile
 
-# Base URL from frontend/.env
-BASE_URL = "https://wanderlust-chaos.internal.stage-preview.emergentagent.com/api"
+# Load environment
+sys.path.insert(0, '/app/backend')
+from dotenv import load_dotenv
+load_dotenv('/app/backend/.env')
+load_dotenv('/app/frontend/.env')
 
-# Test results tracking
-results = {
-    "passed": [],
-    "failed": [],
-    "warnings": []
-}
+BASE_URL = os.getenv('REACT_APP_BACKEND_URL', 'http://localhost:8001') + '/api'
+MONGO_URL = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
+DB_NAME = os.getenv('DB_NAME', 'travelo')
 
-def log_pass(test_name):
-    results["passed"].append(test_name)
-    print(f"✅ PASS: {test_name}")
+print(f"🔗 Backend URL: {BASE_URL}")
+print(f"🔗 MongoDB: {MONGO_URL}")
 
-def log_fail(test_name, reason):
-    results["failed"].append(f"{test_name}: {reason}")
-    print(f"❌ FAIL: {test_name}")
-    print(f"   Reason: {reason}")
+# Test credentials
+SMOKE_EMAIL = "smoke@travelo.app"
+SMOKE_PASSWORD = "Test@1234"
+FRIEND_EMAIL = "friend@travelo.app"
+FRIEND_PASSWORD = "Friend@1234"
 
-def log_warning(test_name, reason):
-    results["warnings"].append(f"{test_name}: {reason}")
-    print(f"⚠️  WARNING: {test_name}: {reason}")
+# Global tokens
+smoke_token = None
+friend_token = None
 
-def create_scenic_image(width=400, height=300, seed=0):
-    """Create a small JPEG image with real visual features (gradients, shapes, edges)."""
-    img = Image.new('RGB', (width, height))
-    draw = ImageDraw.Draw(img)
-    
-    # Sky gradient (blue to orange)
-    for y in range(height // 2):
-        ratio = y / (height // 2)
-        r = int(30 + ratio * 225)
-        g = int(100 + ratio * 155)
-        b = int(200 - ratio * 100)
-        draw.rectangle([(0, y), (width, y+1)], fill=(r, g, b))
-    
-    # Ground gradient (green to brown)
-    for y in range(height // 2, height):
-        ratio = (y - height // 2) / (height // 2)
-        r = int(100 + ratio * 100)
-        g = int(150 - ratio * 50)
-        b = int(50 - ratio * 30)
-        draw.rectangle([(0, y), (width, y+1)], fill=(r, g, b))
-    
-    # Sun circle
-    sun_x = width // 4 + seed * 50
-    sun_y = height // 4
-    sun_radius = 40
-    draw.ellipse([(sun_x - sun_radius, sun_y - sun_radius), 
-                  (sun_x + sun_radius, sun_y + sun_radius)], 
-                 fill=(255, 220, 100))
-    
-    # Mountain triangles
-    mountain_points = [
-        (width // 3 + seed * 20, height // 2),
-        (width // 2 + seed * 10, height // 3),
-        (2 * width // 3 + seed * 5, height // 2)
-    ]
-    draw.polygon(mountain_points, fill=(80, 60, 40))
-    
-    # Convert to base64 JPEG
-    buffer = BytesIO()
-    img.save(buffer, format='JPEG', quality=85)
-    buffer.seek(0)
-    return base64.b64encode(buffer.read()).decode('utf-8')
+def login(email: str, password: str) -> str:
+    """Login and return JWT token"""
+    resp = requests.post(f"{BASE_URL}/auth/login", json={"email": email, "password": password}, timeout=10)
+    if resp.status_code == 200:
+        return resp.json()["token"]
+    raise Exception(f"Login failed for {email}: {resp.status_code} {resp.text}")
 
-print("=" * 80)
-print("TRAVELO BACKEND API TEST SUITE - NEW FEATURES")
-print("=" * 80)
-print(f"Base URL: {BASE_URL}")
-print()
+def auth_headers(token: str) -> dict:
+    """Return authorization headers"""
+    return {"Authorization": f"Bearer {token}"}
 
 # ============================================================================
-# 1. EXPANDED CATALOG - 24 DESTINATIONS
+# FEATURE 1: HINDI VOICE MODE
 # ============================================================================
-print("\n[1] EXPANDED CATALOG - 24 DESTINATIONS")
-print("-" * 80)
-
-try:
-    resp = requests.get(f"{BASE_URL}/destinations", timeout=10)
-    if resp.status_code == 200:
-        destinations = resp.json()
-        if isinstance(destinations, list) and len(destinations) == 24:
-            log_pass("GET /destinations: returns exactly 24 destinations")
-        else:
-            log_fail("GET /destinations", f"Expected 24 destinations, got {len(destinations) if isinstance(destinations, list) else 'non-list'}")
-    else:
-        log_fail("GET /destinations", f"Status {resp.status_code}: {resp.text}")
-except Exception as e:
-    log_fail("GET /destinations", str(e))
-
-# Test region filter for India (should return 6)
-try:
-    resp = requests.get(f"{BASE_URL}/destinations?region=India", timeout=10)
-    if resp.status_code == 200:
-        destinations = resp.json()
-        dest_ids = [d.get("id") for d in destinations]
-        expected_ids = ["goa", "jaipur", "kerala", "ladakh", "varanasi", "udaipur"]
+def test_hindi_voice_mode():
+    """Test Hindi voice transcription and Hindi chat replies"""
+    global smoke_token
+    
+    print("\n" + "="*80)
+    print("FEATURE 1: HINDI VOICE MODE")
+    print("="*80)
+    
+    # Login
+    smoke_token = login(SMOKE_EMAIL, SMOKE_PASSWORD)
+    print("✅ Logged in as smoke user")
+    
+    # Test 1a: Generate Hindi speech and transcribe
+    print("\n📝 Test 1a: Hindi voice transcription")
+    hindi_text = "मुझे मनाली में बर्फ देखनी है"
+    print(f"   Generating Hindi audio: '{hindi_text}'")
+    
+    with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
+        tmp_path = tmp.name
+        gTTS(hindi_text, lang='hi').save(tmp_path)
+        print(f"   ✅ Generated audio file: {tmp_path}")
         
-        if len(destinations) == 6 and all(eid in dest_ids for eid in expected_ids):
-            log_pass(f"GET /destinations?region=India: returns 6 destinations ({', '.join(dest_ids)})")
-        else:
-            log_fail("GET /destinations?region=India", f"Expected 6 destinations {expected_ids}, got {len(destinations)}: {dest_ids}")
-    else:
-        log_fail("GET /destinations?region=India", f"Status {resp.status_code}: {resp.text}")
-except Exception as e:
-    log_fail("GET /destinations?region=India", str(e))
-
-# Test Bora Bora destination with tier pricing
-try:
-    resp = requests.get(f"{BASE_URL}/destinations/bora-bora", timeout=10)
-    if resp.status_code == 200:
-        dest = resp.json()
-        base_price = dest.get("base_price")
-        tiers = dest.get("tiers", {})
+        # Transcribe with language="hi"
+        with open(tmp_path, 'rb') as audio_file:
+            files = {'file': ('hindi_test.mp3', audio_file, 'audio/mpeg')}
+            data = {'language': 'hi'}
+            resp = requests.post(
+                f"{BASE_URL}/voice/transcribe",
+                files=files,
+                data=data,
+                headers=auth_headers(smoke_token),
+                timeout=60
+            )
         
-        # Expected: base_price 3499, explorer=3499, elite=round(3499*1.65)=5773, legend=round(3499*2.8)=9797
-        expected_base = 3499
-        expected_explorer = 3499
-        expected_elite = 5773
-        expected_legend = 9797
+        os.unlink(tmp_path)
         
-        checks = []
-        checks.append(("base_price = 3499", base_price == expected_base))
-        checks.append(("explorer tier = 3499", tiers.get("explorer") == expected_explorer))
-        checks.append(("elite tier = 5773", tiers.get("elite") == expected_elite))
-        checks.append(("legend tier = 9797", tiers.get("legend") == expected_legend))
+        assert resp.status_code == 200, f"POST /voice/transcribe failed: {resp.status_code} {resp.text}"
+        result = resp.json()
+        transcribed_text = result.get('text', '')
+        print(f"   ✅ Transcribed text: '{transcribed_text}'")
         
-        if all(check[1] for check in checks):
-            log_pass("GET /destinations/bora-bora: correct base_price and tier pricing")
-        else:
-            failed_checks = [check[0] for check in checks if not check[1]]
-            log_fail("GET /destinations/bora-bora", f"Failed checks: {', '.join(failed_checks)}. Got: base={base_price}, tiers={tiers}")
+        # Check if transcription contains Devanagari script and "मनाली" (accept close variants)
+        has_devanagari = any('\u0900' <= c <= '\u097F' for c in transcribed_text)
+        has_manali = 'मनाली' in transcribed_text or 'मनालि' in transcribed_text or 'manali' in transcribed_text.lower()
+        
+        assert has_devanagari, f"❌ Transcription should contain Devanagari script, got: {transcribed_text}"
+        assert has_manali, f"❌ Transcription should contain 'मनाली' or variant, got: {transcribed_text}"
+        print(f"   ✅ Transcription contains Devanagari and 'मनाली' (or variant)")
+    
+    # Test 1b: Chat in Hindi
+    print("\n📝 Test 1b: NOMAD chat replies in Hindi")
+    chat_data = {
+        "place": "Manali",
+        "phase": "before",
+        "language": "hi",
+        "text": "मनाली में 2 दिन का प्लान दो, छोटा जवाब"
+    }
+    
+    resp = requests.post(
+        f"{BASE_URL}/chat/message",
+        json=chat_data,
+        headers=auth_headers(smoke_token),
+        timeout=90,
+        stream=True
+    )
+    
+    assert resp.status_code == 200, f"POST /chat/message failed: {resp.status_code} {resp.text}"
+    
+    # Accumulate SSE delta events
+    accumulated_text = ""
+    for line in resp.iter_lines():
+        if line:
+            line_str = line.decode('utf-8')
+            if line_str.startswith('data: '):
+                import json
+                data = json.loads(line_str[6:])
+                if data.get('type') == 'delta':
+                    accumulated_text += data.get('content', '')
+    
+    print(f"   ✅ Accumulated reply: '{accumulated_text[:200]}...'")
+    
+    # Check if reply is primarily in Devanagari (Hindi), NOT English
+    devanagari_count = sum(1 for c in accumulated_text if '\u0900' <= c <= '\u097F')
+    latin_alpha_count = sum(1 for c in accumulated_text if c.isalpha() and c.isascii())
+    
+    print(f"   📊 Devanagari chars: {devanagari_count}, Latin alpha chars: {latin_alpha_count}")
+    
+    assert devanagari_count > 0, f"❌ Reply should contain Devanagari script (Hindi), got: {accumulated_text[:200]}"
+    assert devanagari_count > latin_alpha_count, f"❌ Reply should be primarily in Hindi (Devanagari), not English. Devanagari: {devanagari_count}, Latin: {latin_alpha_count}"
+    print(f"   ✅ Reply is primarily in Hindi (Devanagari script)")
+    
+    # Test 1c: Chat in English still works
+    print("\n📝 Test 1c: NOMAD chat replies in English when language='en'")
+    chat_data_en = {
+        "place": "Manali",
+        "phase": "before",
+        "language": "en",
+        "text": "Give me a 2-day plan for Manali, short answer"
+    }
+    
+    resp = requests.post(
+        f"{BASE_URL}/chat/message",
+        json=chat_data_en,
+        headers=auth_headers(smoke_token),
+        timeout=90,
+        stream=True
+    )
+    
+    assert resp.status_code == 200, f"POST /chat/message (en) failed: {resp.status_code} {resp.text}"
+    
+    accumulated_text_en = ""
+    for line in resp.iter_lines():
+        if line:
+            line_str = line.decode('utf-8')
+            if line_str.startswith('data: '):
+                import json
+                data = json.loads(line_str[6:])
+                if data.get('type') == 'delta':
+                    accumulated_text_en += data.get('content', '')
+    
+    print(f"   ✅ Accumulated reply (en): '{accumulated_text_en[:200]}...'")
+    
+    # Check if reply is in English (mostly Latin alphabet)
+    latin_alpha_count_en = sum(1 for c in accumulated_text_en if c.isalpha() and c.isascii())
+    devanagari_count_en = sum(1 for c in accumulated_text_en if '\u0900' <= c <= '\u097F')
+    
+    print(f"   📊 Latin alpha chars: {latin_alpha_count_en}, Devanagari chars: {devanagari_count_en}")
+    
+    assert latin_alpha_count_en > 0, f"❌ Reply should contain English text, got: {accumulated_text_en[:200]}"
+    assert latin_alpha_count_en > devanagari_count_en, f"❌ Reply should be primarily in English, not Hindi"
+    print(f"   ✅ Reply is in English")
+    
+    print("\n✅ FEATURE 1 PASSED: Hindi voice mode working (transcribe + chat in Hindi)")
+
+# ============================================================================
+# FEATURE 2: TRIP INVITES LIST
+# ============================================================================
+def test_trip_invites_list():
+    """Test GET /api/trips/{id}/invites endpoint"""
+    global smoke_token, friend_token
+    
+    print("\n" + "="*80)
+    print("FEATURE 2: TRIP INVITES LIST")
+    print("="*80)
+    
+    # Login both users
+    smoke_token = login(SMOKE_EMAIL, SMOKE_PASSWORD)
+    friend_token = login(FRIEND_EMAIL, FRIEND_PASSWORD)
+    print("✅ Both users logged in")
+    
+    # Get smoke's trips
+    resp = requests.get(f"{BASE_URL}/trips", headers=auth_headers(smoke_token), timeout=10)
+    assert resp.status_code == 200, f"GET /trips failed: {resp.status_code}"
+    trips = resp.json()
+    
+    # If no trips, create one
+    if not trips:
+        print("📝 Creating a new trip for smoke user...")
+        trip_data = {
+            "place": "Goa Beach Escape",
+            "start_date": (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
+            "end_date": (datetime.now() + timedelta(days=35)).strftime("%Y-%m-%d"),
+            "budget": 50000,
+            "members": [
+                {"name": "Smoke Test", "contribution": 25000, "payment_handle": "smoke@upi"}
+            ]
+        }
+        resp = requests.post(f"{BASE_URL}/trips", json=trip_data, headers=auth_headers(smoke_token), timeout=10)
+        assert resp.status_code == 200, f"POST /trips failed: {resp.status_code} {resp.text}"
+        trip = resp.json()
+        trip_id = trip["id"]
+        print(f"✅ Created trip: {trip_id}")
     else:
-        log_fail("GET /destinations/bora-bora", f"Status {resp.status_code}: {resp.text}")
-except Exception as e:
-    log_fail("GET /destinations/bora-bora", str(e))
+        trip_id = trips[0]["id"]
+        print(f"✅ Using existing trip: {trip_id}")
+    
+    # Send an invite to create invite records
+    print(f"\n📧 Sending invite to create invite records...")
+    invite_data = {
+        "emails": ["test@example.com"],
+        "origin_url": "https://example.com"
+    }
+    resp = requests.post(
+        f"{BASE_URL}/trips/{trip_id}/invite",
+        json=invite_data,
+        headers=auth_headers(smoke_token),
+        timeout=30
+    )
+    assert resp.status_code == 200, f"POST /trips/{trip_id}/invite failed: {resp.status_code} {resp.text}"
+    print(f"✅ Invite sent")
+    
+    # Test 2a: Get invites list as trip owner
+    print("\n📝 Test 2a: GET /api/trips/{id}/invites as trip owner")
+    resp = requests.get(
+        f"{BASE_URL}/trips/{trip_id}/invites",
+        headers=auth_headers(smoke_token),
+        timeout=10
+    )
+    
+    assert resp.status_code == 200, f"GET /trips/{trip_id}/invites failed: {resp.status_code} {resp.text}"
+    invites = resp.json()
+    print(f"   ✅ Got {len(invites)} invites")
+    
+    # Verify structure
+    assert isinstance(invites, list), f"❌ Response should be an array, got: {type(invites)}"
+    
+    if invites:
+        invite = invites[0]
+        print(f"   📋 First invite: {invite}")
+        
+        # Check required fields
+        assert 'email' in invite, "❌ Invite should have 'email' field"
+        assert 'status' in invite, "❌ Invite should have 'status' field"
+        assert 'created_at' in invite, "❌ Invite should have 'created_at' field"
+        
+        # Check status is valid
+        assert invite['status'] in ['pending', 'accepted'], f"❌ Status should be 'pending' or 'accepted', got: {invite['status']}"
+        
+        # CRITICAL: Check that 'token' field is NOT exposed
+        assert 'token' not in invite, f"❌ SECURITY ISSUE: 'token' field should NOT be exposed in invites list, got: {invite}"
+        
+        print(f"   ✅ Invite structure correct: email={invite['email']}, status={invite['status']}, created_at={invite['created_at']}")
+        print(f"   ✅ SECURITY: 'token' field NOT exposed")
+    
+    # Test 2b: Without auth -> 401/403
+    print("\n📝 Test 2b: GET /api/trips/{id}/invites without auth")
+    resp = requests.get(f"{BASE_URL}/trips/{trip_id}/invites", timeout=10)
+    assert resp.status_code in [401, 403], f"❌ Should return 401/403 without auth, got: {resp.status_code}"
+    print(f"   ✅ Returns {resp.status_code} without auth")
+    
+    # Test 2c: Other user's trip -> 404
+    print("\n📝 Test 2c: GET /api/trips/{id}/invites for other user's trip")
+    resp = requests.get(
+        f"{BASE_URL}/trips/{trip_id}/invites",
+        headers=auth_headers(friend_token),
+        timeout=10
+    )
+    assert resp.status_code == 404, f"❌ Should return 404 for other user's trip, got: {resp.status_code}"
+    print(f"   ✅ Returns 404 for other user's trip")
+    
+    print("\n✅ FEATURE 2 PASSED: Trip invites list endpoint working")
 
 # ============================================================================
-# 2. EXPANDED QUOTES - 40 QUOTES
+# FEATURE 3: AUDIO VOICE NOTES IN ROOMS
 # ============================================================================
-print("\n[2] EXPANDED QUOTES - 40 QUOTES")
-print("-" * 80)
-
-try:
-    resp = requests.get(f"{BASE_URL}/quotes", timeout=10)
-    if resp.status_code == 200:
-        quotes = resp.json()
-        if isinstance(quotes, list) and len(quotes) == 40:
-            log_pass("GET /quotes: returns exactly 40 quotes")
-        else:
-            log_fail("GET /quotes", f"Expected 40 quotes, got {len(quotes) if isinstance(quotes, list) else 'non-list'}")
+def test_audio_voice_notes():
+    """Test audio voice notes in squad chat rooms"""
+    global smoke_token, friend_token
+    
+    print("\n" + "="*80)
+    print("FEATURE 3: AUDIO VOICE NOTES IN ROOMS")
+    print("="*80)
+    
+    # Login both users
+    smoke_token = login(SMOKE_EMAIL, SMOKE_PASSWORD)
+    friend_token = login(FRIEND_EMAIL, FRIEND_PASSWORD)
+    print("✅ Both users logged in")
+    
+    # Get friend's rooms
+    resp = requests.get(f"{BASE_URL}/rooms", headers=auth_headers(friend_token), timeout=10)
+    assert resp.status_code == 200, f"GET /rooms failed: {resp.status_code}"
+    rooms = resp.json()
+    
+    # If no rooms, create one
+    if not rooms:
+        print("📝 Creating a new room for friend user...")
+        room_data = {"name": "Audio Test Room"}
+        resp = requests.post(f"{BASE_URL}/rooms", json=room_data, headers=auth_headers(friend_token), timeout=10)
+        assert resp.status_code == 200, f"POST /rooms failed: {resp.status_code} {resp.text}"
+        room = resp.json()
+        room_id = room["id"]
+        print(f"✅ Created room: {room_id}")
     else:
-        log_fail("GET /quotes", f"Status {resp.status_code}: {resp.text}")
-except Exception as e:
-    log_fail("GET /quotes", str(e))
+        room_id = rooms[0]["id"]
+        print(f"✅ Using existing room: {room_id}")
+    
+    # Test 3a: Upload audio file (mp3)
+    print("\n📝 Test 3a: POST /api/rooms/{id}/media with audio/mpeg")
+    
+    # Generate a small audio file using gTTS
+    audio_text = "This is a test voice note for the squad"
+    with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
+        tmp_path = tmp.name
+        gTTS(audio_text, lang='en').save(tmp_path)
+        print(f"   ✅ Generated audio file: {tmp_path}")
+        
+        with open(tmp_path, 'rb') as audio_file:
+            files = {'file': ('voice_note.mp3', audio_file, 'audio/mpeg')}
+            resp = requests.post(
+                f"{BASE_URL}/rooms/{room_id}/media",
+                files=files,
+                headers=auth_headers(friend_token),
+                timeout=30
+            )
+        
+        os.unlink(tmp_path)
+    
+    assert resp.status_code == 200, f"POST /rooms/{room_id}/media failed: {resp.status_code} {resp.text}"
+    message = resp.json()
+    print(f"   ✅ Uploaded audio, got message: {message}")
+    
+    # Verify message structure
+    assert message['type'] == 'media', f"❌ Message type should be 'media', got: {message['type']}"
+    assert message['media_type'] == 'audio', f"❌ Media type should be 'audio', got: {message['media_type']}"
+    assert 'media_url' in message, "❌ Message should have 'media_url' field"
+    
+    media_url = message['media_url']
+    print(f"   ✅ Message structure correct: type=media, media_type=audio, media_url={media_url}")
+    
+    # Test 3b: GET the media URL (no auth required)
+    print("\n📝 Test 3b: GET media URL (no auth)")
+    full_media_url = BASE_URL.replace('/api', '') + media_url
+    resp = requests.get(full_media_url, timeout=10)
+    
+    assert resp.status_code == 200, f"GET {media_url} failed: {resp.status_code}"
+    assert resp.headers.get('content-type', '').startswith('audio/'), f"❌ Content-Type should be audio/*, got: {resp.headers.get('content-type')}"
+    print(f"   ✅ Media URL accessible (no auth), content-type: {resp.headers.get('content-type')}")
+    
+    # Test 3c: Check room's last_message.preview == "🎤 Voice note"
+    print("\n📝 Test 3c: GET /api/rooms - check last_message.preview")
+    resp = requests.get(f"{BASE_URL}/rooms", headers=auth_headers(friend_token), timeout=10)
+    assert resp.status_code == 200, f"GET /rooms failed: {resp.status_code}"
+    rooms = resp.json()
+    
+    room = next((r for r in rooms if r['id'] == room_id), None)
+    assert room is not None, f"❌ Room {room_id} not found in rooms list"
+    
+    last_message = room.get('last_message', {})
+    preview = last_message.get('preview', '')
+    
+    print(f"   📋 Room last_message: {last_message}")
+    assert preview == "🎤 Voice note", f"❌ last_message.preview should be '🎤 Voice note', got: '{preview}'"
+    print(f"   ✅ last_message.preview == '🎤 Voice note'")
+    
+    # Test 3d: Upload .txt file -> 400
+    print("\n📝 Test 3d: POST /api/rooms/{id}/media with .txt file")
+    with tempfile.NamedTemporaryFile(suffix='.txt', delete=False, mode='w') as tmp:
+        tmp_path = tmp.name
+        tmp.write("This is a text file, not media")
+    
+    with open(tmp_path, 'rb') as txt_file:
+        files = {'file': ('test.txt', txt_file, 'text/plain')}
+        resp = requests.post(
+            f"{BASE_URL}/rooms/{room_id}/media",
+            files=files,
+            headers=auth_headers(friend_token),
+            timeout=10
+        )
+    
+    os.unlink(tmp_path)
+    
+    assert resp.status_code == 400, f"❌ Should return 400 for .txt file, got: {resp.status_code}"
+    print(f"   ✅ Returns 400 for .txt file")
+    
+    print("\n✅ FEATURE 3 PASSED: Audio voice notes in rooms working")
 
 # ============================================================================
-# 3. NEW DESTINATION BOOKING (LADAKH) + STRIPE PRICE
+# FEATURE 4: RECEIPT EMAIL WIRING (origin_url in payment_transactions)
 # ============================================================================
-print("\n[3] NEW DESTINATION BOOKING (LADAKH) + STRIPE PRICE")
-print("-" * 80)
+def test_receipt_email_wiring():
+    """Test origin_url is stored in payment_transactions"""
+    global smoke_token
+    
+    print("\n" + "="*80)
+    print("FEATURE 4: RECEIPT EMAIL WIRING")
+    print("="*80)
+    
+    # Login
+    smoke_token = login(SMOKE_EMAIL, SMOKE_PASSWORD)
+    print("✅ Logged in as smoke user")
+    
+    # Test 4a: Create booking
+    print("\n📝 Test 4a: Create booking")
+    booking_data = {
+        "destination_id": "manali",
+        "tier": "explorer",
+        "travelers": 1,
+        "start_date": "2026-11-10",
+        "end_date": "2026-11-16"
+    }
+    
+    resp = requests.post(
+        f"{BASE_URL}/bookings",
+        json=booking_data,
+        headers=auth_headers(smoke_token),
+        timeout=10
+    )
+    
+    assert resp.status_code == 200, f"POST /bookings failed: {resp.status_code} {resp.text}"
+    booking = resp.json()
+    booking_id = booking['id']
+    print(f"   ✅ Created booking: {booking_id}")
+    
+    # Test 4b: Create checkout session with origin_url
+    print("\n📝 Test 4b: POST /api/payments/checkout with origin_url")
+    checkout_data = {
+        "booking_id": booking_id,
+        "origin_url": "https://example.com"
+    }
+    
+    resp = requests.post(
+        f"{BASE_URL}/payments/checkout",
+        json=checkout_data,
+        headers=auth_headers(smoke_token),
+        timeout=10
+    )
+    
+    assert resp.status_code == 200, f"POST /payments/checkout failed: {resp.status_code} {resp.text}"
+    checkout = resp.json()
+    session_id = checkout['session_id']
+    checkout_url = checkout['checkout_url']
+    
+    print(f"   ✅ Created checkout session: {session_id}")
+    print(f"   ✅ Checkout URL: {checkout_url}")
+    
+    # Verify checkout_url is valid
+    assert checkout_url.startswith('https://checkout.stripe.com'), f"❌ Invalid checkout URL: {checkout_url}"
+    print(f"   ✅ Valid checkout URL")
+    
+    # Test 4c: GET payment status (should be pending)
+    print("\n📝 Test 4c: GET /api/payments/status/{session_id}")
+    resp = requests.get(
+        f"{BASE_URL}/payments/status/{session_id}",
+        headers=auth_headers(smoke_token),
+        timeout=10
+    )
+    
+    assert resp.status_code == 200, f"GET /payments/status/{session_id} failed: {resp.status_code} {resp.text}"
+    status = resp.json()
+    print(f"   ✅ Payment status: {status}")
+    
+    assert status['status'] in ['pending', 'initiated'], f"❌ Status should be 'pending' or 'initiated' (unpaid), got: {status['status']}"
+    print(f"   ✅ Status is '{status['status']}' (expected for unpaid session)")
+    
+    # Test 4d: Verify origin_url in MongoDB payment_transactions
+    print("\n📝 Test 4d: Verify origin_url in MongoDB payment_transactions")
+    
+    mongo_client = MongoClient(MONGO_URL)
+    db = mongo_client[DB_NAME]
+    payment_transactions = db['payment_transactions']
+    
+    txn = payment_transactions.find_one({'session_id': session_id})
+    
+    assert txn is not None, f"❌ Payment transaction not found for session_id: {session_id}"
+    print(f"   ✅ Found payment transaction in MongoDB")
+    
+    origin_url = txn.get('origin_url')
+    assert origin_url == "https://example.com", f"❌ origin_url should be 'https://example.com', got: {origin_url}"
+    print(f"   ✅ origin_url stored correctly: {origin_url}")
+    
+    mongo_client.close()
+    
+    print("\n✅ FEATURE 4 PASSED: Receipt email wiring (origin_url in payment_transactions)")
 
-# Login with test credentials
-auth_token = None
-try:
-    resp = requests.post(f"{BASE_URL}/auth/login", json={
-        "email": "smoke@travelo.app",
-        "password": "Test@1234"
-    }, timeout=10)
-    if resp.status_code == 200:
-        auth_token = resp.json().get("token")
-        log_pass("Login with test credentials: successful")
-    else:
-        log_fail("Login with test credentials", f"Status {resp.status_code}: {resp.text}")
-except Exception as e:
-    log_fail("Login with test credentials", str(e))
-
-booking_id = None
-
-if auth_token:
-    # Create booking for Ladakh, explorer tier, 2 travelers
+# ============================================================================
+# MAIN
+# ============================================================================
+if __name__ == "__main__":
+    print("\n" + "="*80)
+    print("🚀 TRAVELO BACKEND TESTS - 4 NEW FEATURES")
+    print("="*80)
+    
     try:
-        resp = requests.post(f"{BASE_URL}/bookings", json={
-            "destination_id": "ladakh",
-            "tier": "explorer",
-            "travelers": 2,
-            "start_date": "2026-10-05",
-            "end_date": "2026-10-13"
-        }, headers={"Authorization": f"Bearer {auth_token}"}, timeout=10)
+        test_hindi_voice_mode()
+        test_trip_invites_list()
+        test_audio_voice_notes()
+        test_receipt_email_wiring()
         
-        if resp.status_code == 200:
-            booking = resp.json()
-            # Ladakh base_price = 1099, explorer = 1099 * 1.0 = 1099
-            # Amount = 1099 * 2 = 2198.0
-            expected_amount = 2198.0
-            actual_amount = booking.get("amount")
-            
-            if actual_amount == expected_amount:
-                booking_id = booking.get("id")
-                log_pass(f"POST /bookings (ladakh, explorer, 2 travelers): correct amount ({expected_amount})")
-            else:
-                log_fail("POST /bookings (ladakh)", f"Expected amount={expected_amount}, got {actual_amount}")
-        else:
-            log_fail("POST /bookings (ladakh)", f"Status {resp.status_code}: {resp.text}")
+        print("\n" + "="*80)
+        print("✅ ALL 4 NEW FEATURES PASSED")
+        print("="*80)
+        
+    except AssertionError as e:
+        print(f"\n❌ TEST FAILED: {e}")
+        sys.exit(1)
     except Exception as e:
-        log_fail("POST /bookings (ladakh)", str(e))
-    
-    # Create Stripe checkout to verify ladakh_explorer price exists
-    if booking_id:
-        try:
-            resp = requests.post(f"{BASE_URL}/payments/checkout", json={
-                "booking_id": booking_id,
-                "origin_url": "https://example.com"
-            }, headers={"Authorization": f"Bearer {auth_token}"}, timeout=10)
-            
-            if resp.status_code == 200:
-                data = resp.json()
-                checkout_url = data.get("checkout_url", "")
-                
-                if checkout_url.startswith("https://checkout.stripe.com"):
-                    log_pass("POST /payments/checkout (ladakh_explorer): valid Stripe checkout URL (proves Stripe price exists)")
-                else:
-                    log_fail("POST /payments/checkout (ladakh_explorer)", f"Invalid checkout_url: {checkout_url}")
-            else:
-                log_fail("POST /payments/checkout (ladakh_explorer)", f"Status {resp.status_code}: {resp.text}")
-        except Exception as e:
-            log_fail("POST /payments/checkout (ladakh_explorer)", str(e))
-else:
-    log_fail("NEW DESTINATION BOOKING", "No auth token available, skipping booking tests")
-
-# ============================================================================
-# 4. VIBE LAB AI ANALYSIS
-# ============================================================================
-print("\n[4] VIBE LAB AI ANALYSIS")
-print("-" * 80)
-
-if auth_token:
-    # Test 1: Valid collage analysis with 3 scenic images
-    try:
-        print("Creating 3 scenic test images with real visual features...")
-        images = [create_scenic_image(400, 300, i) for i in range(3)]
-        print(f"Created {len(images)} images, sizes: {[len(img) for img in images]} bytes (base64)")
-        
-        resp = requests.post(f"{BASE_URL}/collage/analyze", json={
-            "images": images
-        }, headers={"Authorization": f"Bearer {auth_token}"}, timeout=120)  # 120s timeout for LLM
-        
-        if resp.status_code == 200:
-            data = resp.json()
-            
-            # Check required keys
-            required_keys = ["vibe_title", "caption", "mood", "palette", "hashtags", "source"]
-            checks = []
-            checks.append(("has all required keys", all(k in data for k in required_keys)))
-            checks.append(("vibe_title is string", isinstance(data.get("vibe_title"), str)))
-            checks.append(("caption is string", isinstance(data.get("caption"), str)))
-            checks.append(("mood is string", isinstance(data.get("mood"), str)))
-            checks.append(("palette is array of 3", isinstance(data.get("palette"), list) and len(data.get("palette", [])) == 3))
-            checks.append(("hashtags is array of 5", isinstance(data.get("hashtags"), list) and len(data.get("hashtags", [])) == 5))
-            checks.append(("all hashtags start with #", all(h.startswith("#") for h in data.get("hashtags", []))))
-            checks.append(("all palette items are hex colors", all(isinstance(c, str) and c.startswith("#") for c in data.get("palette", []))))
-            
-            source = data.get("source")
-            if source == "ai":
-                checks.append(("source is 'ai'", True))
-            elif source == "fallback":
-                log_warning("POST /collage/analyze", "LLM call failed, returned fallback response. Check backend logs for EMERGENT_LLM_KEY or API errors.")
-                checks.append(("source is 'ai'", False))
-            
-            if all(check[1] for check in checks):
-                log_pass(f"POST /collage/analyze (3 images): correct response structure, source={source}")
-            else:
-                failed_checks = [check[0] for check in checks if not check[1]]
-                log_fail("POST /collage/analyze (3 images)", f"Failed checks: {', '.join(failed_checks)}. Response: {json.dumps(data, indent=2)}")
-        else:
-            log_fail("POST /collage/analyze (3 images)", f"Status {resp.status_code}: {resp.text}")
-    except Exception as e:
-        log_fail("POST /collage/analyze (3 images)", str(e))
-    
-    # Test 2: Validation - empty images array
-    try:
-        resp = requests.post(f"{BASE_URL}/collage/analyze", json={
-            "images": []
-        }, headers={"Authorization": f"Bearer {auth_token}"}, timeout=10)
-        
-        if resp.status_code == 422:
-            log_pass("POST /collage/analyze (empty images): returns 422")
-        else:
-            log_fail("POST /collage/analyze (empty images)", f"Expected 422, got {resp.status_code}")
-    except Exception as e:
-        log_fail("POST /collage/analyze (empty images)", str(e))
-    
-    # Test 3: Validation - more than 5 images
-    try:
-        images = [create_scenic_image(200, 150, i) for i in range(6)]
-        resp = requests.post(f"{BASE_URL}/collage/analyze", json={
-            "images": images
-        }, headers={"Authorization": f"Bearer {auth_token}"}, timeout=10)
-        
-        if resp.status_code == 422:
-            log_pass("POST /collage/analyze (6 images): returns 422")
-        else:
-            log_fail("POST /collage/analyze (6 images)", f"Expected 422, got {resp.status_code}")
-    except Exception as e:
-        log_fail("POST /collage/analyze (6 images)", str(e))
-else:
-    log_fail("VIBE LAB AI ANALYSIS", "No auth token available, skipping all tests")
-
-# Test 4: Validation - without auth
-try:
-    images = [create_scenic_image(200, 150, 0)]
-    resp = requests.post(f"{BASE_URL}/collage/analyze", json={
-        "images": images
-    }, timeout=10)
-    
-    if resp.status_code in [401, 403]:
-        log_pass("POST /collage/analyze (without auth): returns 401/403")
-    else:
-        log_fail("POST /collage/analyze (without auth)", f"Expected 401/403, got {resp.status_code}")
-except Exception as e:
-    log_fail("POST /collage/analyze (without auth)", str(e))
-
-# ============================================================================
-# SUMMARY
-# ============================================================================
-print("\n" + "=" * 80)
-print("TEST SUMMARY - NEW FEATURES")
-print("=" * 80)
-print(f"✅ PASSED: {len(results['passed'])}")
-print(f"❌ FAILED: {len(results['failed'])}")
-print(f"⚠️  WARNINGS: {len(results['warnings'])}")
-
-if results['failed']:
-    print("\nFailed Tests:")
-    for fail in results['failed']:
-        print(f"  - {fail}")
-
-if results['warnings']:
-    print("\nWarnings:")
-    for warn in results['warnings']:
-        print(f"  - {warn}")
-
-print("\n" + "=" * 80)
-exit_code = 0 if len(results['failed']) == 0 else 1
-print(f"Exit code: {exit_code}")
-exit(exit_code)
+        print(f"\n❌ UNEXPECTED ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

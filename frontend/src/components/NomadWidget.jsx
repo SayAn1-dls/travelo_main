@@ -22,11 +22,11 @@ export default function NomadWidget() {
   const scrollRef = useRef(null);
 
   const chat = useNomadChat({
-    onReply: (full, { spoken }) => {
-      if (spoken || voiceRepliesRef.current) speak(full);
+    onReply: (full, { spoken, language: lang }) => {
+      if (spoken || voiceRepliesRef.current) speak(full, { lang });
     },
   });
-  const { phase, setPhase, place, setPlace, messages, streaming, streamText, send, newChat } = chat;
+  const { phase, setPhase, place, setPlace, language, setLanguage, messages, streaming, streamText, send, newChat } = chat;
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -84,6 +84,16 @@ export default function NomadWidget() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+                  title="Toggle Hindi mode"
+                  className={`flex h-8 min-w-8 items-center justify-center border px-1.5 font-mono text-[9px] font-bold transition ${
+                    language === 'hi' ? 'border-blaze bg-blaze text-black' : 'border-white/20 text-white/60 hover:border-blaze hover:text-blaze'
+                  }`}
+                  data-testid="widget-lang-toggle"
+                >
+                  {language === 'hi' ? 'हिं' : 'EN'}
+                </button>
                 <button
                   onClick={() => {
                     const next = !voiceReplies;
@@ -176,6 +186,7 @@ export default function NomadWidget() {
               <MicButton
                 size="sm"
                 disabled={streaming}
+                language={language}
                 onInterim={(t) => setDraft(t)}
                 onFinal={(t) => { setDraft(''); submitDraft(t, { spoken: true }); }}
               />

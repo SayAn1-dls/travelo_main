@@ -43,11 +43,11 @@ export default function NomadChat({ vibe }) {
 
   const chat = useNomadChat({
     vibe,
-    onReply: (full, { spoken }) => {
-      if (spoken || voiceRepliesRef.current) speak(full);
+    onReply: (full, { spoken, language: lang }) => {
+      if (spoken || voiceRepliesRef.current) speak(full, { lang });
     },
   });
-  const { phase, setPhase, place, setPlace, messages, streaming, streamText, send, newChat } = chat;
+  const { phase, setPhase, place, setPlace, language, setLanguage, messages, streaming, streamText, send, newChat } = chat;
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -106,6 +106,20 @@ export default function NomadChat({ vibe }) {
                 knows your vibe: {vibe.vibe_title}
               </span>
             )}
+            <button
+              onClick={() => {
+                const next = language === 'hi' ? 'en' : 'hi';
+                setLanguage(next);
+                toast.success(next === 'hi' ? 'NOMAD ab Hindi mein baat karega 🇮🇳' : 'NOMAD back to English.');
+              }}
+              title="Toggle Hindi mode"
+              className={`border px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition ${
+                language === 'hi' ? 'border-blaze bg-blaze text-black' : 'border-white/20 text-white/60 hover:border-blaze hover:text-blaze'
+              }`}
+              data-testid="nomad-lang-toggle"
+            >
+              {language === 'hi' ? 'हिंदी' : 'EN'}
+            </button>
             <button
               onClick={() => {
                 const next = !voiceReplies;
@@ -213,6 +227,7 @@ export default function NomadChat({ vibe }) {
         >
           <MicButton
             disabled={streaming}
+            language={language}
             onInterim={(t) => setDraft(t)}
             onFinal={(t) => { setDraft(''); submitDraft(t, { spoken: true }); }}
           />
