@@ -322,7 +322,7 @@ export default function TripDetailPage() {
             <div className="border border-blaze/40 bg-blaze/5 p-5" data-testid="invite-by-email-box">
               <h2 className="flex items-center gap-2 font-display text-2xl uppercase"><Send className="h-5 w-5 text-blaze" /> Add friends by Gmail</h2>
               <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
-                They get an email — one click and they're in the trip + squad chat. No codes.
+                They get an email — one click and they&apos;re in the trip + squad chat. No codes.
               </p>
               <form
                 onSubmit={async (e) => {
@@ -332,8 +332,13 @@ export default function TripDetailPage() {
                   setInviting(true);
                   try {
                     const res = await api.inviteToTrip(trip.id, { emails: [email], origin_url: window.location.origin });
-                    if (res.sent.length) toast.success(`Invite emailed to ${email}. They'll auto-join when they say yes.`);
-                    else toast.error('Email failed to send — check the address.');
+                    if (res.sent.length) {
+                      toast.success(`Invite emailed to ${email}. They'll auto-join when they say yes.`);
+                    } else if (res.failed.length) {
+                      const f = res.failed[0];
+                      try { await navigator.clipboard.writeText(f.link); } catch (err) { /* noop */ }
+                      toast.error('Email could not be sent — invite LINK copied to clipboard. Paste it to your friend on WhatsApp!', { duration: 8000 });
+                    }
                     setInviteEmail('');
                     loadNotifications();
                     loadInvites();
@@ -371,11 +376,26 @@ export default function TripDetailPage() {
                   {invites.map((inv) => (
                     <div key={inv.id} className="flex items-center justify-between gap-2 border border-white/10 bg-black/30 px-3 py-2" data-testid={`invite-row-${inv.id}`}>
                       <span className="truncate font-mono text-[11px] text-white/70">{inv.email}</span>
-                      {inv.status === 'accepted' ? (
-                        <span className="shrink-0 bg-acid px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Joined ✓</span>
-                      ) : (
-                        <span className="shrink-0 bg-blaze px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Pending…</span>
-                      )}
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {inv.status === 'accepted' ? (
+                          <span className="bg-acid px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Joined ✓</span>
+                        ) : (
+                          <span className="bg-blaze px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Pending…</span>
+                        )}
+                        {inv.token && inv.status !== 'accepted' && (
+                          <button
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`);
+                              toast.success('Invite link copied — send it on WhatsApp if the email is hiding in spam.');
+                            }}
+                            title="Copy invite link"
+                            className="border border-white/20 p-1 text-white/50 transition hover:border-acid hover:text-acid"
+                            data-testid={`copy-invite-link-${inv.id}`}
+                          >
+                            <Send className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
                     </div>
                   ))}
                 </div>

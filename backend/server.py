@@ -1082,19 +1082,39 @@ GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "")
 EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "console")
 
 
+import re as _re_email
+from email.utils import formatdate, make_msgid
+
+
+def _html_to_text(html: str) -> str:
+    text = _re_email.sub(r"<style.*?</style>", " ", html, flags=_re_email.S)
+    text = _re_email.sub(r"<[^>]+>", " ", text)
+    return _re_email.sub(r"\s+", " ", text).strip()[:1500]
+
+
 def _send_email_sync(to_email: str, subject: str, html: str):
-    if EMAIL_PROVIDER != "gmail" or not GMAIL_ADDRESS or not GMAIL_APP_PASSWORD:
+    if EMAIL_PROVIDER == "gmail":
+        if not GMAIL_ADDRESS or not GMAIL_APP_PASSWORD:
+            # Never pretend success — surface the misconfiguration to the caller
+            raise RuntimeError("Email is not configured on this server (missing Gmail credentials)")
+    else:
         logger.info("[EMAIL console fallback] to=%s subject=%s", to_email, subject)
         return
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = f"TRAVELO <{GMAIL_ADDRESS}>"
     msg["To"] = to_email
+    msg["Reply-To"] = GMAIL_ADDRESS
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid(domain="travelo.app")
+    # plain-text part first (spam-score friendly), HTML second
+    msg.attach(MIMEText(_html_to_text(html), "plain"))
     msg.attach(MIMEText(html, "html"))
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
         server.starttls()
         server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
         server.sendmail(GMAIL_ADDRESS, [to_email], msg.as_string())
+    logger.info("[EMAIL sent via gmail] to=%s subject=%s", to_email, subject)
 
 
 async def send_email(to_email: str, subject: str, html: str):
@@ -1380,10 +1400,10 @@ async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_
                 f"{user['name'].split(' ')[0]} added you to the {trip['place']} trip on TRAVELO",
                 _invite_email_html(user["name"].split(" ")[0], trip["place"], dates, link),
             )
-            sent.append(email_l)
+            sent.append({"email": email_l, "link": link})
         except Exception as e:  # noqa: BLE001
             logger.error("Invite email to %s failed: %s", email_l, e)
-            failed.append({"email": email_l, "link": link})
+            failed.append({"email": email_l, "link": link, "reason": str(e)[:140]})
     await _notify(trip["id"], "info", f"{user['name']} invited {len(req.emails)} friend(s) by email. Waiting for them to say yes.")
     return {"sent": sent, "failed": failed}
 
@@ -1391,8 +1411,9 @@ async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_
 @api.get("/trips/{trip_id}/invites")
 async def list_trip_invites(trip_id: str, user=Depends(get_current_user)):
     await _get_trip_or_404(trip_id, user["id"])
+    # token included: this endpoint is owner-only; the UI offers "copy invite link" as an email fallback
     return await trip_invites.find(
-        {"trip_id": trip_id}, {"_id": 0, "token": 0}
+        {"trip_id": trip_id}, {"_id": 0}
     ).sort("created_at", -1).to_list(50)
 
 

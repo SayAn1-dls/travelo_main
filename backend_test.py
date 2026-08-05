@@ -1,383 +1,192 @@
-#!/usr/bin/env python3
-"""Backend testing for TRAVELO - Trip Reminder Emails + Read Receipts"""
-import os
-import sys
-import time
-from datetime import datetime, timedelta, timezone
+"""Backend test for TRAVELO invite email bug fix verification."""
 import requests
+import time
+import subprocess
 
-# Base URL from frontend/.env
 BASE_URL = "https://wanderlust-chaos.internal.stage-preview.emergentagent.com/api"
+TEST_EMAIL = "smoke@travelo.app"
+TEST_PASSWORD = "Test@1234"
+OWNER_EMAIL = "sayanbhatt2005@gmail.com"  # Owner's inbox for real email test
 
-# Test credentials
-SMOKE_EMAIL = "smoke@travelo.app"
-SMOKE_PASSWORD = "Test@1234"
-FRIEND_EMAIL = "friend@travelo.app"
-FRIEND_PASSWORD = "Friend@1234"
+def login():
+    """Login and return auth token."""
+    resp = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": TEST_EMAIL,
+        "password": TEST_PASSWORD
+    }, timeout=10)
+    assert resp.status_code == 200, f"Login failed: {resp.status_code} {resp.text}"
+    data = resp.json()
+    return data["token"]
 
-def login(email, password):
-    """Login and return auth token"""
-    resp = requests.post(f"{BASE_URL}/auth/login", json={"email": email, "password": password})
-    if resp.status_code != 200:
-        print(f"❌ Login failed for {email}: {resp.status_code} {resp.text}")
-        sys.exit(1)
-    return resp.json()["token"]
+def get_backend_logs():
+    """Get backend logs."""
+    result = subprocess.run(
+        ["tail", "-n", "100", "/var/log/supervisor/backend.err.log"],
+        capture_output=True,
+        text=True,
+        timeout=5
+    )
+    return result.stdout
 
-def headers(token):
-    """Return auth headers"""
-    return {"Authorization": f"Bearer {token}"}
+def count_log_pattern(logs, pattern):
+    """Count occurrences of a pattern in logs."""
+    return logs.count(pattern)
 
-def test_trip_reminder_emails():
-    """Test trip reminder email feature"""
+def test_invite_email_bug_fix():
+    """Test the invite email bug fix with real SMTP verification."""
     print("\n" + "="*80)
-    print("FEATURE 1: TRIP REMINDER EMAILS")
+    print("TESTING: Invite Email Bug Fix - Real Gmail SMTP Verification")
     print("="*80)
     
-    smoke_token = login(SMOKE_EMAIL, SMOKE_PASSWORD)
+    token = login()
+    headers = {"Authorization": f"Bearer {token}"}
     
-    # Calculate dates: start_date = today + 2 days, end_date = today + 6 days
-    today = datetime.now(timezone.utc).date()
-    start_date = (today + timedelta(days=2)).isoformat()
-    end_date = (today + timedelta(days=6)).isoformat()
+    # Test 1: Get first trip
+    print("\n[Test 1] GET /api/trips → get first trip id")
+    resp = requests.get(f"{BASE_URL}/trips", headers=headers, timeout=10)
+    assert resp.status_code == 200, f"Failed to get trips: {resp.status_code}"
+    trips = resp.json()
+    assert len(trips) > 0, "No trips found"
+    trip_id = trips[0]["id"]
+    print(f"✅ Got trip_id: {trip_id}")
     
-    print(f"\n1️⃣  Creating trip with start_date={start_date}, end_date={end_date}")
-    trip_data = {
-        "place": "Reminder Test City",
-        "start_date": start_date,
-        "end_date": end_date,
-        "budget": 1000,
-        "members": [{"name": "Solo Tester", "contribution": 1000}],
-        "origin_url": "https://example.com"
-    }
-    resp = requests.post(f"{BASE_URL}/trips", json=trip_data, headers=headers(smoke_token))
-    if resp.status_code != 200:
-        print(f"❌ Create trip failed: {resp.status_code} {resp.text}")
-        return False
+    # Test 2: Count existing console fallback lines (baseline)
+    print("\n[Test 2] Count existing '[EMAIL console fallback]' lines in logs (baseline)")
+    logs_before = get_backend_logs()
+    console_fallback_count_before = count_log_pattern(logs_before, "[EMAIL console fallback]")
+    gmail_sent_count_before = count_log_pattern(logs_before, "[EMAIL sent via gmail]")
+    print(f"✅ Baseline: {console_fallback_count_before} console fallback lines, {gmail_sent_count_before} gmail sent lines")
     
-    trip = resp.json()
-    trip_id = trip["id"]
-    print(f"✅ Trip created: {trip_id}")
-    
-    # Verify reminder_sent is false or absent
-    print(f"\n2️⃣  Verifying reminder_sent is false/absent")
-    resp = requests.get(f"{BASE_URL}/trips/{trip_id}", headers=headers(smoke_token))
-    if resp.status_code != 200:
-        print(f"❌ Get trip failed: {resp.status_code} {resp.text}")
-        return False
-    
-    trip = resp.json()
-    reminder_sent = trip.get("reminder_sent", False)
-    if reminder_sent:
-        print(f"❌ reminder_sent should be false/absent, got: {reminder_sent}")
-        return False
-    print(f"✅ reminder_sent is {reminder_sent} (expected: false/absent)")
-    
-    # Send reminder (120s timeout for LLM call)
-    print(f"\n3️⃣  Sending reminder email (120s timeout for LLM packing checklist)...")
+    # Test 3: Send invite email (CRITICAL TEST - 60s timeout for real SMTP)
+    print(f"\n[Test 3] POST /api/trips/{trip_id}/invite with {OWNER_EMAIL} (60s timeout)")
     start_time = time.time()
-    resp = requests.post(f"{BASE_URL}/trips/{trip_id}/send-reminder", headers=headers(smoke_token), timeout=120)
+    resp = requests.post(
+        f"{BASE_URL}/trips/{trip_id}/invite",
+        headers=headers,
+        json={
+            "emails": [OWNER_EMAIL],
+            "origin_url": "https://example.com"
+        },
+        timeout=60
+    )
     elapsed = time.time() - start_time
     
-    if resp.status_code != 200:
-        print(f"❌ Send reminder failed: {resp.status_code} {resp.text}")
-        return False
+    assert resp.status_code == 200, f"Invite failed: {resp.status_code} {resp.text}"
+    data = resp.json()
     
-    result = resp.json()
-    sent_list = result.get("sent", [])
-    print(f"✅ Reminder sent in {elapsed:.2f}s to: {sent_list}")
+    print(f"✅ Response received in {elapsed:.2f}s")
+    print(f"   Response: {data}")
     
-    if SMOKE_EMAIL not in sent_list:
-        print(f"❌ Expected {SMOKE_EMAIL} in sent list, got: {sent_list}")
-        return False
-    print(f"✅ {SMOKE_EMAIL} in sent list")
+    # Verify response structure
+    assert "sent" in data, "Response missing 'sent' field"
+    assert "failed" in data, "Response missing 'failed' field"
+    assert len(data["sent"]) == 1, f"Expected 1 sent email, got {len(data['sent'])}"
+    assert len(data["failed"]) == 0, f"Expected 0 failed emails, got {len(data['failed'])}: {data['failed']}"
     
-    # Verify reminder_sent is now true
-    print(f"\n4️⃣  Verifying reminder_sent is now true")
-    resp = requests.get(f"{BASE_URL}/trips/{trip_id}", headers=headers(smoke_token))
-    if resp.status_code != 200:
-        print(f"❌ Get trip failed: {resp.status_code} {resp.text}")
-        return False
+    sent_entry = data["sent"][0]
+    assert sent_entry["email"] == OWNER_EMAIL, f"Wrong email: {sent_entry['email']}"
+    assert "link" in sent_entry, "Missing 'link' in sent entry"
+    assert "/invite/" in sent_entry["link"], f"Invalid link format: {sent_entry['link']}"
     
-    trip = resp.json()
-    reminder_sent = trip.get("reminder_sent", False)
-    if not reminder_sent:
-        print(f"❌ reminder_sent should be true, got: {reminder_sent}")
-        return False
-    print(f"✅ reminder_sent is now true")
+    # Extract token from link
+    token_from_link = sent_entry["link"].split("/invite/")[-1]
+    print(f"✅ Invite sent successfully with link: {sent_entry['link']}")
+    print(f"   Token: {token_from_link}")
     
-    # Check notifications
-    print(f"\n5️⃣  Checking notifications for reminder mention")
-    resp = requests.get(f"{BASE_URL}/trips/{trip_id}/notifications", headers=headers(smoke_token))
-    if resp.status_code != 200:
-        print(f"❌ Get notifications failed: {resp.status_code} {resp.text}")
-        return False
+    # Verify real SMTP timing (should take >= 0.5s for real SMTP handshake)
+    assert elapsed >= 0.5, f"Send took only {elapsed:.2f}s - too fast for real SMTP (expected >= 0.5s)"
+    print(f"✅ Timing check passed: {elapsed:.2f}s >= 0.5s (real SMTP handshake)")
     
-    notifications = resp.json()
-    reminder_notif = None
-    for n in notifications:
-        if "hype email" in n.get("message", "").lower() or "packing checklist" in n.get("message", "").lower():
-            reminder_notif = n
+    # Test 4: CRITICAL LOG CHECK - verify "[EMAIL sent via gmail]" line exists
+    print("\n[Test 4] CRITICAL: Check backend logs for '[EMAIL sent via gmail]' line")
+    time.sleep(1)  # Give logs time to flush
+    logs_after = get_backend_logs()
+    
+    gmail_sent_count_after = count_log_pattern(logs_after, "[EMAIL sent via gmail]")
+    new_gmail_sent = gmail_sent_count_after - gmail_sent_count_before
+    
+    assert new_gmail_sent >= 1, f"FAILED: No new '[EMAIL sent via gmail]' line found. Before: {gmail_sent_count_before}, After: {gmail_sent_count_after}"
+    print(f"✅ Found {new_gmail_sent} new '[EMAIL sent via gmail]' line(s)")
+    
+    # Extract the last gmail sent line
+    gmail_lines = [line for line in logs_after.split("\n") if "[EMAIL sent via gmail]" in line]
+    if gmail_lines:
+        last_gmail_line = gmail_lines[-1]
+        print(f"   Last line: {last_gmail_line}")
+        assert OWNER_EMAIL in last_gmail_line, f"Email address not in log line: {last_gmail_line}"
+        print(f"✅ Log line contains recipient email: {OWNER_EMAIL}")
+    
+    # Test 5: Verify NO NEW console fallback line was added
+    print("\n[Test 5] Verify NO NEW '[EMAIL console fallback]' line was added")
+    console_fallback_count_after = count_log_pattern(logs_after, "[EMAIL console fallback]")
+    new_console_fallback = console_fallback_count_after - console_fallback_count_before
+    
+    assert new_console_fallback == 0, f"FAILED: New console fallback line detected! Before: {console_fallback_count_before}, After: {console_fallback_count_after}"
+    print(f"✅ No new console fallback lines (still {console_fallback_count_after} total from old tests)")
+    
+    # Test 6: GET /api/trips/{trip_id}/invites → verify token field is present
+    print(f"\n[Test 6] GET /api/trips/{trip_id}/invites → verify token field is present")
+    resp = requests.get(f"{BASE_URL}/trips/{trip_id}/invites", headers=headers, timeout=10)
+    assert resp.status_code == 200, f"Failed to get invites: {resp.status_code}"
+    invites = resp.json()
+    
+    # Find the newest invite (should be the one we just sent)
+    newest_invite = None
+    for invite in invites:
+        if invite["email"] == OWNER_EMAIL and invite["status"] == "pending":
+            newest_invite = invite
             break
     
-    if not reminder_notif:
-        print(f"❌ No reminder notification found. Notifications: {notifications}")
-        return False
-    print(f"✅ Reminder notification found: {reminder_notif['message']}")
+    assert newest_invite is not None, f"Could not find pending invite for {OWNER_EMAIL}"
+    assert "token" in newest_invite, "Token field NOT present in invite (should be included per fix)"
+    assert newest_invite["token"] == token_from_link, f"Token mismatch: {newest_invite['token']} != {token_from_link}"
+    print(f"✅ Invite has token field: {newest_invite['token'][:20]}... (needed for copy-link fallback UI)")
     
-    # Test auth/permissions
-    print(f"\n6️⃣  Testing auth/permissions")
+    # Test 7: GET /api/invites/{token} (no auth) → verify invite info
+    print(f"\n[Test 7] GET /api/invites/{token_from_link} (no auth) → verify invite info")
+    resp = requests.get(f"{BASE_URL}/invites/{token_from_link}", timeout=10)
+    assert resp.status_code == 200, f"Failed to get invite info: {resp.status_code}"
+    invite_info = resp.json()
     
-    # Without auth
-    resp = requests.post(f"{BASE_URL}/trips/{trip_id}/send-reminder")
-    if resp.status_code not in [401, 403]:
-        print(f"❌ Expected 401/403 without auth, got: {resp.status_code}")
-        return False
+    assert invite_info["status"] == "pending", f"Wrong status: {invite_info['status']}"
+    assert invite_info["email"] == OWNER_EMAIL, f"Wrong email: {invite_info['email']}"
+    assert "trip" in invite_info, "Missing trip info"
+    assert "place" in invite_info["trip"], "Missing trip place"
+    print(f"✅ Invite info valid: status={invite_info['status']}, trip={invite_info['trip']['place']}")
+    
+    # Test 8: Regression - POST without auth → 401/403
+    print(f"\n[Test 8] Regression: POST /api/trips/{trip_id}/invite without auth → 401/403")
+    resp = requests.post(
+        f"{BASE_URL}/trips/{trip_id}/invite",
+        json={"emails": ["test@example.com"], "origin_url": "https://example.com"},
+        timeout=10
+    )
+    assert resp.status_code in [401, 403], f"Expected 401/403, got {resp.status_code}"
     print(f"✅ Without auth → {resp.status_code}")
     
-    # Someone else's trip (friend tries to send reminder for smoke's trip)
-    friend_token = login(FRIEND_EMAIL, FRIEND_PASSWORD)
-    resp = requests.post(f"{BASE_URL}/trips/{trip_id}/send-reminder", headers=headers(friend_token))
-    if resp.status_code != 404:
-        print(f"❌ Expected 404 for other user's trip, got: {resp.status_code}")
-        return False
-    print(f"✅ Other user's trip → 404")
+    # Test 9: Regression - invalid email → 422
+    print("\n[Test 9] Regression: POST with invalid email → 422")
+    resp = requests.post(
+        f"{BASE_URL}/trips/{trip_id}/invite",
+        headers=headers,
+        json={"emails": ["not-an-email"], "origin_url": "https://example.com"},
+        timeout=10
+    )
+    assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
+    print(f"✅ Invalid email → 422")
     
-    # Bad trip ID
-    resp = requests.post(f"{BASE_URL}/trips/nonexistent-id/send-reminder", headers=headers(smoke_token))
-    if resp.status_code != 404:
-        print(f"❌ Expected 404 for bad trip ID, got: {resp.status_code}")
-        return False
-    print(f"✅ Bad trip ID → 404")
-    
-    # Check scheduler logs for errors
-    print(f"\n7️⃣  Checking backend logs for 'Reminder loop' errors")
-    result = os.popen("grep 'Reminder loop' /var/log/supervisor/backend.err.log 2>/dev/null | tail -20").read()
-    if "error" in result.lower() or "exception" in result.lower():
-        print(f"❌ Found errors in reminder loop logs:\n{result}")
-        return False
-    print(f"✅ No 'Reminder loop' errors found in backend logs")
-    
-    # Cleanup
-    print(f"\n8️⃣  Cleanup: Deleting trip")
-    resp = requests.delete(f"{BASE_URL}/trips/{trip_id}", headers=headers(smoke_token))
-    if resp.status_code != 200:
-        print(f"⚠️  Delete trip failed: {resp.status_code} {resp.text}")
-    else:
-        print(f"✅ Trip deleted")
-    
-    return True
-
-def test_read_receipts():
-    """Test read receipts feature"""
     print("\n" + "="*80)
-    print("FEATURE 2: READ RECEIPTS")
+    print("✅ ALL INVITE EMAIL BUG FIX TESTS PASSED (9/9)")
     print("="*80)
-    
-    smoke_token = login(SMOKE_EMAIL, SMOKE_PASSWORD)
-    friend_token = login(FRIEND_EMAIL, FRIEND_PASSWORD)
-    
-    # Get friend's user ID
-    resp = requests.get(f"{BASE_URL}/auth/me", headers=headers(friend_token))
-    if resp.status_code != 200:
-        print(f"❌ Get friend user failed: {resp.status_code} {resp.text}")
-        return False
-    friend_user_id = resp.json()["id"]
-    
-    # Get first room for friend
-    print(f"\n1️⃣  Getting first room for friend")
-    resp = requests.get(f"{BASE_URL}/rooms", headers=headers(friend_token))
-    if resp.status_code != 200:
-        print(f"❌ Get rooms failed: {resp.status_code} {resp.text}")
-        return False
-    
-    rooms = resp.json()
-    if not rooms:
-        print(f"❌ No rooms found for friend. Creating a test room...")
-        # Create a room and have both users join
-        resp = requests.post(f"{BASE_URL}/rooms", json={"name": "Read Receipt Test Room"}, headers=headers(smoke_token))
-        if resp.status_code != 200:
-            print(f"❌ Create room failed: {resp.status_code} {resp.text}")
-            return False
-        room = resp.json()
-        room_id = room["id"]
-        invite_code = room["invite_code"]
-        
-        # Friend joins
-        resp = requests.post(f"{BASE_URL}/rooms/join", json={"invite_code": invite_code}, headers=headers(friend_token))
-        if resp.status_code != 200:
-            print(f"❌ Friend join room failed: {resp.status_code} {resp.text}")
-            return False
-        print(f"✅ Created and joined test room: {room_id}")
-    else:
-        # Find a room where both smoke and friend are members (member_count >= 2)
-        room_id = None
-        for r in rooms:
-            if r.get("member_count", 0) >= 2:
-                room_id = r["id"]
-                break
-        
-        if not room_id:
-            # Use first room and verify friend is a member
-            room_id = rooms[0]["id"]
-        
-        print(f"✅ Using room: {room_id}")
-    
-    # Mark room as read (as friend)
-    print(f"\n2️⃣  Marking room as read (as friend)")
-    resp = requests.post(f"{BASE_URL}/rooms/{room_id}/read", headers=headers(friend_token))
-    if resp.status_code != 200:
-        print(f"❌ Mark room read failed: {resp.status_code} {resp.text}")
-        return False
-    
-    result = resp.json()
-    if result.get("ok") != True:
-        print(f"❌ Expected {{ok: true}}, got: {result}")
-        return False
-    print(f"✅ Room marked as read: {result}")
-    
-    # Get read receipts (as smoke, who must also be a member)
-    print(f"\n3️⃣  Getting read receipts (as smoke)")
-    resp = requests.get(f"{BASE_URL}/rooms/{room_id}/reads", headers=headers(smoke_token))
-    if resp.status_code != 200:
-        print(f"❌ Get reads failed: {resp.status_code} {resp.text}")
-        return False
-    
-    reads = resp.json()
-    print(f"✅ Read receipts: {reads}")
-    
-    # Verify friend's user_id is in reads with recent timestamp
-    if friend_user_id not in reads:
-        print(f"❌ Friend's user_id {friend_user_id} not in reads: {reads}")
-        return False
-    
-    friend_read_time = reads[friend_user_id]
-    try:
-        read_dt = datetime.fromisoformat(friend_read_time.replace('Z', '+00:00'))
-        now = datetime.now(timezone.utc)
-        age_seconds = (now - read_dt).total_seconds()
-        if age_seconds > 60:  # Should be within last 60 seconds
-            print(f"❌ Friend's read timestamp too old: {friend_read_time} ({age_seconds:.1f}s ago)")
-            return False
-        print(f"✅ Friend's read timestamp is recent: {friend_read_time} ({age_seconds:.1f}s ago)")
-    except Exception as e:
-        print(f"❌ Failed to parse timestamp: {e}")
-        return False
-    
-    # Mark as read again and verify timestamp updates
-    print(f"\n4️⃣  Marking room as read again (timestamp should update)")
-    time.sleep(1)  # Wait 1 second to ensure timestamp difference
-    resp = requests.post(f"{BASE_URL}/rooms/{room_id}/read", headers=headers(friend_token))
-    if resp.status_code != 200:
-        print(f"❌ Mark room read again failed: {resp.status_code} {resp.text}")
-        return False
-    
-    resp = requests.get(f"{BASE_URL}/rooms/{room_id}/reads", headers=headers(smoke_token))
-    if resp.status_code != 200:
-        print(f"❌ Get reads failed: {resp.status_code} {resp.text}")
-        return False
-    
-    new_reads = resp.json()
-    new_friend_read_time = new_reads.get(friend_user_id)
-    if not new_friend_read_time:
-        print(f"❌ Friend's read timestamp missing after second read")
-        return False
-    
-    if new_friend_read_time == friend_read_time:
-        print(f"⚠️  Timestamp did not update (may be too fast): {new_friend_read_time}")
-    else:
-        print(f"✅ Timestamp updated: {friend_read_time} → {new_friend_read_time}")
-    
-    # Test permissions
-    print(f"\n5️⃣  Testing permissions")
-    
-    # Register a fresh user (non-member)
-    fresh_email = f"fresh-{int(time.time())}@travelo.app"
-    fresh_password = "Fresh@1234"
-    resp = requests.post(f"{BASE_URL}/auth/register", json={
-        "name": "Fresh User",
-        "email": fresh_email,
-        "password": fresh_password
-    })
-    if resp.status_code != 200:
-        print(f"❌ Register fresh user failed: {resp.status_code} {resp.text}")
-        return False
-    fresh_token = resp.json()["token"]
-    print(f"✅ Registered fresh user: {fresh_email}")
-    
-    # Non-member POST read
-    resp = requests.post(f"{BASE_URL}/rooms/{room_id}/read", headers=headers(fresh_token))
-    if resp.status_code != 404:
-        print(f"❌ Expected 404 for non-member POST read, got: {resp.status_code}")
-        return False
-    print(f"✅ Non-member POST read → 404")
-    
-    # Non-member GET reads
-    resp = requests.get(f"{BASE_URL}/rooms/{room_id}/reads", headers=headers(fresh_token))
-    if resp.status_code != 404:
-        print(f"❌ Expected 404 for non-member GET reads, got: {resp.status_code}")
-        return False
-    print(f"✅ Non-member GET reads → 404")
-    
-    # Without auth POST read
-    resp = requests.post(f"{BASE_URL}/rooms/{room_id}/read")
-    if resp.status_code not in [401, 403]:
-        print(f"❌ Expected 401/403 without auth POST read, got: {resp.status_code}")
-        return False
-    print(f"✅ Without auth POST read → {resp.status_code}")
-    
-    # Without auth GET reads
-    resp = requests.get(f"{BASE_URL}/rooms/{room_id}/reads")
-    if resp.status_code not in [401, 403]:
-        print(f"❌ Expected 401/403 without auth GET reads, got: {resp.status_code}")
-        return False
-    print(f"✅ Without auth GET reads → {resp.status_code}")
-    
-    return True
-
-def main():
-    print("\n" + "="*80)
-    print("TRAVELO BACKEND TESTING - 2 NEW FEATURES")
-    print("="*80)
-    print(f"Base URL: {BASE_URL}")
-    print(f"Test users: {SMOKE_EMAIL}, {FRIEND_EMAIL}")
-    
-    results = {}
-    
-    # Test Feature 1: Trip Reminder Emails
-    try:
-        results["Trip Reminder Emails"] = test_trip_reminder_emails()
-    except Exception as e:
-        print(f"\n❌ EXCEPTION in Trip Reminder Emails: {e}")
-        import traceback
-        traceback.print_exc()
-        results["Trip Reminder Emails"] = False
-    
-    # Test Feature 2: Read Receipts
-    try:
-        results["Read Receipts"] = test_read_receipts()
-    except Exception as e:
-        print(f"\n❌ EXCEPTION in Read Receipts: {e}")
-        import traceback
-        traceback.print_exc()
-        results["Read Receipts"] = False
-    
-    # Summary
-    print("\n" + "="*80)
-    print("TEST SUMMARY")
-    print("="*80)
-    for feature, passed in results.items():
-        status = "✅ PASS" if passed else "❌ FAIL"
-        print(f"{status}: {feature}")
-    
-    all_passed = all(results.values())
-    print("\n" + "="*80)
-    if all_passed:
-        print("🎉 ALL TESTS PASSED")
-    else:
-        print("❌ SOME TESTS FAILED")
-    print("="*80)
-    
-    return 0 if all_passed else 1
+    print("\nSUMMARY:")
+    print(f"  ✅ Real Gmail SMTP working (sent to {OWNER_EMAIL})")
+    print(f"  ✅ '[EMAIL sent via gmail]' log line present")
+    print(f"  ✅ NO new '[EMAIL console fallback]' line")
+    print(f"  ✅ Invite response includes magic link")
+    print(f"  ✅ GET /api/trips/{{id}}/invites includes token field (for copy-link UI)")
+    print(f"  ✅ Magic link resolves to valid invite info")
+    print(f"  ✅ Regression tests passed (auth required, email validation)")
+    print("\nBUG FIX VERIFIED: Invite emails are now sent via real Gmail SMTP!")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    test_invite_email_bug_fix()
