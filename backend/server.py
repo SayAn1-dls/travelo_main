@@ -577,10 +577,15 @@ async def create_trip(req: TripPlanRequest, user=Depends(get_current_user)):
 @api.get("/trips")
 async def list_trips(user=Depends(get_current_user)):
     trips = await trip_plans.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    trip_ids = [t["id"] for t in trips]
+    expenses_by_trip = {}
+    if trip_ids:
+        all_expenses = await trip_expenses.find({"trip_id": {"$in": trip_ids}}, {"_id": 0}).to_list(5000)
+        for e in all_expenses:
+            expenses_by_trip.setdefault(e["trip_id"], []).append(e)
     result = []
     for t in trips:
-        expenses = await trip_expenses.find({"trip_id": t["id"]}, {"_id": 0}).to_list(500)
-        fin = _compute_finances(t, expenses, t.get("settlements", []))
+        fin = _compute_finances(t, expenses_by_trip.get(t["id"], []), t.get("settlements", []))
         result.append({**t, "finances": {k: fin[k] for k in ("pool", "spent", "remaining", "budget", "budget_status", "budget_used_pct")}})
     return result
 
