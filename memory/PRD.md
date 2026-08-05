@@ -37,3 +37,5 @@ Test creds: smoke@travelo.app / Test@1234. Stripe TEST mode, card 4242 4242 4242
 
 ## Update log
 - v2: fully responsive verified (390px, no overflow); Vibe Lab v2 scrapbook+magazine canvas templates with type-themed auto-edit; 30 destinations (12 India: +agra, rishikesh, manali, jaisalmer, andaman, darjeeling; images curl-verified).
+
+- v3: NOMAD AI travel companion chat (USP) on /vibe-lab — backend: POST /api/chat/message (SSE streaming, LlmChat gpt-5.4, multi-turn history from chat_messages collection, phase persona before|during|after, vibe_context aware), GET /api/chat/sessions, GET /api/chat/sessions/{id}/messages. Frontend: NomadChat component (phase tabs, place input, streaming bubbles, session restore, suggested prompts). 11/11 chat tests pass; multi-turn memory verified.
