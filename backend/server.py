@@ -13,6 +13,7 @@ import jwt
 import stripe
 from dotenv import load_dotenv
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -36,6 +37,8 @@ payment_transactions = db["payment_transactions"]
 trip_plans = db["trip_plans"]
 trip_expenses = db["trip_expenses"]
 trip_notifications = db["trip_notifications"]
+chat_sessions = db["chat_sessions"]
+chat_messages = db["chat_messages"]
 
 # ---------------------------------------------------------------- stripe
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
@@ -139,6 +142,14 @@ class SettleRequest(BaseModel):
 
 class CollageAnalyzeRequest(BaseModel):
     images: List[str] = Field(..., min_length=1, max_length=5)  # base64-encoded JPEG/PNG/WEBP
+
+
+class ChatMessageRequest(BaseModel):
+    session_id: Optional[str] = None
+    place: str = Field("", max_length=100)
+    phase: str = Field("before", max_length=10)  # before | during | after
+    text: str = Field(..., min_length=1, max_length=2000)
+    vibe_context: Optional[dict] = None
 
 
 # ---------------------------------------------------------------- app
@@ -689,6 +700,146 @@ async def analyze_collage(req: CollageAnalyzeRequest, user=Depends(get_current_u
     except Exception as e:  # noqa: BLE001
         logger.error("Vibe analysis failed: %s", e)
         return {**VIBE_FALLBACK, "source": "fallback"}
+
+
+# ---------------------------------------------------------------- NOMAD chat (AI travel companion)
+CHAT_PHASES = {"before", "during", "after"}
+
+PHASE_BRIEFS = {
+    "before": (
+        "PHASE: BEFORE THE TRIP. Hype them up and help them prepare: rough itineraries, what to pack, "
+        "budget tricks, best time of day for spots, booking tips, what to skip. Build anticipation."
+    ),
+    "during": (
+        "PHASE: ON THE ROAD RIGHT NOW. Act like you're travelling beside them: quick local tips, what to "
+        "eat nearby, hidden gems, etiquette, safety nudges, how to salvage a rainy day. Short, instantly usable answers."
+    ),
+    "after": (
+        "PHASE: AFTER THE TRIP. Help them relive it: story captions, journaling prompts, how to fight "
+        "post-trip blues, printing/sharing memories, and start plotting the next escape."
+    ),
+}
+
+
+def _nomad_system(place: str, phase: str, vibe: Optional[dict]) -> str:
+    base = (
+        "You are NOMAD, TRAVELO's AI travel co-pilot — bold, warm, a little savage, deeply knowledgeable "
+        "about world travel. You talk like the TRAVELO brand: punchy, confident, zero fluff. "
+        "Keep replies under 120 words unless the traveler asks for a detailed plan. Use short paragraphs "
+        "or tight bullet lists. Never invent bookings or prices as facts; give ranges and practical guidance. "
+    )
+    if place:
+        base += f"The traveler's destination in focus: {place}. "
+    base += PHASE_BRIEFS.get(phase, PHASE_BRIEFS["before"])
+    if vibe and isinstance(vibe, dict):
+        vt, mood, ptype = vibe.get("vibe_title"), vibe.get("mood"), vibe.get("photo_type")
+        if vt or mood or ptype:
+            base += f" Context from their recent trip photos: vibe '{vt}', mood {mood}, group type {ptype}. Reference it naturally when relevant."
+    return base
+
+
+@api.post("/chat/message")
+async def nomad_chat(req: ChatMessageRequest, user=Depends(get_current_user)):
+    import json as _json
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+
+    key = os.environ.get("EMERGENT_LLM_KEY")
+    phase = req.phase if req.phase in CHAT_PHASES else "before"
+    now = datetime.now(timezone.utc).isoformat()
+
+    # get or create session
+    session = None
+    if req.session_id:
+        session = await chat_sessions.find_one({"id": req.session_id, "user_id": user["id"]}, {"_id": 0})
+    if not session:
+        session = {
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "place": req.place.strip(),
+            "phase": phase,
+            "vibe_context": req.vibe_context,
+            "created_at": now,
+            "updated_at": now,
+        }
+        await chat_sessions.insert_one({**session})
+    else:
+        updates = {"phase": phase, "updated_at": now}
+        if req.place.strip():
+            updates["place"] = req.place.strip()
+        if req.vibe_context:
+            updates["vibe_context"] = req.vibe_context
+        await chat_sessions.update_one({"id": session["id"]}, {"$set": updates})
+        session = {**session, **updates}
+    sid = session["id"]
+
+    # recent history (last 12 messages) BEFORE storing the new one
+    history = await chat_messages.find({"session_id": sid}, {"_id": 0}).sort("created_at", -1).to_list(12)
+    history.reverse()
+
+    await chat_messages.insert_one({
+        "id": str(uuid.uuid4()), "session_id": sid, "user_id": user["id"],
+        "role": "user", "text": req.text, "created_at": now,
+    })
+
+    system_message = _nomad_system(session.get("place", ""), phase, session.get("vibe_context"))
+    if history:
+        transcript = "\n".join(
+            f"{'TRAVELER' if m['role'] == 'user' else 'NOMAD'}: {m['text']}" for m in history
+        )
+        prompt = f"Conversation so far:\n{transcript}\n\nTRAVELER: {req.text}\n\nReply as NOMAD (reply text only)."
+    else:
+        prompt = req.text
+
+    async def event_stream():
+        yield f"data: {_json.dumps({'type': 'session', 'session_id': sid})}\n\n"
+        chunks = []
+        try:
+            if not key:
+                raise RuntimeError("No LLM key configured")
+            chat = LlmChat(
+                api_key=key, session_id=sid, system_message=system_message,
+            ).with_model("openai", "gpt-5.4")
+            async for ev in chat.stream_message(UserMessage(text=prompt)):
+                if isinstance(ev, TextDelta):
+                    chunks.append(ev.content)
+                    yield f"data: {_json.dumps({'type': 'delta', 'content': ev.content})}\n\n"
+                elif isinstance(ev, StreamDone):
+                    break
+        except Exception as e:  # noqa: BLE001
+            logger.error("NOMAD chat failed: %s", e)
+            if not chunks:
+                fallback = "NOMAD lost signal in the mountains. Give it another shot in a moment."
+                chunks.append(fallback)
+                yield f"data: {_json.dumps({'type': 'delta', 'content': fallback})}\n\n"
+        reply = "".join(chunks)
+        await chat_messages.insert_one({
+            "id": str(uuid.uuid4()), "session_id": sid, "user_id": user["id"],
+            "role": "assistant", "text": reply, "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        await chat_sessions.update_one(
+            {"id": sid},
+            {"$set": {"updated_at": datetime.now(timezone.utc).isoformat(), "preview": req.text[:80]}},
+        )
+        yield f"data: {_json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@api.get("/chat/sessions")
+async def list_chat_sessions(user=Depends(get_current_user)):
+    return await chat_sessions.find({"user_id": user["id"]}, {"_id": 0}).sort("updated_at", -1).to_list(50)
+
+
+@api.get("/chat/sessions/{session_id}/messages")
+async def chat_history(session_id: str, user=Depends(get_current_user)):
+    session = await chat_sessions.find_one({"id": session_id, "user_id": user["id"]})
+    if not session:
+        raise HTTPException(404, "Chat session not found")
+    return await chat_messages.find({"session_id": session_id}, {"_id": 0}).sort("created_at", 1).to_list(500)
 
 
 app.include_router(api)

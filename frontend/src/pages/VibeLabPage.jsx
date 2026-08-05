@@ -6,6 +6,7 @@ import {
   LayoutGrid, Film, Image as ImageIcon, Wand2, Sticker, Newspaper,
 } from 'lucide-react';
 import api from '@/lib/api';
+import NomadChat from '@/components/NomadChat';
 
 const MAX_PHOTOS = 5;
 const W = 1080;
@@ -751,6 +752,9 @@ export default function VibeLabPage() {
             </div>
           </div>
         </div>
+
+        {/* NOMAD — AI travel companion chat */}
+        <NomadChat vibe={vibe} />
       </div>
     </div>
   );
