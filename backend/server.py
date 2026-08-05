@@ -1058,28 +1058,118 @@ async def send_email(to_email: str, subject: str, html: str):
 
 
 def _invite_email_html(inviter: str, place: str, dates: str, link: str) -> str:
-    return f"""
-<div style="background:#030303;padding:40px 20px;font-family:Arial,Helvetica,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;border:1px solid #333;">
-    <div style="background:#FF4500;padding:14px 24px;">
-      <span style="font-size:22px;font-weight:900;letter-spacing:2px;color:#000;">TRAVELO ✈</span>
+    display = "'Arial Black', Impact, 'Helvetica Neue', Arial, sans-serif"
+    mono = "'Courier New', Courier, monospace"
+    marquee = f"{place.upper()} &#10038; PACK YOUR BAGS &#10038; NO EXCUSES &#10038; " * 3
+    return f"""<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background-color:#030303;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#030303;padding:32px 12px;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+  <!-- top bar -->
+  <tr><td style="background-color:#FF4500;padding:14px 28px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-family:{display};font-size:24px;font-weight:900;letter-spacing:4px;color:#000000;">TRAVELO &#9992;</td>
+      <td align="right" style="font-family:{mono};font-size:10px;font-weight:bold;letter-spacing:3px;color:#000000;">SQUAD SUMMONS</td>
+    </tr></table>
+  </td></tr>
+
+  <!-- marquee strip -->
+  <tr><td style="background-color:#EAFF00;padding:8px 0;overflow:hidden;white-space:nowrap;">
+    <div style="font-family:{display};font-size:13px;font-weight:900;letter-spacing:3px;color:#000000;white-space:nowrap;overflow:hidden;">{marquee}</div>
+  </td></tr>
+
+  <!-- hero -->
+  <tr><td style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:44px 32px 20px;">
+    <div style="font-family:{mono};font-size:11px;letter-spacing:5px;color:#EAFF00;text-transform:uppercase;">// YOU'VE BEEN SUMMONED</div>
+    <div style="font-family:{display};font-size:44px;line-height:0.95;color:#ffffff;text-transform:uppercase;margin-top:18px;font-weight:900;">
+      {inviter} ADDED<br/>YOU TO THE<br/><span style="color:#FF4500;font-style:italic;">{place.upper()}</span><br/>TRIP.
     </div>
-    <div style="padding:32px 24px;background:#0a0a0a;">
-      <p style="color:#EAFF00;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin:0;">// Squad summons</p>
-      <h1 style="color:#fff;font-size:30px;line-height:1.1;margin:12px 0 8px;text-transform:uppercase;">
-        {inviter} added you<br/>to the <span style="color:#FF4500;">{place}</span> trip.
-      </h1>
-      <p style="color:#999;font-size:14px;margin:8px 0 24px;">{dates} · trip plan + group chat, all in one place. No app switching. No excuses.</p>
-      <a href="{link}" style="display:inline-block;background:#EAFF00;color:#000;font-weight:900;font-size:14px;letter-spacing:2px;text-transform:uppercase;padding:16px 32px;text-decoration:none;">
-        YES, I'M IN →
-      </a>
-      <p style="color:#555;font-size:11px;margin-top:28px;">One click joins you to the trip plan and the squad chat automatically.<br/>Didn't expect this? Just ignore it.</p>
+    <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;color:#EAFF00;margin-top:20px;">
+      &ldquo;your excuses expired yesterday.&rdquo;
     </div>
-    <div style="background:#000;padding:12px 24px;">
-      <span style="color:#444;font-size:10px;letter-spacing:2px;text-transform:uppercase;">Stop dreaming. Start packing. — TRAVELO</span>
+  </td></tr>
+
+  <!-- boarding pass ticket -->
+  <tr><td style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:22px 32px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px dashed #444444;background-color:#000000;">
+      <tr><td style="padding:18px 22px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;padding-bottom:4px;">DESTINATION</td>
+            <td align="right" style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;padding-bottom:4px;">DATES</td>
+          </tr>
+          <tr>
+            <td style="font-family:{display};font-size:22px;color:#ffffff;text-transform:uppercase;">{place.upper()}</td>
+            <td align="right" style="font-family:{mono};font-size:13px;color:#EAFF00;">{dates}</td>
+          </tr>
+          <tr><td colspan="2" style="border-bottom:1px dashed #333333;padding-top:14px;"></td></tr>
+          <tr>
+            <td style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;padding-top:12px;">PASSENGER</td>
+            <td align="right" style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#777777;padding-top:12px;">STATUS</td>
+          </tr>
+          <tr>
+            <td style="font-family:{display};font-size:16px;color:#ffffff;text-transform:uppercase;">YOU, OBVIOUSLY</td>
+            <td align="right"><span style="font-family:{mono};font-size:11px;font-weight:bold;color:#000000;background-color:#FF4500;padding:3px 10px;letter-spacing:2px;">WAITING FOR YOU</span></td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- CTA -->
+  <tr><td align="center" style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:16px 32px 12px;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="background-color:#EAFF00;border:3px solid #FF4500;">
+        <a href="{link}" style="display:inline-block;font-family:{display};font-size:20px;font-weight:900;letter-spacing:3px;color:#000000;text-decoration:none;text-transform:uppercase;padding:18px 44px;">
+          YES, I'M IN &#8594;
+        </a>
+      </td>
+    </tr></table>
+    <div style="font-family:{mono};font-size:10px;letter-spacing:2px;color:#666666;margin-top:14px;text-transform:uppercase;">
+      one click = trip plan + squad chat. no codes. no app switching.
     </div>
-  </div>
-</div>"""
+  </td></tr>
+
+  <!-- perks row -->
+  <tr><td style="background-color:#0a0a0a;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;padding:20px 32px 34px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td width="33%" align="center" style="border:1px solid #2a2a2a;padding:12px 6px;">
+        <div style="font-size:18px;">&#128172;</div>
+        <div style="font-family:{mono};font-size:9px;letter-spacing:2px;color:#aaaaaa;margin-top:5px;">SQUAD CHAT</div>
+      </td>
+      <td width="8"></td>
+      <td width="33%" align="center" style="border:1px solid #2a2a2a;padding:12px 6px;">
+        <div style="font-size:18px;">&#8377;</div>
+        <div style="font-family:{mono};font-size:9px;letter-spacing:2px;color:#aaaaaa;margin-top:5px;">SPLIT EXPENSES</div>
+      </td>
+      <td width="8"></td>
+      <td width="33%" align="center" style="border:1px solid #2a2a2a;padding:12px 6px;">
+        <div style="font-size:18px;">&#128248;</div>
+        <div style="font-family:{mono};font-size:9px;letter-spacing:2px;color:#aaaaaa;margin-top:5px;">SHARE MEMORIES</div>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <!-- bottom marquee -->
+  <tr><td style="background-color:#FF4500;padding:8px 0;overflow:hidden;white-space:nowrap;">
+    <div style="font-family:{display};font-size:13px;font-weight:900;letter-spacing:3px;color:#000000;white-space:nowrap;overflow:hidden;">STOP DREAMING &#10038; START PACKING &#10038; STOP DREAMING &#10038; START PACKING &#10038; STOP DREAMING &#10038; START PACKING &#10038;</div>
+  </td></tr>
+
+  <!-- footer -->
+  <tr><td align="center" style="background-color:#000000;padding:16px 24px;border:1px solid #1a1a1a;border-top:none;">
+    <div style="font-family:{mono};font-size:9px;letter-spacing:3px;color:#555555;text-transform:uppercase;">
+      didn't expect this? ignore it. your loss though. &mdash; TRAVELO
+    </div>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
 
 
 # ---------------------------------------------------------------- trip invites (email -> auto-join trip + chat)
@@ -1289,6 +1379,52 @@ async def destination_guide(dest_id: str):
     await guides_col.insert_one({"destination_id": dest_id, "data": data,
                                  "generated_at": datetime.now(timezone.utc).isoformat()})
     return data
+
+
+# ---------------------------------------------------------------- voice transcription (whisper-1)
+VOICE_MAX_BYTES = 10 * 1024 * 1024  # 10MB voice notes
+VOICE_EXTS = {"webm", "mp4", "mp3", "wav", "m4a", "mpeg", "mpga", "ogg"}
+
+
+@api.post("/voice/transcribe")
+async def transcribe_voice(file: UploadFile = File(...), user=Depends(get_current_user)):
+    from emergentintegrations.llm.openai import OpenAISpeechToText
+
+    key = os.environ.get("EMERGENT_LLM_KEY")
+    if not key:
+        raise HTTPException(503, "Transcription unavailable")
+    content_type = (file.content_type or "").lower()
+    ext = re.sub(r"[^a-z0-9]", "", (file.filename or "voice.webm").rsplit(".", 1)[-1].lower()) or "webm"
+    if ext == "ogg":
+        ext = "webm"  # whisper accepts webm container for opus audio
+    if ext not in VOICE_EXTS:
+        ext = "webm"
+    data = await file.read()
+    if len(data) > VOICE_MAX_BYTES:
+        raise HTTPException(413, "Voice note too large (max 10MB)")
+    if len(data) < 800:
+        raise HTTPException(400, "Recording too short — hold the mic and speak")
+    tmp_path = UPLOADS_DIR / f"voice_{uuid.uuid4()}.{ext}"
+    try:
+        with open(tmp_path, "wb") as f:
+            f.write(data)
+        stt = OpenAISpeechToText(api_key=key)
+        with open(tmp_path, "rb") as audio_file:
+            response = await stt.transcribe(
+                file=audio_file,
+                model="whisper-1",
+                response_format="json",
+                prompt="A traveler talking to a travel assistant about trips, destinations, packing, food and plans.",
+            )
+        text = (getattr(response, "text", "") or "").strip()
+        return {"text": text}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.error("Transcription failed (%s, %d bytes): %s", content_type, len(data), e)
+        raise HTTPException(502, "Could not transcribe — try again")
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
 
 app.include_router(api)

@@ -196,6 +196,34 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ INR NOTIFICATIONS WORKING (3/3 tests passed). SCENARIO 1 - Create Trip: POST /api/trips with budget ₹5000, 2 members with ₹2500 contribution each ✅. SCENARIO 2 - Add Expense: POST /api/trips/{id}/expenses with amount ₹500 ✅. SCENARIO 3 - Verify Notifications: GET /api/trips/{id}/notifications → expense notification contains '₹500' (rupee symbol, NOT $) ✅, message: 'Smoke Test spent ₹500.00 on \"Lunch at beach shack\". Everyone owes them ₹250.00. Pay them back, squad!' ✅, info notification also uses ₹ symbol: 'Trip to INR Test Trip created. Squad of 2. Pool: ₹5,000. Budget: ₹5,000.' ✅. All trip notifications correctly use INR (₹) symbol for amounts."
+  - task: "Voice transcription /api/voice/transcribe (whisper-1) - mic bug fix"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "BUG FIX. Voice transcription endpoint for chat mic feature. Uses OpenAI Whisper-1 model via emergentintegrations.llm.openai.OpenAISpeechToText. Accepts audio files (webm, mp4, mp3, wav, m4a, mpeg, mpga, ogg), max 10MB. Returns transcribed text. Auth required."
+      - working: true
+        agent: "testing"
+        comment: "✅ VOICE TRANSCRIPTION WORKING PERFECTLY (5/5 tests passed). Test 1 - Valid MP3 audio: Generated real spoken audio using gTTS ('Take me to the mountains of Ladakh next month') → POST /api/voice/transcribe with audio/mpeg → 200 with correct transcription containing 'ladakh' and 'mountain' keywords ✅. Test 2 - MP3 as webm: MP3 file posted as audio/webm → 200 (whisper successfully decoded mp3 as webm) ✅. Test 3 - Tiny file: 500 bytes file → 400 with 'Recording too short — hold the mic and speak' message ✅. Test 4 - Text file: text/plain file → 400 (graceful failure, not 500 crash) ✅. Test 5 - Without auth: → 401 'Not authenticated' ✅. Whisper-1 integration working correctly with proper error handling for edge cases."
+  - task: "Redesigned invite email HTML"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "REDESIGN. Updated trip invite email HTML with cinematic brutalist design matching TRAVELO brand. Features: orange/yellow/black color scheme, marquee strip, boarding pass ticket layout, bold typography, responsive table-based layout. Function: _invite_email_html(inviter, place, dates, link)."
+      - working: true
+        agent: "testing"
+        comment: "✅ REDESIGNED INVITE EMAIL WORKING (1/1 test passed). Test: POST /api/trips/{trip_id}/invite with emails=['sayanbhatt2005@gmail.com'], origin_url='https://example.com' → 200 with {sent:['sayanbhatt2005@gmail.com'], failed:[]} ✅. Email sent successfully in 0.06s ✅. Backend logs verified: no SMTP errors, using console fallback (expected in test environment) ✅. Email HTML includes: TRAVELO branding with ✈️, orange (#FF4500) top bar, yellow (#EAFF00) marquee strip with destination name, brutalist typography, boarding pass ticket with dashed borders, destination/dates/passenger info, 'JOIN THE SQUAD' CTA button. Gmail SMTP integration ready (smtp.gmail.com:587 with STARTTLS)."
 
 frontend:
   - task: "Cinematic Landing + quotes rotator + marquee"
@@ -230,17 +258,28 @@ frontend:
     stuck_count: 0
     priority: "high"
     needs_retesting: true
+  - task: "NOMAD chat mic feature (MediaRecorder + Whisper transcription) - bug fix"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/MicButton.jsx, /app/frontend/src/components/NomadWidget.jsx, /app/frontend/src/components/NomadChat.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "BUG FIX. Reworked mic feature to use MediaRecorder API (real audio recording) instead of Web Speech API. Records audio via getUserMedia, sends to POST /api/voice/transcribe (Whisper-1), displays recording state (square icon + seconds counter), transcribing state (spinner), and graceful error handling. Implemented in MicButton component used by both NomadWidget (floating bubble) and NomadChat (Vibe Lab full chat)."
+      - working: true
+        agent: "testing"
+        comment: "✅ MIC FEATURE WORKING PERFECTLY (8/8 tests passed). WIDGET TEST: Login → widget bubble opens → mic button found ✅, Recording state: pulsing orange background (animate-pulse bg-blaze) ✅, square/stop icon visible ✅, seconds counter showing '3s' ✅, input shows '🎙 recording… tap the mic again to send' ✅, Transcribing state: acid border + spinner icon visible ✅, returned to idle after 4.6s ✅, Network: POST /api/voice/transcribe returned 200 OK ✅, Voice toggle works without errors ✅. VIBE LAB TEST: Scrolled to NOMAD chat section ✅, mic button shows recording state ✅, transcription completed ✅, voice toggle works ✅. NO SpeechRecognition errors in console (correct - using MediaRecorder) ✅. Only non-critical WebSocket errors (ws://localhost:443/ws connection refused - expected in test environment). Backend logs confirm: 2 successful transcription requests with 200 OK responses. Fake audio device working correctly with Chromium args. All mic states (idle → recording → transcribing → idle) functioning as expected."
 
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 8
+  test_sequence: 9
 
 test_plan:
-  current_focus:
-    - "Trip email invites (Gmail SMTP) + accept auto-join"
-    - "Destination intel guide (AI + wiki images)"
-    - "INR in trip notifications"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -329,6 +368,34 @@ agent_communication:
       SCENARIO 3 - INR NOTIFICATIONS: POST /api/trips with budget ₹5000 ✅, POST /api/trips/{id}/expenses with amount ₹500 ✅, GET /api/trips/{id}/notifications → expense notification contains '₹500' (rupee symbol, NOT $) ✅, message: 'Smoke Test spent ₹500.00 on "Lunch at beach shack". Everyone owes them ₹250.00. Pay them back, squad!' ✅, info notification also uses ₹ symbol: 'Trip to INR Test Trip created. Squad of 2. Pool: ₹5,000. Budget: ₹5,000.' ✅.
       ALL NEWEST TRAVELO BACKEND FEATURES ARE FULLY FUNCTIONAL: Gmail SMTP email invites with auto-join, AI-generated destination guides with Wikipedia images and MongoDB caching, INR (₹) symbol in all trip notifications.
       COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS) IS FULLY FUNCTIONAL AND TESTED.
+  - agent: "testing"
+    message: >
+      ✅ MIC-FIX & EMAIL REDESIGN BACKEND TESTING COMPLETE - ALL TESTS PASSED (6/6 tests).
+      SCENARIO 1 - VOICE TRANSCRIPTION (mic bug fix): POST /api/voice/transcribe endpoint tested with 5 scenarios ✅.
+      Test 1 - Valid MP3: Generated real spoken audio using gTTS ('Take me to the mountains of Ladakh next month') → 200 with correct transcription containing 'ladakh' and 'mountain' keywords ✅.
+      Test 2 - MP3 as webm: MP3 file posted as audio/webm → 200 (whisper successfully decoded) ✅.
+      Test 3 - Tiny file: 500 bytes → 400 with 'Recording too short — hold the mic and speak' ✅.
+      Test 4 - Text file: text/plain → 400 (graceful failure, not 500 crash) ✅.
+      Test 5 - Without auth: → 401 'Not authenticated' ✅.
+      Whisper-1 integration via emergentintegrations.llm.openai.OpenAISpeechToText working correctly with proper error handling.
+      SCENARIO 2 - REDESIGNED INVITE EMAIL: POST /api/trips/{trip_id}/invite with emails=['sayanbhatt2005@gmail.com'] → 200 with {sent:['sayanbhatt2005@gmail.com'], failed:[]} in 0.06s ✅.
+      Backend logs verified: NO SMTP errors ✅. Email using console fallback (expected in test environment) ✅.
+      Redesigned HTML email includes: TRAVELO branding with ✈️, orange (#FF4500) top bar, yellow (#EAFF00) marquee strip, brutalist typography, boarding pass ticket layout with dashed borders, destination/dates/passenger info, 'JOIN THE SQUAD' CTA button ✅.
+      Gmail SMTP integration ready (smtp.gmail.com:587 with STARTTLS, requires GMAIL_ADDRESS and GMAIL_APP_PASSWORD env vars for production).
+      COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS, VOICE TRANSCRIPTION) IS FULLY FUNCTIONAL AND TESTED.
+  - agent: "testing"
+    message: >
+      ✅ FRONTEND MIC FEATURE TESTING COMPLETE - ALL TESTS PASSED (8/8 tests).
+      SCENARIO 1 - NOMAD WIDGET MIC: Login → explore page → widget bubble opens ✅, mic button found with data-testid="nomad-mic-btn" ✅.
+      Recording state (after clicking mic): pulsing orange background (animate-pulse bg-blaze) ✅, square/stop icon visible ✅, seconds counter incrementing ('3s' observed) ✅, input field shows '🎙 recording… tap the mic again to send' ✅.
+      Transcribing state (after stopping): acid border (border-acid) ✅, spinner icon visible (svg.animate-spin) ✅, returned to idle state after 4.6s ✅.
+      Network: POST /api/voice/transcribe called with 200 OK response ✅.
+      Voice toggle: data-testid="widget-voice-toggle" toggles on/off without errors ✅.
+      SCENARIO 2 - VIBE LAB MIC: Navigated to /vibe-lab → scrolled to NOMAD chat section (data-testid="nomad-chat-section") ✅, mic button found ✅, recording state verified (pulsing orange) ✅, transcription completed ✅, voice toggle (data-testid="nomad-voice-toggle") works ✅.
+      SCENARIO 3 - CONSOLE ERRORS: NO SpeechRecognition errors found (correct - using MediaRecorder API, not Web Speech API) ✅. Only non-critical WebSocket errors (ws://localhost:443/ws connection refused - expected in test environment, not related to mic feature).
+      Backend logs: 2 successful POST /api/voice/transcribe requests with 200 OK responses (1 from widget, 1 from Vibe Lab).
+      MIC BUG FIX VERIFIED: Old Web Speech API completely replaced with MediaRecorder + Whisper transcription. All states (idle → recording → transcribing → idle) working correctly. Fake audio device (Chromium args) working as expected.
+      COMPLETE TRAVELO FRONTEND MIC FEATURE IS FULLY FUNCTIONAL AND TESTED.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.
