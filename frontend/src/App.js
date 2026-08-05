@@ -18,6 +18,15 @@ import TripWizardPage from '@/pages/TripWizardPage';
 import TripDetailPage from '@/pages/TripDetailPage';
 import VibeLabPage from '@/pages/VibeLabPage';
 import NotFound from '@/pages/NotFound';
+import NomadWidget from '@/components/NomadWidget';
+
+function NomadFloating() {
+  const { user } = useAuth();
+  const location = useLocation();
+  // hidden on /vibe-lab (full NOMAD chat lives there) and for guests
+  if (!user || location.pathname === '/vibe-lab') return null;
+  return <NomadWidget />;
+}
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -55,6 +64,7 @@ function App() {
             <Route path="/vibe-lab" element={<Protected><VibeLabPage /></Protected>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <NomadFloating />
           <Toaster position="top-center" richColors duration={3500} closeButton />
         </BrowserRouter>
       </AuthProvider>

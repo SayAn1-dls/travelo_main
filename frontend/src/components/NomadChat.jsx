@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Compass, Send, Loader2, Plus, MapPin } from 'lucide-react';
-import { getToken } from '@/lib/api';
-
-const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { Compass, Send, Loader2, Plus, MapPin, Volume2, VolumeX } from 'lucide-react';
+import useNomadChat from '@/hooks/useNomadChat';
+import { speak, stopSpeaking } from '@/lib/voice';
+import MicButton from '@/components/MicButton';
 
 const PHASES = [
   { id: 'before', label: 'Before the trip' },
@@ -19,7 +19,7 @@ const SUGGESTIONS = {
 };
 
 // minimal markdown: **bold** + "- " bullets
-function renderMessage(text) {
+export function renderMessage(text) {
   return text.split('\n').map((line, li) => {
     const parts = line.split(/\*\*(.*?)\*\*/g).map((seg, i) =>
       i % 2 === 1 ? <strong key={i} className="font-bold text-white">{seg}</strong> : seg
@@ -35,101 +35,40 @@ function renderMessage(text) {
 }
 
 export default function NomadChat({ vibe }) {
-  const [phase, setPhase] = useState('before');
-  const [place, setPlace] = useState('');
-  const [sessionId, setSessionId] = useState(null);
-  const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
-  const [streaming, setStreaming] = useState(false);
-  const [streamText, setStreamText] = useState('');
+  const [voiceReplies, setVoiceReplies] = useState(false);
+  const voiceRepliesRef = useRef(voiceReplies);
+  voiceRepliesRef.current = voiceReplies;
   const scrollRef = useRef(null);
 
-  // restore latest session
-  useEffect(() => {
-    let mounted = true;
-    async function restore() {
-      try {
-        const res = await fetch(`${API_BASE}/chat/sessions`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
-        const sessions = await res.json();
-        if (!mounted || !Array.isArray(sessions) || !sessions.length) return;
-        const latest = sessions[0];
-        setSessionId(latest.id);
-        setPlace(latest.place || '');
-        if (latest.phase) setPhase(latest.phase);
-        const mr = await fetch(`${API_BASE}/chat/sessions/${latest.id}/messages`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
-        const msgs = await mr.json();
-        if (mounted && Array.isArray(msgs)) setMessages(msgs);
-      } catch (e) { /* fresh chat */ }
-    }
-    restore();
-    return () => { mounted = false; };
-  }, []);
+  const chat = useNomadChat({
+    vibe,
+    onReply: (full, { spoken }) => {
+      if (spoken || voiceRepliesRef.current) speak(full);
+    },
+  });
+  const { phase, setPhase, place, setPlace, messages, streaming, streamText, send, newChat } = chat;
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, streamText]);
 
-  const newChat = () => {
-    setSessionId(null);
-    setMessages([]);
-    setStreamText('');
-    toast.success('Fresh chat. NOMAD is listening.');
-  };
-
-  const send = useCallback(async (textArg) => {
+  const submitDraft = async (textArg, opts = {}) => {
     const text = (textArg || draft).trim();
-    if (!text || streaming) return;
+    if (!text) return;
     setDraft('');
-    setMessages((m) => [...m, { id: `u-${Date.now()}`, role: 'user', text }]);
-    setStreaming(true);
-    setStreamText('');
     try {
-      const res = await fetch(`${API_BASE}/chat/message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({
-          session_id: sessionId,
-          place,
-          phase,
-          text,
-          vibe_context: vibe ? { vibe_title: vibe.vibe_title, mood: vibe.mood, photo_type: vibe.photo_type } : null,
-        }),
-      });
-      if (!res.ok || !res.body) throw new Error('NOMAD is unreachable right now.');
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let full = '';
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const evt = JSON.parse(line.slice(6));
-            if (evt.type === 'session') setSessionId(evt.session_id);
-            else if (evt.type === 'delta') {
-              full += evt.content;
-              setStreamText(full);
-            }
-          } catch (e) { /* partial json */ }
-        }
-      }
-      setMessages((m) => [...m, { id: `a-${Date.now()}`, role: 'assistant', text: full }]);
+      await send(text, opts);
     } catch (err) {
       toast.error(err.message || 'Chat failed');
-    } finally {
-      setStreaming(false);
-      setStreamText('');
     }
-  }, [draft, streaming, sessionId, place, phase, vibe]);
+  };
+
+  const handleNewChat = () => {
+    stopSpeaking();
+    newChat();
+    toast.success('Fresh chat. NOMAD is listening.');
+  };
 
   return (
     <section className="mt-20" data-testid="nomad-chat-section">
@@ -139,7 +78,7 @@ export default function NomadChat({ vibe }) {
         <span className="text-[clamp(2.5rem,7vw,6rem)] text-outline-acid">NOMAD.</span>
       </h2>
       <p className="mt-3 max-w-2xl font-marker text-lg text-acid">
-        your AI travel companion — before the trip, on the road, and long after you're back.
+        your AI travel companion — before the trip, on the road, and long after you're back. now with voice.
       </p>
 
       <motion.div
@@ -168,7 +107,22 @@ export default function NomadChat({ vibe }) {
               </span>
             )}
             <button
-              onClick={newChat}
+              onClick={() => {
+                const next = !voiceReplies;
+                setVoiceReplies(next);
+                if (!next) stopSpeaking();
+                toast.success(next ? 'NOMAD will speak replies out loud.' : 'Voice replies off.');
+              }}
+              title={voiceReplies ? 'Voice replies on' : 'Voice replies off'}
+              className={`flex items-center gap-1.5 border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] transition ${
+                voiceReplies ? 'border-acid bg-acid text-black' : 'border-white/20 text-white/60 hover:border-acid hover:text-acid'
+              }`}
+              data-testid="nomad-voice-toggle"
+            >
+              {voiceReplies ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />} Voice
+            </button>
+            <button
+              onClick={handleNewChat}
               className="flex items-center gap-1.5 border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/60 transition hover:border-blaze hover:text-blaze"
               data-testid="nomad-new-chat"
             >
@@ -208,12 +162,12 @@ export default function NomadChat({ vibe }) {
           {messages.length === 0 && !streaming && (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <p className="font-display text-3xl uppercase text-outline">Ask me anything about your trip.</p>
-              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">try one of these:</p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">try one of these — or tap the mic and just talk:</p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {SUGGESTIONS[phase].map((s) => (
                   <button
                     key={s}
-                    onClick={() => send(s)}
+                    onClick={() => submitDraft(s)}
                     className="border border-white/15 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-white/70 transition hover:border-acid hover:text-acid"
                     data-testid="nomad-suggestion"
                   >
@@ -254,9 +208,14 @@ export default function NomadChat({ vibe }) {
 
         {/* input */}
         <form
-          onSubmit={(e) => { e.preventDefault(); send(); }}
+          onSubmit={(e) => { e.preventDefault(); submitDraft(); }}
           className="flex items-center gap-3 border-t border-white/10 px-5 py-4"
         >
+          <MicButton
+            disabled={streaming}
+            onInterim={(t) => setDraft(t)}
+            onFinal={(t) => { setDraft(''); submitDraft(t, { spoken: true }); }}
+          />
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
