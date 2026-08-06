@@ -1,320 +1,244 @@
-"""
-Backend testing for TRAVELO - Email hardening + Contact Us feature
-Tests the NEW email hardening (_smtp_deliver with 587->465 fallback) and Contact Us endpoint
-"""
+"""Backend tests for TRAVELO code review fixes"""
 import requests
+import io
 import time
-import subprocess
-from pymongo import MongoClient
+from PIL import Image
 
-# Backend base URL from frontend/.env
+# Base URL from frontend/.env
 BASE_URL = "https://trip-invite-bug.internal.stage-preview.emergentagent.com/api"
 
 # Test credentials
 SMOKE_EMAIL = "smoke@travelo.app"
 SMOKE_PASSWORD = "Smoke@1234"
 
-# MongoDB connection
-MONGO_URL = "mongodb://localhost:27017"
-DB_NAME = "test_database"
-
-def get_auth_token():
-    """Login and get auth token"""
-    # Try login first
+def login():
+    """Login and return auth token"""
     response = requests.post(f"{BASE_URL}/auth/login", json={
         "email": SMOKE_EMAIL,
         "password": SMOKE_PASSWORD
     })
-    
-    if response.status_code == 200:
-        return response.json()["token"]
-    
-    # If login fails, try register
-    response = requests.post(f"{BASE_URL}/auth/register", json={
-        "email": SMOKE_EMAIL,
-        "password": SMOKE_PASSWORD,
-        "name": "Smoke Test"
-    })
-    
-    if response.status_code == 200:
-        return response.json()["token"]
-    
-    raise Exception(f"Failed to get auth token: {response.status_code} {response.text}")
+    assert response.status_code == 200, f"Login failed: {response.status_code} {response.text}"
+    data = response.json()
+    return data["token"]
 
-def test_contact_form_happy_path():
-    """Test 1 - Contact form happy path: POST /api/contact with valid data"""
-    print("\n=== Test 1: Contact form happy path ===")
+def test_quotes_random():
+    """Test 1: GET /api/quotes/random - verify secrets.choice works"""
+    print("\n=== TEST 1: GET /api/quotes/random (secrets.choice fix) ===")
     
-    start_time = time.time()
-    response = requests.post(f"{BASE_URL}/contact", json={
-        "name": "Backend Tester",
-        "email": "backend.tester@travelo.app",
-        "message": "Automated test of the contact form — please ignore."
-    })
-    elapsed = time.time() - start_time
+    for i in range(3):
+        response = requests.get(f"{BASE_URL}/quotes/random")
+        assert response.status_code == 200, f"Call {i+1} failed: {response.status_code}"
+        data = response.json()
+        assert "text" in data, f"Missing 'text' field in response: {data}"
+        assert "author" in data, f"Missing 'author' field in response: {data}"
+        assert isinstance(data["text"], str) and len(data["text"]) > 0, "text must be non-empty string"
+        assert isinstance(data["author"], str) and len(data["author"]) > 0, "author must be non-empty string"
+        print(f"  ✅ Call {i+1}: {response.status_code} - {data['text'][:50]}... by {data['author']}")
     
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.json()}")
-    print(f"Time: {elapsed:.2f}s")
-    
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-    assert response.json()["ok"] == True, "Expected ok=true"
-    assert elapsed >= 0.4, f"Expected >= 0.4s (real SMTP), got {elapsed:.2f}s"
-    
-    print("✅ Test 1 PASSED: Contact form returns 200 with ok=true, response time >= 0.4s")
-    return True
+    print("  ✅ All 3 calls returned 200 with correct structure")
 
-def test_email_log_check():
-    """Test 2 - CRITICAL LOG CHECK: grep backend logs for '[EMAIL sent via gmail' with new line"""
-    print("\n=== Test 2: CRITICAL LOG CHECK - Email sent via Gmail ===")
+def test_media_upload_regression(token):
+    """Test 2: Media upload regression - image, audio, text file"""
+    print("\n=== TEST 2: Media upload regression (media_kind init fix) ===")
     
-    # Check backend logs for the new email line (use tail + grep because logs are INFO level)
-    result = subprocess.run(
-        ["bash", "-c", "tail -n 200 /var/log/supervisor/backend.err.log | grep 'EMAIL sent via gmail'"],
-        capture_output=True,
-        text=True
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Create a test room first
+    print("  Creating test room...")
+    response = requests.post(f"{BASE_URL}/rooms", 
+                            json={"name": "Lint Fix Test"},
+                            headers=headers)
+    assert response.status_code == 200, f"Room creation failed: {response.status_code}"
+    room_id = response.json()["id"]
+    print(f"  ✅ Room created: {room_id}")
+    
+    # Test 2a: Upload PNG image
+    print("  Testing PNG image upload...")
+    img = Image.new('RGB', (100, 100), color='red')
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format='PNG')
+    img_bytes.seek(0)
+    
+    response = requests.post(
+        f"{BASE_URL}/rooms/{room_id}/media",
+        files={"file": ("test.png", img_bytes, "image/png")},
+        headers=headers
     )
+    assert response.status_code == 200, f"PNG upload failed: {response.status_code} {response.text}"
+    data = response.json()
+    assert data["type"] == "media", f"Expected type='media', got {data['type']}"
+    assert data["media_type"] == "image", f"Expected media_type='image', got {data['media_type']}"
+    media_url_png = data["media_url"]
+    print(f"  ✅ PNG upload: 200, media_type='image', url={media_url_png}")
     
-    print(f"Log lines found:\n{result.stdout}")
+    # Test 2b: Upload JPEG image
+    print("  Testing JPEG image upload...")
+    img_jpeg = Image.new('RGB', (100, 100), color='blue')
+    img_jpeg_bytes = io.BytesIO()
+    img_jpeg.save(img_jpeg_bytes, format='JPEG')
+    img_jpeg_bytes.seek(0)
     
-    # Check for the contact email line
-    assert "to=sayanbhatt2005@gmail.com" in result.stdout, "Expected email to sayanbhatt2005@gmail.com"
-    assert "subject=TRAVELO contact form — message from Backend Tester" in result.stdout, "Expected contact form subject"
-    
-    # Verify it's using starttls-587 or ssl-465
-    has_starttls = "starttls-587" in result.stdout
-    has_ssl = "ssl-465" in result.stdout
-    assert has_starttls or has_ssl, "Expected '[EMAIL sent via gmail starttls-587]' or '[EMAIL sent via gmail ssl-465]'"
-    
-    if has_starttls:
-        print("✅ Email sent via Gmail STARTTLS:587")
-    else:
-        print("✅ Email sent via Gmail SSL:465")
-    
-    # Check for NO new console fallback
-    fallback_result = subprocess.run(
-        ["bash", "-c", "tail -n 200 /var/log/supervisor/backend.err.log | grep 'EMAIL console fallback' || true"],
-        capture_output=True,
-        text=True
+    response = requests.post(
+        f"{BASE_URL}/rooms/{room_id}/media",
+        files={"file": ("test.jpg", img_jpeg_bytes, "image/jpeg")},
+        headers=headers
     )
+    assert response.status_code == 200, f"JPEG upload failed: {response.status_code} {response.text}"
+    data = response.json()
+    assert data["media_type"] == "image", f"Expected media_type='image', got {data['media_type']}"
+    print(f"  ✅ JPEG upload: 200, media_type='image'")
     
-    # Count lines before and after (we should not have a NEW fallback line for this test)
-    # Since we're testing after sending the email, we just verify the email was sent via gmail
-    print(f"Console fallback lines (should be old ones only): {len(fallback_result.stdout.splitlines())} lines")
+    # Test 2c: Upload MP3 audio (create a small fake MP3)
+    print("  Testing MP3 audio upload...")
+    # Create a minimal valid MP3 header (ID3v2 + minimal frame)
+    mp3_data = b'ID3\x04\x00\x00\x00\x00\x00\x00' + b'\xff\xfb\x90\x00' * 100
+    mp3_bytes = io.BytesIO(mp3_data)
     
-    print("✅ Test 2 PASSED: Email sent via Gmail with correct subject and recipient")
-    return True
+    response = requests.post(
+        f"{BASE_URL}/rooms/{room_id}/media",
+        files={"file": ("test.mp3", mp3_bytes, "audio/mpeg")},
+        headers=headers
+    )
+    assert response.status_code == 200, f"MP3 upload failed: {response.status_code} {response.text}"
+    data = response.json()
+    assert data["media_type"] == "audio", f"Expected media_type='audio', got {data['media_type']}"
+    media_url_audio = data["media_url"]
+    print(f"  ✅ MP3 upload: 200, media_type='audio', url={media_url_audio}")
+    
+    # Test 2d: Upload WAV audio
+    print("  Testing WAV audio upload...")
+    # Minimal WAV header
+    wav_data = b'RIFF' + b'\x24\x00\x00\x00' + b'WAVE' + b'fmt ' + b'\x10\x00\x00\x00' + b'\x01\x00\x01\x00\x44\xac\x00\x00\x88\x58\x01\x00\x02\x00\x10\x00' + b'data' + b'\x00\x00\x00\x00'
+    wav_bytes = io.BytesIO(wav_data)
+    
+    response = requests.post(
+        f"{BASE_URL}/rooms/{room_id}/media",
+        files={"file": ("test.wav", wav_bytes, "audio/wav")},
+        headers=headers
+    )
+    assert response.status_code == 200, f"WAV upload failed: {response.status_code} {response.text}"
+    data = response.json()
+    assert data["media_type"] == "audio", f"Expected media_type='audio', got {data['media_type']}"
+    print(f"  ✅ WAV upload: 200, media_type='audio'")
+    
+    # Test 2e: Upload text file (should be rejected)
+    print("  Testing text file rejection...")
+    txt_bytes = io.BytesIO(b"This is a text file")
+    
+    response = requests.post(
+        f"{BASE_URL}/rooms/{room_id}/media",
+        files={"file": ("test.txt", txt_bytes, "text/plain")},
+        headers=headers
+    )
+    assert response.status_code == 400, f"Expected 400 for text file, got {response.status_code}"
+    print(f"  ✅ Text file rejected: 400")
+    
+    # Test 2f: Verify media retrieval
+    print("  Testing media retrieval...")
+    # media_url already includes /api/ prefix, so use base URL without /api
+    base_without_api = BASE_URL.replace('/api', '')
+    response = requests.get(f"{base_without_api}{media_url_png}")
+    assert response.status_code == 200, f"PNG retrieval failed: {response.status_code}"
+    assert response.headers.get("content-type", "").startswith("image/"), f"Wrong content-type for PNG: {response.headers.get('content-type')}"
+    print(f"  ✅ PNG retrieval: 200, content-type={response.headers.get('content-type')}")
+    
+    response = requests.get(f"{base_without_api}{media_url_audio}")
+    assert response.status_code == 200, f"Audio retrieval failed: {response.status_code}"
+    assert response.headers.get("content-type", "").startswith("audio/"), f"Wrong content-type for audio: {response.headers.get('content-type')}"
+    print(f"  ✅ Audio retrieval: 200, content-type={response.headers.get('content-type')}")
+    
+    print("  ✅ All media upload regression tests passed")
 
-def test_mongodb_storage():
-    """Test 3 - MongoDB storage: verify contact message stored in contact_messages collection"""
-    print("\n=== Test 3: MongoDB storage verification ===")
+def test_destination_guide_cached():
+    """Test 3: GET /api/destinations/goa/guide - cached response"""
+    print("\n=== TEST 3: GET /api/destinations/goa/guide (isinstance check) ===")
     
-    client = MongoClient(MONGO_URL)
-    db = client[DB_NAME]
-    collection = db["contact_messages"]
+    start = time.time()
+    response = requests.get(f"{BASE_URL}/destinations/goa/guide")
+    elapsed = time.time() - start
     
-    # Find the document we just created
-    doc = collection.find_one({"email": "backend.tester@travelo.app"})
+    assert response.status_code == 200, f"Guide request failed: {response.status_code} {response.text}"
+    data = response.json()
     
-    print(f"Document found: {doc}")
+    # Verify structure
+    required_fields = ["overview", "top_spots", "underrated", "getting_there", "getting_around", "food", "tips"]
+    for field in required_fields:
+        assert field in data, f"Missing required field: {field}"
     
-    assert doc is not None, "Expected document in contact_messages collection"
-    assert doc["name"] == "Backend Tester", f"Expected name='Backend Tester', got {doc['name']}"
-    assert doc["email"] == "backend.tester@travelo.app", f"Expected email='backend.tester@travelo.app', got {doc['email']}"
-    assert doc["message"] == "Automated test of the contact form — please ignore.", "Message mismatch"
-    assert "id" in doc, "Expected 'id' field (uuid)"
-    assert "created_at" in doc, "Expected 'created_at' field"
+    assert isinstance(data["overview"], str) and len(data["overview"]) > 100, "overview must be 100+ chars"
+    assert isinstance(data["top_spots"], list) and len(data["top_spots"]) > 0, "top_spots must be non-empty list"
+    assert isinstance(data["underrated"], list), "underrated must be a list"
+    assert isinstance(data["food"], list), "food must be a list"
+    assert isinstance(data["tips"], list), "tips must be a list"
     
-    print("✅ Test 3 PASSED: Contact message stored correctly in MongoDB")
-    client.close()
-    return True
+    print(f"  ✅ Response: 200, elapsed={elapsed:.2f}s (cached: {elapsed < 3})")
+    print(f"  ✅ Structure valid: overview={len(data['overview'])} chars, top_spots={len(data['top_spots'])}, underrated={len(data['underrated'])}")
+    print(f"  ✅ isinstance(data, dict) check working (no TypeError)")
 
-def test_contact_validations():
-    """Test 4 - Validations: missing name, invalid email, message too short"""
-    print("\n=== Test 4: Contact form validations ===")
+def test_quick_regressions(token):
+    """Test 4: Quick regression tests"""
+    print("\n=== TEST 4: Quick regression tests ===")
     
-    # Test 4a: missing name
-    print("\nTest 4a: Missing name")
-    response = requests.post(f"{BASE_URL}/contact", json={
-        "email": "test@example.com",
-        "message": "This should fail"
-    })
-    print(f"Status: {response.status_code}")
-    assert response.status_code == 422, f"Expected 422 for missing name, got {response.status_code}"
-    print("✅ Missing name returns 422")
-    
-    # Test 4b: invalid email
-    print("\nTest 4b: Invalid email")
+    # Test 4a: Contact with invalid email
+    print("  Testing POST /api/contact with invalid email...")
     response = requests.post(f"{BASE_URL}/contact", json={
         "name": "Test User",
         "email": "notanemail",
-        "message": "This should fail"
+        "message": "This should fail validation"
     })
-    print(f"Status: {response.status_code}")
     assert response.status_code == 422, f"Expected 422 for invalid email, got {response.status_code}"
-    print("✅ Invalid email returns 422")
+    print(f"  ✅ Invalid email rejected: 422")
     
-    # Test 4c: message too short
-    print("\nTest 4c: Message too short")
-    response = requests.post(f"{BASE_URL}/contact", json={
-        "name": "Test User",
-        "email": "test@example.com",
-        "message": "hi"
-    })
-    print(f"Status: {response.status_code}")
-    assert response.status_code == 422, f"Expected 422 for short message, got {response.status_code}"
-    print("✅ Message too short returns 422")
-    
-    print("✅ Test 4 PASSED: All validations working correctly")
-    return True
-
-def test_invite_regression():
-    """Test 5 - Invite regression: verify invite emails still work with plain-text part"""
-    print("\n=== Test 5: Invite regression test (sends 1 real email) ===")
-    
-    # Get auth token
-    token = get_auth_token()
-    headers = {"Authorization": f"Bearer {token}"}
-    
-    # Get or create a trip
-    print("Getting existing trips...")
-    response = requests.get(f"{BASE_URL}/trips", headers=headers)
-    trips = response.json()
-    
-    if trips:
-        trip_id = trips[0]["id"]
-        print(f"Using existing trip: {trip_id}")
-    else:
-        print("Creating new trip...")
-        response = requests.post(f"{BASE_URL}/trips", headers=headers, json={
-            "place": "Email Test City",
-            "start_date": "2026-12-01",
-            "end_date": "2026-12-05",
-            "budget": 5000,
-            "members": [{"name": "Smoke Test", "contribution": 5000}]
-        })
-        trip_id = response.json()["id"]
-        print(f"Created trip: {trip_id}")
-    
-    # Send invite
-    print(f"\nSending invite to travelo.squad.test@gmail.com...")
-    start_time = time.time()
-    response = requests.post(f"{BASE_URL}/trips/{trip_id}/invite", headers=headers, json={
-        "emails": ["travelo.squad.test@gmail.com"],
-        "origin_url": "https://example.com"
-    })
-    elapsed = time.time() - start_time
-    
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.json()}")
-    print(f"Time: {elapsed:.2f}s")
-    
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    # Test 4b: Root endpoint (operational check)
+    print("  Testing GET /api/ (operational check)...")
+    response = requests.get(f"{BASE_URL}/")
+    assert response.status_code == 200, f"Root endpoint failed: {response.status_code}"
     data = response.json()
-    assert "sent" in data, "Expected 'sent' field in response"
-    assert len(data["sent"]) == 1, f"Expected 1 sent email, got {len(data['sent'])}"
-    assert data["sent"][0]["email"] == "travelo.squad.test@gmail.com", "Email mismatch"
-    assert "failed" in data, "Expected 'failed' field in response"
-    assert len(data["failed"]) == 0, f"Expected 0 failed emails, got {len(data['failed'])}"
+    assert "service" in data, "Root endpoint should return service info"
+    print(f"  ✅ Root endpoint: 200, service={data.get('service')}")
     
-    print("✅ Invite sent successfully")
-    
-    # Check logs for the invite email
-    print("\nChecking logs for invite email...")
-    result = subprocess.run(
-        ["bash", "-c", "tail -n 200 /var/log/supervisor/backend.err.log | grep 'EMAIL sent via gmail'"],
-        capture_output=True,
-        text=True
-    )
-    
-    # Look for the most recent line with travelo.squad.test@gmail.com
-    lines = result.stdout.strip().split("\n")
-    invite_line = None
-    for line in reversed(lines):
-        if "to=travelo.squad.test@gmail.com" in line:
-            invite_line = line
-            break
-    
-    assert invite_line is not None, "Expected invite email log line"
-    print(f"Invite log line: {invite_line}")
-    
-    # Verify it's using starttls-587 or ssl-465
-    has_starttls = "starttls-587" in invite_line
-    has_ssl = "ssl-465" in invite_line
-    assert has_starttls or has_ssl, "Expected '[EMAIL sent via gmail starttls-587]' or '[EMAIL sent via gmail ssl-465]'"
-    
-    if has_starttls:
-        print("✅ Invite email sent via Gmail STARTTLS:587")
-    else:
-        print("✅ Invite email sent via Gmail SSL:465")
-    
-    print("✅ Test 5 PASSED: Invite regression test successful")
-    return True
-
-def test_contact_no_auth_required():
-    """Test 6 - Contact endpoint requires NO auth"""
-    print("\n=== Test 6: Contact endpoint requires NO auth ===")
-    
-    # Verify Test 1 was done without Authorization header
-    # We'll do another quick test without auth to confirm
-    response = requests.post(f"{BASE_URL}/contact", json={
-        "name": "No Auth Test",
-        "email": "noauth@travelo.app",
-        "message": "Testing that contact endpoint works without authentication."
+    # Test 4c: Login with smoke credentials
+    print("  Testing POST /api/auth/login with smoke credentials...")
+    response = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": SMOKE_EMAIL,
+        "password": SMOKE_PASSWORD
     })
+    assert response.status_code == 200, f"Login failed: {response.status_code}"
+    data = response.json()
+    assert "token" in data, "Login should return token"
+    assert "user" in data, "Login should return user"
+    print(f"  ✅ Login successful: 200, token present, user={data['user'].get('email')}")
     
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.json()}")
-    
-    # Should succeed without auth
-    assert response.status_code == 200, f"Expected 200 without auth, got {response.status_code}"
-    assert response.json()["ok"] == True, "Expected ok=true"
-    
-    print("✅ Test 6 PASSED: Contact endpoint works without authentication")
-    return True
+    print("  ✅ All quick regression tests passed")
 
 def main():
-    """Run all tests"""
-    print("=" * 80)
-    print("TRAVELO Backend Testing - Email Hardening + Contact Us Feature")
-    print("=" * 80)
+    print("=" * 70)
+    print("TRAVELO CODE REVIEW FIXES - BACKEND TESTING")
+    print("=" * 70)
+    print(f"Base URL: {BASE_URL}")
+    print(f"Test User: {SMOKE_EMAIL}")
     
     try:
-        # Test 1: Contact form happy path (sends 1 real email)
-        test_contact_form_happy_path()
+        # Login first
+        print("\n=== AUTHENTICATION ===")
+        token = login()
+        print(f"✅ Logged in successfully")
         
-        # Test 2: Critical log check
-        test_email_log_check()
+        # Run all tests
+        test_quotes_random()
+        test_media_upload_regression(token)
+        test_destination_guide_cached()
+        test_quick_regressions(token)
         
-        # Test 3: MongoDB storage
-        test_mongodb_storage()
-        
-        # Test 4: Validations (no emails sent)
-        test_contact_validations()
-        
-        # Test 5: Invite regression (sends 1 real email)
-        test_invite_regression()
-        
-        # Test 6: No auth required
-        test_contact_no_auth_required()
-        
-        print("\n" + "=" * 80)
-        print("✅ ALL TESTS PASSED (6/6)")
-        print("=" * 80)
-        print("\nSUMMARY:")
-        print("✅ Contact form endpoint working (POST /api/contact)")
-        print("✅ Email hardening working (Gmail SMTP with 587->465 fallback)")
-        print("✅ MongoDB storage working (contact_messages collection)")
-        print("✅ Validations working (name, email, message)")
-        print("✅ Invite regression working (plain-text part included)")
-        print("✅ No auth required for contact endpoint")
-        print("\nTotal real emails sent: 2 (1 contact + 1 invite)")
+        print("\n" + "=" * 70)
+        print("✅ ALL TESTS PASSED")
+        print("=" * 70)
         
     except AssertionError as e:
         print(f"\n❌ TEST FAILED: {e}")
         raise
     except Exception as e:
-        print(f"\n❌ ERROR: {e}")
+        print(f"\n❌ UNEXPECTED ERROR: {e}")
         raise
 
 if __name__ == "__main__":

@@ -1,13 +1,12 @@
+// Brand voice token quotes â€” currently unused, kept for future use
 export const QUOTES = [
-  "BAGS BY THE DOOR. BRAIN SET TO VIBE.",
-  "THE ITINERARY IS A SUGGESTION. GO ROGUE.",
-  "SLEEP IS OPTIONAL. MEMORIES ARE NOT.",
-  "YOUR PASSPORT IS BORED. FIX THAT.",
-  "THE BEST TRIPS HAVE ZERO PLAN AND INFINITE VIBE.",
-  "EVERY TRIP IS A CHAPTER. WRITE A BANGER.",
-  "BOOK IT. YOUR FUTURE SEMLI “S’ÈSÕKˆ‹ˆ•HÔ“ÕTÒUTÈRS‘ËˆH’TTÈÓ‹ˆ‹ˆ‘Ó‰ÕÐRU“ÔˆT‘‘PÕÑPUT‹ˆU‘U‘TˆÓÓQTËˆ‹ˆ•H’QUÈ”“ÓHHÔSQQSÕTˆÒÑTËˆ‹ˆS–HPÒÑUTÈHÓÓÑSÑUˆÓËˆ‹—NÂ™^ÜÛÛœÝÙ]][ÝHH
+  'BAGS BY THE DOOR. BRAIN SET TO VIBE.',
+  'THE ITINERARY IS A SUGGESTION. GO ROGUE.',
+  'SLEEP IS OPTIONAL. MEMORIES ARE NOT.',
+  'YOUR PASSPORT IS BORED. FIX THAT.',
+  'THE BEST TRIPS HAVE ZERO PLAN AND INFINITE VIBE.',
+  'EVERY TRIP IS A CHAPTER. WRITE A BANGER.',
+  'BOOK IT. YOUR FUTURE SELF IS ALREADY PACKING.',
+];
 
-HOˆUSÕTÖÓX]™›ÛÜŠX]œ˜[™ÛJ
-H
-ˆUSÕTË›[™Ý
-WNÂ™^ÜÛÛœÝ“ÓS•ÈHÈ\Ü^Nˆ	Ð™X˜\È™]YIË›ÙNˆ	Ô\È˜ZØ\HØ[œÉË[™Üš][Žˆ	Ô\›X[™[X\šÙ\‰ÈNÂ™^ÜÛÛœÝÓÓÔ”ÈHÈÜ˜[™ÙNˆ	ÈÑ‘	ËÞX[Žˆ	ÈÌŒ‘‰ËY[ÝÎˆ	ÈÑPÐÌMIË›XÚÎˆ	ÈÌÌÌÉÈNÂ
+export const getRandomQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];

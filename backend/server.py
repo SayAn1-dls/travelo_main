@@ -1,6 +1,5 @@
 """TRAVELO backend — auth, destinations, bookings, Stripe payments, quotes."""
 import os
-import random
 import re
 import secrets
 import threading
@@ -259,7 +258,7 @@ async def list_quotes():
 
 @api.get("/quotes/random")
 async def random_quote():
-    return random.choice(QUOTES)
+    return secrets.choice(QUOTES)
 
 
 # ---------------------------------------------------------------- bookings
@@ -1040,12 +1039,11 @@ async def send_room_media(room_id: str, file: UploadFile = File(...), user=Depen
     content_type = (file.content_type or "").lower()
     if not content_type.startswith(ALLOWED_MEDIA_PREFIXES):
         raise HTTPException(400, "Only images, videos and audio are allowed")
+    media_kind = "video"
     if content_type.startswith("image/"):
         media_kind = "image"
     elif content_type.startswith("audio/"):
         media_kind = "audio"
-    else:
-        media_kind = "video"
     media_id = str(uuid.uuid4())
     ext = re.sub(r"[^a-zA-Z0-9]", "", (file.filename or "").rsplit(".", 1)[-1])[:6] or "bin"
     dest = UPLOADS_DIR / f"{media_id}.{ext}"
@@ -1583,6 +1581,8 @@ async def destination_guide(dest_id: str):
         text = response if isinstance(response, str) else str(response)
         start, end = text.find("{"), text.rfind("}")
         data = _json.loads(text[start:end + 1])
+        if not isinstance(data, dict):
+            raise ValueError("Guide JSON malformed (expected object)")
     except Exception as e:  # noqa: BLE001
         logger.error("Guide generation failed for %s: %s", dest_id, e)
         raise HTTPException(502, "Guide generation failed — try again in a moment")

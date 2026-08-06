@@ -10,6 +10,20 @@ user_problem_statement: >
   multi-step Booking, Payment success/cancel, Dashboard).
 
 backend:
+  - task: "Code review fixes: secrets for quotes, media_kind init, guide JSON hardening"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py, /app/frontend/src/lib/tokens.js, /app/frontend/src/lib/travelTips.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "CODE REVIEW FIXES. (1) GET /quotes/random now uses secrets.choice instead of random.choice; unused 'import random' removed. (2) send_room_media: media_kind explicitly initialized to 'video' before if/elif chain. (3) destination_guide: added isinstance(data, dict) check after LLM JSON parse (raises ValueError -> 502 instead of TypeError crash if LLM returns array). (4) Re-saved corrupted dead files tokens.js/travelTips.js as valid UTF-8 (not imported anywhere; webpack compiles clean). Deliberately NOT changed: localStorage JWT (auth rework out of scope), long-function refactors, hook dep warnings, empty catches (mostly intentional fallbacks)."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL CODE REVIEW FIXES VERIFIED WORKING (4/4 test scenarios, 18 individual tests passed). TEST 1 - secrets.choice fix: GET /api/quotes/random called 3 times → all returned 200 with correct {text, author} structure ✅, verified secrets.choice(QUOTES) working at line 261 in server.py ✅. TEST 2 - media_kind initialization fix: Created test room → uploaded PNG image → 200 with media_type='image' ✅, uploaded JPEG image → 200 with media_type='image' ✅, uploaded MP3 audio → 200 with media_type='audio' ✅, uploaded WAV audio → 200 with media_type='audio' ✅, uploaded text file → 400 rejected ✅, verified media_kind='video' initialization at line 1042 before if/elif chain (lines 1043-1046) ✅, retrieved PNG media → 200 with content-type=image/png ✅, retrieved audio media → 200 with content-type=audio/mpeg ✅. TEST 3 - isinstance(data, dict) hardening: GET /api/destinations/goa/guide → 200 with cached guide in 0.05s ✅, all required fields present (overview=998 chars, top_spots=7, underrated=4, getting_there, getting_around, food, tips) ✅, verified isinstance(data, dict) check at lines 1584-1585 prevents TypeError if LLM returns non-dict JSON ✅. TEST 4 - Quick regressions: POST /api/contact with invalid email 'notanemail' → 422 validation error ✅, GET /api/ root endpoint → 200 operational ✅, POST /api/auth/login with smoke@travelo.app → 200 with token ✅. All three code review fixes confirmed working correctly in production environment."
   - task: "JWT Auth: register/login/me"
     implemented: true
     working: true
