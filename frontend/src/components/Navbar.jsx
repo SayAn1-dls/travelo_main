@@ -33,6 +33,7 @@ export default function Navbar() {
           {user && <NavLink to="/vibe-lab" className={linkClass} data-testid="nav-vibelab">Vibe Lab</NavLink>}
           {user && <NavLink to="/squad" className={linkClass} data-testid="nav-squad">Squad</NavLink>}
           {user && <NavLink to="/dashboard" className={linkClass} data-testid="nav-dashboard">My Trips</NavLink>}
+          <NavLink to="/contact" className={linkClass} data-testid="nav-contact">Contact</NavLink>
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -82,6 +83,7 @@ export default function Navbar() {
             {user && <NavLink to="/vibe-lab" className={linkClass} onClick={() => setOpen(false)}>Vibe Lab</NavLink>}
             {user && <NavLink to="/squad" className={linkClass} onClick={() => setOpen(false)}>Squad</NavLink>}
             {user && <NavLink to="/dashboard" className={linkClass} onClick={() => setOpen(false)}>My Trips</NavLink>}
+            <NavLink to="/contact" className={linkClass} onClick={() => setOpen(false)}>Contact</NavLink>
             {user ? (
               <button onClick={handleLogout} className="w-fit border border-white/20 px-4 py-2 font-mono text-xs uppercase tracking-widest text-white">
                 Logout

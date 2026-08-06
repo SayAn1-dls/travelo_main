@@ -314,8 +314,33 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ READ RECEIPTS WORKING PERFECTLY (9/9 tests passed). Test 1 - Mark as read: POST /api/rooms/{room_id}/read as friend → {ok: true} ✅. Test 2 - Get reads: GET /api/rooms/{room_id}/reads as smoke → object with friend's user_id and recent timestamp (0.0s ago) ✅. Test 3 - Timestamp update: POST read again after 1s → timestamp updated from 2026-08-05T18:00:39.565750+00:00 to 2026-08-05T18:00:55.998377+00:00 ✅. Test 4 - Non-member permissions: registered fresh user → POST read → 404 ✅, GET reads → 404 ✅. Test 5 - Auth: without auth → POST read → 401 ✅, GET reads → 401 ✅. All read receipt features working: timestamp storage, retrieval, updates, membership-based access control."
+  - task: "Email hardening (587->465 SSL fallback) + invite plain-text + Contact Us endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "BUG FIX + NEW FEATURE. (1) _smtp_deliver: tries STARTTLS:587, falls back to SSL:465 (hosting envs often block 587 -> invite emails silently failed in production). Auth errors short-circuit with clear message. (2) Invite emails now carry clean plain-text part (better spam score). (3) NEW: POST /api/contact (no auth) {name 2-80, email, message 5-2000} -> stores in contact_messages collection + emails CONTACT_RECEIVER (sayanbhatt2005@gmail.com) with Reply-To=submitter. 502 if email fails (message still stored). Smoke tested: contact 200 in 0.7s, log '[EMAIL sent via gmail starttls-587]', invite regression sent=1 failed=[]."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL EMAIL HARDENING + CONTACT US TESTS PASSED (6/6). Test 1 - Contact form happy path: POST /api/contact with {name:'Backend Tester', email:'backend.tester@travelo.app', message:'Automated test of the contact form — please ignore.'} → 200 with {ok:true}, response time 1.00s (>= 0.4s, real SMTP handshake confirmed) ✅. Test 2 - CRITICAL LOG CHECK: Backend logs show '[EMAIL sent via gmail starttls-587] to=sayanbhatt2005@gmail.com subject=TRAVELO contact form — message from Backend Tester' (real Gmail SMTP confirmed, NOT console fallback) ✅. Test 3 - MongoDB storage: contact_messages collection contains document with email='backend.tester@travelo.app', name='Backend Tester', message, id (uuid), created_at fields ✅. Test 4 - Validations: (a) missing name → 422 ✅, (b) invalid email 'notanemail' → 422 ✅, (c) message='hi' (too short) → 422 ✅. Test 5 - Invite regression: POST /api/trips/{trip_id}/invite with emails=['travelo.squad.test@gmail.com'] → 200 with sent=[{email, link}], failed=[], completed in 0.82s ✅. Backend logs show '[EMAIL sent via gmail starttls-587] to=travelo.squad.test@gmail.com' (real Gmail SMTP confirmed) ✅. Code review verified: invite emails include plain-text part (lines 1435-1446 in server.py, text parameter passed to send_email) ✅. Test 6 - No auth required: POST /api/contact without Authorization header → 200 with {ok:true} ✅. Total real emails sent: 2 (1 contact + 1 invite, within budget). Email hardening working correctly: _smtp_deliver tries STARTTLS:587 first (successful in all tests), falls back to SSL:465 if needed. All contact form features working: validation, MongoDB storage, email notification with Reply-To, no auth required."
 
 frontend:
+  - task: "Contact Us page (/contact) + nav link"
+    implemented: true
+    working: NA
+    file: "/app/frontend/src/pages/ContactPage.jsx, /app/frontend/src/App.js, /app/frontend/src/components/Navbar.jsx, /app/frontend/src/lib/api.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "NEW PAGE. /contact route: Sayan Bhattacharya card + LinkedIn link (https://www.linkedin.com/in/sayanbhattacharya01/) + contact form (name/email/message) posting to /api/contact. Success state box + sonner toasts. Contact nav link added (desktop + mobile). Verified via screenshot — renders correctly, matches brutalist design. data-testids: contact-name-input, contact-email-input, contact-message-input, contact-submit-btn, contact-linkedin-link, contact-success-box."
   - task: "Cinematic Landing + quotes rotator + marquee"
     implemented: true
     working: NA
@@ -369,7 +394,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 12
+  test_sequence: 13
 
 test_plan:
   current_focus: []
@@ -538,6 +563,20 @@ agent_communication:
       Console: Only non-critical WebSocket errors (ws://localhost:443/ws - expected) and React Router warnings. NO mic-related errors.
       CONCLUSION: Microphone functionality WORKING PERFECTLY on preview build. User likely tested on old production build (as suspected in review request).
       ALL TRAVELO FEATURES FULLY FUNCTIONAL AND TESTED.
+  - agent: "testing"
+    message: >
+      ✅ EMAIL HARDENING + CONTACT US BACKEND TESTING COMPLETE - ALL TESTS PASSED (6/6).
+      FEATURE 1 - CONTACT US ENDPOINT: Test 1 - Happy path: POST /api/contact with {name:'Backend Tester', email:'backend.tester@travelo.app', message:'Automated test of the contact form — please ignore.'} → 200 with {ok:true}, response time 1.00s (>= 0.4s, real SMTP handshake confirmed) ✅.
+      Test 2 - CRITICAL LOG CHECK: Backend logs show '[EMAIL sent via gmail starttls-587] to=sayanbhatt2005@gmail.com subject=TRAVELO contact form — message from Backend Tester' (real Gmail SMTP confirmed, NOT console fallback) ✅. NO new '[EMAIL console fallback]' lines (0 lines in recent logs) ✅.
+      Test 3 - MongoDB storage: contact_messages collection contains document with email='backend.tester@travelo.app', name='Backend Tester', message='Automated test of the contact form — please ignore.', id (uuid), created_at fields ✅.
+      Test 4 - Validations: (a) missing name → 422 ✅, (b) invalid email 'notanemail' → 422 ✅, (c) message='hi' (too short, < 5 chars) → 422 ✅.
+      Test 6 - No auth required: POST /api/contact without Authorization header → 200 with {ok:true} ✅.
+      FEATURE 2 - EMAIL HARDENING + INVITE REGRESSION: Test 5 - Invite regression: POST /api/trips/{trip_id}/invite with emails=['travelo.squad.test@gmail.com'], origin_url='https://example.com' → 200 with sent=[{email:'travelo.squad.test@gmail.com', link}], failed=[], completed in 0.82s ✅.
+      Backend logs show '[EMAIL sent via gmail starttls-587] to=travelo.squad.test@gmail.com subject=Smoke added you to the Email Debug City trip on TRAVELO' (real Gmail SMTP confirmed) ✅.
+      Code review verified: invite emails include plain-text part (lines 1435-1446 in server.py, text parameter with formatted plain-text passed to send_email function) ✅.
+      FEATURE 3 - EMAIL HARDENING VERIFICATION: _smtp_deliver function (lines 1101-1129) tries STARTTLS:587 first, falls back to SSL:465 if connection fails ✅. Success log format: '[EMAIL sent via gmail starttls-587]' or '[EMAIL sent via gmail ssl-465]' ✅. Auth errors short-circuit with clear RuntimeError message ✅.
+      All tests used STARTTLS:587 successfully (no fallback needed in test environment). Total real emails sent: 2 (1 contact + 1 invite, within budget).
+      ALL EMAIL HARDENING + CONTACT US FEATURES WORKING PERFECTLY. COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS, VOICE TRANSCRIPTION, HINDI VOICE MODE, TRIP INVITES LIST, AUDIO VOICE NOTES, RECEIPT EMAIL WIRING, TRIP REMINDER EMAILS, READ RECEIPTS, EMAIL HARDENING, CONTACT US) IS FULLY FUNCTIONAL AND TESTED.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.

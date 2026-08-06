@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 import time
 
 # Base URL from frontend/.env
-BASE_URL = "https://wanderlust-chaos.internal.stage-preview.emergentagent.com/api"
+BASE_URL = "https://trip-invite-bug.internal.stage-preview.emergentagent.com/api"
 
 # Test credentials
 TEST_EMAIL = "smoke@travelo.app"

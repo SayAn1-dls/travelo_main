@@ -73,6 +73,8 @@ export const api = {
   acceptInvite: (token) => request(`/invites/${token}/accept`, { method: 'POST' }),
   // Destination intel guide
   destinationGuide: (id) => request(`/destinations/${id}/guide`, { auth: false }),
+  // Contact us
+  contact: (payload) => request('/contact', { method: 'POST', body: payload, auth: false }),
 };
 
 export default api;

@@ -2,7 +2,7 @@
 import requests
 import time
 
-BASE_URL = "https://wanderlust-chaos.internal.stage-preview.emergentagent.com/api"
+BASE_URL = "https://trip-invite-bug.internal.stage-preview.emergentagent.com/api"
 
 # Login
 resp = requests.post(f"{BASE_URL}/auth/login", json={

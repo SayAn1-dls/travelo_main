@@ -46,6 +46,7 @@ room_messages = db["room_messages"]
 media_col = db["media"]
 trip_invites = db["trip_invites"]
 guides_col = db["guides"]
+contact_messages = db["contact_messages"]
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -1097,7 +1098,38 @@ def _html_to_text(html: str) -> str:
     return _re_email.sub(r"\s+", " ", text).strip()[:1500]
 
 
-def _send_email_sync(to_email: str, subject: str, html: str):
+def _smtp_deliver(msg, to_email: str):
+    """Deliver via Gmail. Tries STARTTLS:587 first, then falls back to SSL:465
+    (many hosting environments block outbound 587 which silently kills invites)."""
+    last_err = None
+    for attempt in ("starttls-587", "ssl-465"):
+        try:
+            if attempt == "starttls-587":
+                with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
+                    server.ehlo()
+                    server.starttls()
+                    server.ehlo()
+                    server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+                    server.sendmail(GMAIL_ADDRESS, [to_email], msg.as_string())
+            else:
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20) as server:
+                    server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+                    server.sendmail(GMAIL_ADDRESS, [to_email], msg.as_string())
+            logger.info("[EMAIL sent via gmail %s] to=%s subject=%s", attempt, to_email, msg["Subject"])
+            return
+        except smtplib.SMTPAuthenticationError as e:
+            # Same credentials on both ports — retrying won't help
+            logger.error("[EMAIL auth failed] to=%s err=%s", to_email, e)
+            raise RuntimeError(
+                "Gmail rejected the app password — regenerate it at Google Account > Security > App passwords"
+            ) from e
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            logger.warning("[EMAIL %s failed] to=%s err=%s: %s", attempt, to_email, type(e).__name__, e)
+    raise RuntimeError(f"Could not reach Gmail SMTP ({type(last_err).__name__}: {last_err})")
+
+
+def _send_email_sync(to_email: str, subject: str, html: str, text: str | None = None, reply_to: str | None = None):
     if EMAIL_PROVIDER == "gmail":
         if not GMAIL_ADDRESS or not GMAIL_APP_PASSWORD:
             # Never pretend success — surface the misconfiguration to the caller
@@ -1109,21 +1141,17 @@ def _send_email_sync(to_email: str, subject: str, html: str):
     msg["Subject"] = subject
     msg["From"] = f"TRAVELO <{GMAIL_ADDRESS}>"
     msg["To"] = to_email
-    msg["Reply-To"] = GMAIL_ADDRESS
+    msg["Reply-To"] = reply_to or GMAIL_ADDRESS
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain="travelo.app")
     # plain-text part first (spam-score friendly), HTML second
-    msg.attach(MIMEText(_html_to_text(html), "plain"))
+    msg.attach(MIMEText(text or _html_to_text(html), "plain"))
     msg.attach(MIMEText(html, "html"))
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
-        server.starttls()
-        server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
-        server.sendmail(GMAIL_ADDRESS, [to_email], msg.as_string())
-    logger.info("[EMAIL sent via gmail] to=%s subject=%s", to_email, subject)
+    _smtp_deliver(msg, to_email)
 
 
-async def send_email(to_email: str, subject: str, html: str):
-    await asyncio.to_thread(_send_email_sync, to_email, subject, html)
+async def send_email(to_email: str, subject: str, html: str, text: str | None = None, reply_to: str | None = None):
+    await asyncio.to_thread(_send_email_sync, to_email, subject, html, text, reply_to)
 
 
 def _invite_email_html(inviter: str, place: str, dates: str, link: str) -> str:
@@ -1403,11 +1431,19 @@ async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
         link = f"{req.origin_url}/invite/{token}"
+        inviter_first = user["name"].split(" ")[0]
+        plain_text = (
+            f"Hey! {inviter_first} added you to the {trip['place']} trip on TRAVELO.\n\n"
+            f"Dates: {dates}\n\n"
+            f"Join the squad here: {link}\n\n"
+            "See the plan, split expenses and chat with the crew once you join."
+        )
         try:
             await send_email(
                 email_l,
-                f"{user['name'].split(' ')[0]} added you to the {trip['place']} trip on TRAVELO",
-                _invite_email_html(user["name"].split(" ")[0], trip["place"], dates, link),
+                f"{inviter_first} added you to the {trip['place']} trip on TRAVELO",
+                _invite_email_html(inviter_first, trip["place"], dates, link),
+                text=plain_text,
             )
             sent.append({"email": email_l, "link": link})
         except Exception as e:  # noqa: BLE001
@@ -1825,6 +1861,84 @@ async def mark_room_read(room_id: str, user=Depends(get_current_user)):
 async def get_room_reads(room_id: str, user=Depends(get_current_user)):
     room = await _get_room_for_member(room_id, user["id"])
     return room.get("reads", {})
+
+
+# ---------------------------------------------------------------- contact us
+CONTACT_RECEIVER = os.environ.get("CONTACT_RECEIVER", "sayanbhatt2005@gmail.com")
+
+
+class ContactRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=80)
+    email: EmailStr
+    message: str = Field(..., min_length=5, max_length=2000)
+
+
+def _contact_email_html(entry: dict) -> str:
+    display = "'Arial Black', Impact, 'Helvetica Neue', Arial, sans-serif"
+    mono = "'Courier New', Courier, monospace"
+    safe_msg = entry["message"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br/>")
+    safe_name = entry["name"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return f"""<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background-color:#030303;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#030303;padding:24px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <tr><td style="background-color:#FF4500;height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+        <tr><td style="background-color:#0a0a0a;border:1px solid #262626;padding:32px;">
+          <p style="margin:0 0 6px;font-family:{mono};font-size:11px;letter-spacing:3px;color:#EAFF00;text-transform:uppercase;">TRAVELO &#9992; Contact form</p>
+          <h1 style="margin:0 0 20px;font-family:{display};font-size:26px;line-height:1.1;color:#ffffff;text-transform:uppercase;">New message landed</h1>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px dashed #444;">
+            <tr><td style="padding:14px 18px;border-bottom:1px dashed #444;">
+              <p style="margin:0;font-family:{mono};font-size:10px;letter-spacing:2px;color:#888;text-transform:uppercase;">From</p>
+              <p style="margin:4px 0 0;font-family:{display};font-size:16px;color:#ffffff;">{safe_name}</p>
+            </td></tr>
+            <tr><td style="padding:14px 18px;border-bottom:1px dashed #444;">
+              <p style="margin:0;font-family:{mono};font-size:10px;letter-spacing:2px;color:#888;text-transform:uppercase;">Email</p>
+              <p style="margin:4px 0 0;font-family:{mono};font-size:14px;color:#EAFF00;">{entry['email']}</p>
+            </td></tr>
+            <tr><td style="padding:14px 18px;">
+              <p style="margin:0;font-family:{mono};font-size:10px;letter-spacing:2px;color:#888;text-transform:uppercase;">Message</p>
+              <p style="margin:8px 0 0;font-family:{mono};font-size:14px;line-height:1.7;color:#dddddd;">{safe_msg}</p>
+            </td></tr>
+          </table>
+          <p style="margin:22px 0 0;font-family:{mono};font-size:11px;color:#666;">Hit reply to answer {safe_name} directly — Reply-To is set to their address.</p>
+        </td></tr>
+        <tr><td style="background-color:#FF4500;height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+
+@api.post("/contact")
+async def contact_us(req: ContactRequest):
+    entry = {
+        "id": str(uuid.uuid4()),
+        "name": req.name.strip(),
+        "email": str(req.email).lower(),
+        "message": req.message.strip(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await contact_messages.insert_one({**entry})
+    plain_text = (
+        f"New message via TRAVELO contact form\n\n"
+        f"From: {entry['name']} <{entry['email']}>\n\n"
+        f"{entry['message']}\n"
+    )
+    try:
+        await send_email(
+            CONTACT_RECEIVER,
+            f"TRAVELO contact form — message from {entry['name']}",
+            _contact_email_html(entry),
+            text=plain_text,
+            reply_to=entry["email"],
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.error("Contact email to %s failed: %s", CONTACT_RECEIVER, e)
+        raise HTTPException(502, "Your message was saved but the email notification failed. Please try again in a minute.")
+    return {"ok": True}
 
 
 app.include_router(api)
