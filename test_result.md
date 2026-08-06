@@ -10,6 +10,20 @@ user_problem_statement: >
   multi-step Booking, Payment success/cancel, Dashboard).
 
 backend:
+  - task: "K8s health probe fix: root-level GET /health + /api/health"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "DEPLOYMENT FIX. Deploy logs showed Kubernetes probes hitting GET /health (no /api prefix) directly on backend container -> 404 -> deployment marked unhealthy. Added root-level @app.get('/health') and @api.get('/health'), both return {status:'ok'}. Smoke tested: localhost:8001/health -> 200, localhost:8001/api/health -> 200. deployment_agent scan: PASS, no other blockers."
+      - working: true
+        agent: "testing"
+        comment: "✅ K8S HEALTH PROBE FIX VERIFIED WORKING (5/5 tests passed). TEST 1 - CRITICAL K8s probe simulation: GET http://localhost:8001/health (WITHOUT /api prefix) called 3 times → all returned 200 with {\"status\":\"ok\"} ✅, simulates exact Kubernetes liveness/readiness probe behavior ✅, stable across multiple requests ✅. TEST 2 - API health endpoint: GET http://localhost:8001/api/health → 200 with {\"status\":\"ok\"} ✅. TEST 3 - External URL via ingress: GET https://trip-invite-bug.internal.stage-preview.emergentagent.com/api/health → 200 with {\"status\":\"ok\"} in 0.10s ✅, ingress routing working correctly ✅. TEST 4 - Regression tests (all passed): GET /api/ root → 200 with {\"service\":\"TRAVELO API\",\"status\":\"operational\"} ✅, GET /api/destinations → 200 with 30 destinations ✅, GET /api/quotes/random → 200 with {text, author} ✅, POST /api/auth/login with smoke@travelo.app / Smoke@1234 → 200 with token ✅. TEST 5 - Backend logs check: tail -n 100 /var/log/supervisor/backend.err.log → NO errors, warnings, route conflicts, or startup failures ✅, clean startup with 'Application startup complete' ✅, Stripe catalog ready (30 products x 3 tiers) ✅. Code review verified: @app.get('/health') at line 1946 (root-level, NO /api prefix) ✅, @api.get('/health') at line 1951 (with /api prefix) ✅, both return {\"status\":\"ok\"} ✅, app.include_router(api) at line 1956 ✅. DEPLOYMENT FIX COMPLETE: Kubernetes health probes will now receive 200 OK instead of 404, deployment will be marked healthy."
   - task: "Code review fixes: secrets for quotes, media_kind init, guide JSON hardening"
     implemented: true
     working: true
@@ -627,6 +641,17 @@ agent_communication:
       BLACK-PAGE BUG FIX IS COMPLETELY VERIFIED AND WORKING. Landing page is fully visible on frame-starved devices/browsers. All hero content appears immediately without animation dependency.
       All tests used STARTTLS:587 successfully (no fallback needed in test environment). Total real emails sent: 2 (1 contact + 1 invite, within budget).
       ALL EMAIL HARDENING + CONTACT US FEATURES WORKING PERFECTLY. COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS, VOICE TRANSCRIPTION, HINDI VOICE MODE, TRIP INVITES LIST, AUDIO VOICE NOTES, RECEIPT EMAIL WIRING, TRIP REMINDER EMAILS, READ RECEIPTS, EMAIL HARDENING, CONTACT US) IS FULLY FUNCTIONAL AND TESTED.
+  - agent: "testing"
+    message: >
+      ✅ K8S HEALTH PROBE FIX VERIFICATION COMPLETE - ALL TESTS PASSED (5/5).
+      CONTEXT: Production deployment was failing because Kubernetes health probes request GET /health (WITHOUT /api prefix) directly against backend container on port 8001. Previous implementation only had routes under /api → 404 → deployment marked unhealthy. FIX: Added root-level @app.get('/health') and @api.get('/health') in /app/backend/server.py, both returning {"status": "ok"}.
+      TEST 1 - CRITICAL K8s probe simulation: curl http://localhost:8001/health (WITHOUT /api prefix) called 3 times → all returned 200 with {"status":"ok"} ✅. This simulates exact Kubernetes liveness/readiness probe behavior ✅. Stable across multiple requests ✅.
+      TEST 2 - API health endpoint: curl http://localhost:8001/api/health → 200 with {"status":"ok"} ✅.
+      TEST 3 - External URL via ingress: curl https://trip-invite-bug.internal.stage-preview.emergentagent.com/api/health → 200 with {"status":"ok"} in 0.10s ✅. Ingress routing working correctly ✅.
+      TEST 4 - Regression tests (all passed): GET /api/ root → 200 with {"service":"TRAVELO API","status":"operational"} ✅. GET /api/destinations → 200 with 30 destinations ✅. GET /api/quotes/random → 200 with {text, author} ✅. POST /api/auth/login with smoke@travelo.app / Smoke@1234 → 200 with token ✅.
+      TEST 5 - Backend logs check: tail -n 100 /var/log/supervisor/backend.err.log → NO errors, warnings, route conflicts, or startup failures ✅. Clean startup with 'Application startup complete' ✅. Stripe catalog ready (30 products x 3 tiers) ✅.
+      CODE REVIEW VERIFIED: @app.get('/health') at line 1946 (root-level, NO /api prefix) ✅. @api.get('/health') at line 1951 (with /api prefix) ✅. Both return {"status":"ok"} ✅. app.include_router(api) at line 1956 ✅.
+      DEPLOYMENT FIX COMPLETE: Kubernetes health probes will now receive 200 OK instead of 404. Deployment will be marked healthy. Production deployment should succeed.
 
 # Testing Protocol
 # - MUST test backend via deep_testing_backend_v2 first.
