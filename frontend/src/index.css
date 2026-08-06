@@ -88,3 +88,20 @@ input[type='date'] {
 .shadow-brutal-acid {
   box-shadow: 6px 6px 0 0 #EAFF00;
 }
+
+/* ---- Hero entrance animations (CSS-driven: always complete, even if JS/rAF stalls) ---- */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(60px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in-soft {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.anim-rise { animation: rise-in 0.7s cubic-bezier(0.21, 0.47, 0.32, 0.98) both; }
+.anim-fade { animation: fade-in-soft 0.6s ease-out both; }
+.anim-d-1 { animation-delay: 0.2s; }
+.anim-d-2 { animation-delay: 0.3s; }
+.anim-d-3 { animation-delay: 0.45s; }
+.anim-d-4 { animation-delay: 0.6s; }
+.anim-d-5 { animation-delay: 0.85s; }

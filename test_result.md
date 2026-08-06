@@ -330,28 +330,48 @@ backend:
         comment: "✅ ALL EMAIL HARDENING + CONTACT US TESTS PASSED (6/6). Test 1 - Contact form happy path: POST /api/contact with {name:'Backend Tester', email:'backend.tester@travelo.app', message:'Automated test of the contact form — please ignore.'} → 200 with {ok:true}, response time 1.00s (>= 0.4s, real SMTP handshake confirmed) ✅. Test 2 - CRITICAL LOG CHECK: Backend logs show '[EMAIL sent via gmail starttls-587] to=sayanbhatt2005@gmail.com subject=TRAVELO contact form — message from Backend Tester' (real Gmail SMTP confirmed, NOT console fallback) ✅. Test 3 - MongoDB storage: contact_messages collection contains document with email='backend.tester@travelo.app', name='Backend Tester', message, id (uuid), created_at fields ✅. Test 4 - Validations: (a) missing name → 422 ✅, (b) invalid email 'notanemail' → 422 ✅, (c) message='hi' (too short) → 422 ✅. Test 5 - Invite regression: POST /api/trips/{trip_id}/invite with emails=['travelo.squad.test@gmail.com'] → 200 with sent=[{email, link}], failed=[], completed in 0.82s ✅. Backend logs show '[EMAIL sent via gmail starttls-587] to=travelo.squad.test@gmail.com' (real Gmail SMTP confirmed) ✅. Code review verified: invite emails include plain-text part (lines 1435-1446 in server.py, text parameter passed to send_email) ✅. Test 6 - No auth required: POST /api/contact without Authorization header → 200 with {ok:true} ✅. Total real emails sent: 2 (1 contact + 1 invite, within budget). Email hardening working correctly: _smtp_deliver tries STARTTLS:587 first (successful in all tests), falls back to SSL:465 if needed. All contact form features working: validation, MongoDB storage, email notification with Reply-To, no auth required."
 
 frontend:
+  - task: "Black-page fix: landing hero visible without animation dependency"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Landing.jsx, /app/frontend/src/components/DestinationCard.jsx, /app/frontend/src/components/QuoteRotator.jsx, /app/frontend/public/index.html, /app/frontend/src/index.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "BUG FIX. User reported deployed link shows blank/black page. Root cause: ALL landing hero content was gated behind framer-motion entrance animations (initial opacity 0 -> rAF-driven reveal). On frame-starved devices/browsers the animations never advance -> page stays black (diagnostic: document.timeline.currentTime advanced only ~276ms in 5s while JS thread was responsive; hero CTA stuck at opacity 0 after 8s on BOTH preview and prod). Fix: (1) hero headline/eyebrow/CTA now statically visible (no opacity gating) — pixel-identical at rest; (2) Landing fadeUp variant + DestinationCard use initial:false so below-fold content never hides; (3) QuoteRotator AnimatePresence initial=false (first quote visible instantly, rotations still animate); (4) index.html #root now has a branded 'TRAVELO — LOADING YOUR ESCAPE…' bootstrap fallback instead of pure black if JS fails. Verified via screenshot: full hero visible at 2.5s with all opacities=1 in the same environment that previously rendered black."
+      - working: true
+        agent: "testing"
+        comment: "✅ BLACK-PAGE BUG FIX VERIFIED WORKING (5/5 tests passed). TEST 1 - Landing Hero Visibility (CRITICAL): Hero headline (data-testid='hero-headline') with 'Stop', 'Dreaming.', 'Start Packing.' is fully visible with opacity=1 within 3s of page load ✅, Eyebrow line 'Est. 2026 — Planet Earth' is fully visible with opacity=1 ✅, 'Explore the world' button (data-testid='hero-explore-btn') is fully visible with opacity=1 ✅, 'I need convincing' link is fully visible with opacity=1 ✅, Orange destination marquee strip is visible with opacity=1 ✅. Screenshot evidence confirms all hero elements are immediately visible WITHOUT scrolling and WITHOUT animation dependency. TEST 2 - Below-fold Content: 'Pick your poison.' section heading visible ✅, 6 destination cards with images visible ✅, Quote text visible and not stuck at opacity 0 ✅, All stats (30 / 6 / 3 / ∞) visible ✅, 'Three steps.' section visible ✅, CTA 'The world won't wait.' visible ✅, Footer visible ✅. All below-fold sections are visible and NOT stuck at opacity 0. TEST 3 - Navigation: 'Explore the world' button successfully navigates to /explore page ✅, 30 destination cards visible on /explore page ✅. TEST 4 - Contact Page: Navigated to /contact via navbar link ✅, 'Sayan Bhattacharya' name visible ✅, LinkedIn link with correct href (https://www.linkedin.com/in/sayanbhattacharya01/) ✅, Contact form visible and submission successful ✅, Success box (data-testid='contact-success-box') appeared with 'Message sent.' text ✅, 1 real email sent to sayanbhatt2005@gmail.com ✅. TEST 5 - Regression: All 4 navbar links visible (Explore, Contact, Sign In, Get Started) ✅, No error messages on page ✅. Console logs: Only non-critical font/image loading errors (ERR_ABORTED) and expected React Router future flag warnings. NO critical JavaScript errors, NO animation errors, NO WebSocket errors in this run. BLACK-PAGE BUG IS COMPLETELY FIXED. All hero content is immediately visible without animation dependency."
   - task: "Contact Us page (/contact) + nav link"
     implemented: true
-    working: NA
+    working: true
     file: "/app/frontend/src/pages/ContactPage.jsx, /app/frontend/src/App.js, /app/frontend/src/components/Navbar.jsx, /app/frontend/src/lib/api.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: NA
         agent: "main"
         comment: "NEW PAGE. /contact route: Sayan Bhattacharya card + LinkedIn link (https://www.linkedin.com/in/sayanbhattacharya01/) + contact form (name/email/message) posting to /api/contact. Success state box + sonner toasts. Contact nav link added (desktop + mobile). Verified via screenshot — renders correctly, matches brutalist design. data-testids: contact-name-input, contact-email-input, contact-message-input, contact-submit-btn, contact-linkedin-link, contact-success-box."
+      - working: true
+        agent: "testing"
+        comment: "✅ CONTACT PAGE VERIFIED WORKING (tested as part of black-page bug fix verification). Navigated to /contact via navbar 'Contact' link ✅, 'Sayan Bhattacharya' name visible (data-testid='contact-person-name') ✅, LinkedIn link (data-testid='contact-linkedin-link') has correct href: https://www.linkedin.com/in/sayanbhattacharya01/ ✅, Contact form visible with all inputs (contact-name-input, contact-email-input, contact-message-input) ✅, Form submission successful: filled with name='UI Tester', email='ui.tester@travelo.app', message='Automated UI test of contact form - please ignore' ✅, Success box (data-testid='contact-success-box') appeared with 'Message sent.' text ✅, 1 real email sent to sayanbhatt2005@gmail.com via Gmail SMTP ✅. All contact page features working correctly."
   - task: "Cinematic Landing + quotes rotator + marquee"
     implemented: true
-    working: NA
+    working: true
     file: "/app/frontend/src/pages/Landing.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: NA
         agent: "main"
         comment: "Verified via screenshot — renders correctly."
+      - working: true
+        agent: "testing"
+        comment: "✅ CINEMATIC LANDING VERIFIED WORKING (tested as part of black-page bug fix verification). Hero section with cinematic background image visible ✅, Quote rotator (data-testid='quote-rotator') visible with rotating quotes ✅, Orange destination marquee strip visible at bottom of hero section ✅, All landing page sections render correctly: hero, featured destinations, quotes, stats, how it works, CTA, footer ✅. All animations working correctly with initial:false to prevent black page issue."
   - task: "Auth page (login/register), AuthContext with JWT"
     implemented: true
     working: NA
@@ -361,11 +381,15 @@ frontend:
     needs_retesting: true
   - task: "Explore grid + filters, Destination detail + tiers"
     implemented: true
-    working: NA
+    working: true
     file: "/app/frontend/src/pages/ExplorePage.jsx, /app/frontend/src/pages/DestinationPage.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ EXPLORE PAGE VERIFIED WORKING (tested as part of black-page bug fix verification). Navigated to /explore via 'Explore the world' button from landing page ✅, Destinations grid visible with 30 destination cards ✅, All cards have data-testid='destination-card-{id}' ✅, Cards display correctly with images, names, regions, prices ✅."
   - task: "Multi-step booking -> Stripe redirect; success polling; dashboard with pay-now"
     implemented: true
     working: NA
@@ -394,7 +418,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 13
+  test_sequence: 14
 
 test_plan:
   current_focus: []
@@ -575,6 +599,18 @@ agent_communication:
       Backend logs show '[EMAIL sent via gmail starttls-587] to=travelo.squad.test@gmail.com subject=Smoke added you to the Email Debug City trip on TRAVELO' (real Gmail SMTP confirmed) ✅.
       Code review verified: invite emails include plain-text part (lines 1435-1446 in server.py, text parameter with formatted plain-text passed to send_email function) ✅.
       FEATURE 3 - EMAIL HARDENING VERIFICATION: _smtp_deliver function (lines 1101-1129) tries STARTTLS:587 first, falls back to SSL:465 if connection fails ✅. Success log format: '[EMAIL sent via gmail starttls-587]' or '[EMAIL sent via gmail ssl-465]' ✅. Auth errors short-circuit with clear RuntimeError message ✅.
+  - agent: "testing"
+    message: >
+      ✅ BLACK-PAGE BUG FIX VERIFICATION COMPLETE - ALL TESTS PASSED (5/5).
+      User reported deployed link showed blank/black page. Fix applied and VERIFIED WORKING on preview build (https://trip-invite-bug.internal.stage-preview.emergentagent.com).
+      TEST 1 - LANDING PAGE HERO VISIBILITY (CRITICAL): Navigated to landing page, waited 3s for initial render ✅. Hero headline (data-testid='hero-headline') with text 'Stop', 'Dreaming.', 'Start Packing.' is fully visible with opacity=1 ✅. Eyebrow line 'Est. 2026 — Planet Earth' is fully visible with opacity=1 ✅. 'Explore the world' button (data-testid='hero-explore-btn') is fully visible with opacity=1 ✅. 'I need convincing' link is fully visible with opacity=1 ✅. Orange destination marquee strip is visible with opacity=1 ✅. Screenshot evidence confirms ALL hero elements are immediately visible WITHOUT scrolling and WITHOUT animation dependency. BLACK PAGE BUG IS FIXED ✅.
+      TEST 2 - BELOW-FOLD CONTENT VISIBILITY: Scrolled down landing page to verify all sections ✅. 'Pick your poison.' section heading visible ✅. 6 destination cards with images visible ✅. Quote rotator (data-testid='quote-rotator') visible with quote text 'YOUR COMFORT ZONE IS A BEAUTIFUL PLACE, BUT NOTHING EVER GROWS THERE.' — NOT stuck at opacity 0 ✅. All stats (30 / 6 / 3 / ∞) visible ✅. 'Three steps.' section visible ✅. CTA 'The world won't wait.' visible ✅. Footer visible ✅. All below-fold sections are visible and NOT stuck at opacity 0 ✅.
+      TEST 3 - NAVIGATION: Clicked 'Explore the world' button → successfully navigated to /explore page ✅. 30 destination cards visible on /explore page ✅.
+      TEST 4 - CONTACT PAGE: Navigated to /contact via navbar 'Contact' link ✅. 'Sayan Bhattacharya' name visible (data-testid='contact-person-name') ✅. LinkedIn link (data-testid='contact-linkedin-link') has correct href: https://www.linkedin.com/in/sayanbhattacharya01/ ✅. Contact form visible with all inputs (contact-name-input, contact-email-input, contact-message-input) ✅. Filled form with name='UI Tester', email='ui.tester@travelo.app', message='Automated UI test of contact form - please ignore' ✅. Submitted form via contact-submit-btn ✅. Success box (data-testid='contact-success-box') appeared with 'Message sent.' text within 15s ✅. 1 real email sent to sayanbhatt2005@gmail.com via Gmail SMTP ✅.
+      TEST 5 - REGRESSION: All 4 navbar links visible (Explore, Contact, Sign In, Get Started) ✅. No error messages found on page ✅.
+      CONSOLE LOGS: Only non-critical font/image loading errors (ERR_ABORTED - likely network/test environment) and expected React Router future flag warnings (v7_startTransition, v7_relativeSplatPath) ✅. NO critical JavaScript errors ✅. NO animation errors ✅. NO WebSocket errors in this test run ✅.
+      FIX DETAILS VERIFIED: (1) Hero content (headline, eyebrow, buttons, marquee) is statically visible with NO opacity gating — all elements have opacity=1 immediately on page load ✅. (2) Landing fadeUp variant uses initial:false so below-fold content never hides ✅. (3) DestinationCard uses initial:false ✅. (4) QuoteRotator AnimatePresence has initial=false so first quote is visible instantly ✅.
+      BLACK-PAGE BUG FIX IS COMPLETELY VERIFIED AND WORKING. Landing page is fully visible on frame-starved devices/browsers. All hero content appears immediately without animation dependency.
       All tests used STARTTLS:587 successfully (no fallback needed in test environment). Total real emails sent: 2 (1 contact + 1 invite, within budget).
       ALL EMAIL HARDENING + CONTACT US FEATURES WORKING PERFECTLY. COMPLETE TRAVELO BACKEND (auth, destinations, bookings, payments, quotes, trip planner, vibe lab, NOMAD chat, SQUAD CHAT, EMAIL INVITES, DESTINATION GUIDES, INR NOTIFICATIONS, VOICE TRANSCRIPTION, HINDI VOICE MODE, TRIP INVITES LIST, AUDIO VOICE NOTES, RECEIPT EMAIL WIRING, TRIP REMINDER EMAILS, READ RECEIPTS, EMAIL HARDENING, CONTACT US) IS FULLY FUNCTIONAL AND TESTED.
 

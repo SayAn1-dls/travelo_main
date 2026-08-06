@@ -28,7 +28,7 @@ export default function QuoteRotator({ interval = 5000, compact = false }) {
 
   return (
     <div className={compact ? 'min-h-[120px]' : 'min-h-[220px] md:min-h-[260px]'} data-testid="quote-rotator">
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         <motion.blockquote
           key={index}
           initial={{ opacity: 0, y: 30 }}

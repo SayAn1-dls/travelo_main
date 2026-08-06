@@ -11,7 +11,7 @@ const HERO_IMG = 'https://images.unsplash.com/photo-1608570004513-472c257f2149?a
 const CTA_IMG = 'https://images.pexels.com/photos/14482714/pexels-photo-14482714.jpeg?auto=compress&w=2000&q=75';
 
 const fadeUp = {
-  initial: { opacity: 0, y: 40 },
+  initial: false,
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, margin: '-80px' },
   transition: { duration: 0.7 },
@@ -38,33 +38,23 @@ export default function Landing() {
         </div>
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-8 pt-32 md:px-8">
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mb-6 font-mono text-xs uppercase tracking-[0.4em] text-acid"
-          >
+          <p className="mb-6 font-mono text-xs uppercase tracking-[0.4em] text-acid">
             Est. 2026 — Planet Earth · 30 destinations · 3 tiers · zero excuses
-          </motion.p>
+          </p>
 
           <h1 className="font-display uppercase leading-[0.82]" data-testid="hero-headline">
-            <motion.span initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="block text-[clamp(4.5rem,13vw,13rem)] text-white">
+            <span className="block text-[clamp(4.5rem,13vw,13rem)] text-white">
               Stop
-            </motion.span>
-            <motion.span initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.7 }} className="block text-[clamp(4.5rem,13vw,13rem)] text-outline">
+            </span>
+            <span className="block text-[clamp(4.5rem,13vw,13rem)] text-outline">
               Dreaming.
-            </motion.span>
-            <motion.span initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.7 }} className="block text-[clamp(4.5rem,13vw,13rem)]">
+            </span>
+            <span className="block text-[clamp(4.5rem,13vw,13rem)]">
               Start <span className="italic text-blaze">Packing.</span>
-            </motion.span>
+            </span>
           </h1>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.85 }}
-            className="mt-10 flex flex-wrap items-center gap-4"
-          >
+          <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               to="/explore"
               className="group flex items-center gap-3 bg-blaze px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.2em] text-black transition hover:bg-blaze-hover"
@@ -80,7 +70,7 @@ export default function Landing() {
               I need convincing
               <ArrowDown className="h-4 w-4" />
             </a>
-          </motion.div>
+          </div>
         </div>
 
         <div className="relative z-10 mt-10">

@@ -8,7 +8,7 @@ const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency:
 export default function DestinationCard({ dest, index = 0 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
+      initial={false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.55, delay: (index % 3) * 0.1 }}
