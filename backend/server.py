@@ -1941,6 +1941,18 @@ async def contact_us(req: ContactRequest):
     return {"ok": True}
 
 
+# Root-level health endpoints for Kubernetes liveness/readiness probes
+# (probes hit the container directly WITHOUT the /api ingress prefix)
+@app.get("/health")
+async def health_root():
+    return {"status": "ok"}
+
+
+@api.get("/health")
+async def health_api():
+    return {"status": "ok"}
+
+
 app.include_router(api)
 
 app.add_middleware(
