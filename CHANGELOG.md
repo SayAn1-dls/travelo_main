@@ -55,3 +55,17 @@ Format: [Semantic Versioning](https://semver.org/) — Conventional Commits.
 - Electric Orange / Pitch Black palette
 - 60px silicon transparency (frosted glass)
 - Zero-Network LocalStorage engine activated
+
+## [v4.1.0] — 2026-09-21
+
+### ⚡ Performance
+- Implemented React route-level code splitting via `React.lazy` + `Suspense` to reduce initial JS bundle and speed up first load on mobile
+- Made Google Fonts loading non-blocking (`rel="preload"`) to eliminate render-blocking on slow connections
+
+### 🏗 Developer Experience
+- Added `.github/ISSUE_TEMPLATE/` — structured bug report and feature request templates
+- Added `.github/PULL_REQUEST_TEMPLATE.md` — standardised PR checklist
+- Added `.github/ISSUE_TEMPLATE/config.yml` — disables blank issues, links to live app and discussions
+
+### 🔧 Build
+- Pinned Node.js engine to `18.x` in `package.json` for full craco + react-scripts compatibility on Vercel
