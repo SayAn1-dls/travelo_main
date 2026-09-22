@@ -1,10 +1,19 @@
 // Travelo API Layer — Zero-Network Local Persistence Engine
 // Exports: default api, named { api, getToken, setToken, clearToken }
 
+// Safe storage — falls back to in-memory when localStorage is blocked
+// (WhatsApp WebView, iOS private mode, or strict browser policies)
+const _mem = {};
+const _store = {
+  getItem: (k) => { try { return localStorage.getItem(k); } catch { return _mem[k] ?? null; } },
+  setItem: (k, v) => { try { localStorage.setItem(k, v); } catch { _mem[k] = v; } },
+  removeItem: (k) => { try { localStorage.removeItem(k); } catch { delete _mem[k]; } },
+};
+
 const TOKEN_KEY = 'travelo_jwt_v3';
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
-export const setToken = (t) => localStorage.setItem(TOKEN_KEY, t);
-export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+export const getToken = () => _store.getItem(TOKEN_KEY);
+export const setToken = (t) => _store.setItem(TOKEN_KEY, t);
+export const clearToken = () => _store.removeItem(TOKEN_KEY);
 
 const DEMO_USER = { id: 'u1', name: 'Sayan Das', email: 'demo@travelo.app', avatar: null };
 const DESTINATIONS = [
@@ -16,10 +25,10 @@ const DESTINATIONS = [
   { id: 'd6', slug: 'ladakh', name: 'Ladakh', country: 'India', description: 'High altitude desert magic.', price: 24000, rating: 4.8, reviewCount: 1450, duration: 8, image: 'https://images.unsplash.com/photo-1589308154395-cd4d3f2ef5f3?auto=format&fit=crop&w=800&q=80', gallery: [], tags: ['Adventure', 'Mountains', 'Offbeat'], highlights: ['Pangong Lake', 'Nubra Valley', 'Magnetic Hill'] },
 ];
 
-const _bookings = () => JSON.parse(localStorage.getItem('travelo_bookings_v1') || '[]');
-const _saveBookings = (b) => localStorage.setItem('travelo_bookings_v1', JSON.stringify(b));
-const _trips = () => JSON.parse(localStorage.getItem('travelo_trips_v3') || '[]');
-const _saveTrips = (t) => localStorage.setItem('travelo_trips_v3', JSON.stringify(t));
+const _bookings = () => JSON.parse(_store.getItem('travelo_bookings_v1') || '[]');
+const _saveBookings = (b) => _store.setItem('travelo_bookings_v1', JSON.stringify(b));
+const _trips = () => JSON.parse(_store.getItem('travelo_trips_v3') || '[]');
+const _saveTrips = (t) => _store.setItem('travelo_trips_v3', JSON.stringify(t));
 
 export const api = {
   // Auth

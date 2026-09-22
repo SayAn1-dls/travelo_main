@@ -9,22 +9,22 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let mounted = true;
+    // Hard timeout — if restore hangs for any reason, unblock the UI in 2s
+    const timeout = setTimeout(() => { if (mounted) setLoading(false); }, 2000);
     async function restore() {
-      if (!getToken()) {
-        setLoading(false);
-        return;
-      }
       try {
+        if (!getToken()) { setLoading(false); return; }
         const me = await api.me();
         if (mounted) setUser(me);
       } catch (err) {
-        clearToken();
+        try { clearToken(); } catch { /* ignore */ }
       } finally {
+        clearTimeout(timeout);
         if (mounted) setLoading(false);
       }
     }
     restore();
-    return () => { mounted = false; };
+    return () => { mounted = false; clearTimeout(timeout); };
   }, []);
 
   const login = useCallback(async (email, password) => {
