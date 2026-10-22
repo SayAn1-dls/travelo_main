@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api, { getToken, API_BASE, API_ORIGIN } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import VoiceNotePlayer from '@/components/VoiceNotePlayer';
 
 const MEDIA_BASE = API_ORIGIN;
 const POLL_MS = 2500;
@@ -341,14 +342,7 @@ export default function SquadChatPage() {
                         </video>
                       )}
                       {m.type === 'media' && m.media_type === 'audio' && (
-                        <div className="flex items-center gap-2" data-testid="voice-note-bubble">
-                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center ${mine ? 'bg-black/15' : 'bg-blaze/15'}`}>
-                            <Mic className={`h-4 w-4 ${mine ? 'text-black' : 'text-blaze'}`} />
-                          </span>
-                          <audio controls preload="metadata" className="h-10 w-52 max-w-full sm:w-64">
-                            <source src={`${MEDIA_BASE}${m.media_url}`} />
-                          </audio>
-                        </div>
+                        <VoiceNotePlayer src={`${MEDIA_BASE}${m.media_url}`} id={m.id} mine={mine} />
                       )}
                       {m.text && <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.text}</p>}
                       <p className={`mt-1 text-right font-mono text-[9px] ${mine ? 'text-black/50' : 'text-white/30'}`}>
@@ -427,12 +421,44 @@ export default function SquadChatPage() {
 function VoiceNoteButton({ disabled, onBlob }) {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [levels, setLevels] = useState(() => Array(14).fill(0.15));
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
+  const rafRef = useRef(null);
+  const audioCtxRef = useRef(null);
+
+  const stopMeter = () => {
+    cancelAnimationFrame(rafRef.current);
+    try { audioCtxRef.current?.close(); } catch (e) { /* noop */ }
+    audioCtxRef.current = null;
+    setLevels(Array(14).fill(0.15));
+  };
+
+  const startMeter = (stream) => {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      audioCtxRef.current = ctx;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        const next = [];
+        for (let i = 0; i < 14; i++) next.push(Math.max(0.15, Math.min(1, (data[i + 1] || 0) / 190)));
+        setLevels(next);
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch (e) { /* meter is cosmetic */ }
+  };
 
   useEffect(() => () => {
+    stopMeter();
     clearInterval(timerRef.current);
     try { recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop(); } catch (e) { /* noop */ }
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -474,6 +500,7 @@ function VoiceNoteButton({ disabled, onBlob }) {
       const blob = new Blob(chunksRef.current, { type });
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      stopMeter();
       clearInterval(timerRef.current);
       setElapsed(0);
       setRecording(false);
@@ -482,6 +509,7 @@ function VoiceNoteButton({ disabled, onBlob }) {
       onBlob(new File([blob], `voice-note.${ext}`, { type }));
     };
     recorder.start(250);
+    startMeter(stream);
     setRecording(true);
     setElapsed(0);
     timerRef.current = setInterval(() => {
@@ -504,13 +532,18 @@ function VoiceNoteButton({ disabled, onBlob }) {
       disabled={disabled}
       title={recording ? 'Stop & send voice note' : 'Record a voice note'}
       className={`flex h-10 shrink-0 items-center justify-center gap-1.5 transition disabled:opacity-40 ${
-        recording ? 'animate-pulse bg-blaze px-3 text-black' : 'w-10 border border-white/20 text-white/70 hover:border-blaze hover:text-blaze'
+        recording ? 'bg-blaze px-3 text-black' : 'w-10 border border-white/20 text-white/70 hover:border-blaze hover:text-blaze'
       }`}
       data-testid="voice-note-btn"
     >
       {recording ? (
         <>
-          <Square className="h-4 w-4" />
+          <Square className="h-4 w-4 fill-current" />
+          <span className="flex h-6 items-center gap-[2px]">
+            {levels.map((l, i) => (
+              <span key={i} className="w-[3px] rounded-[1px] bg-black transition-[height] duration-75" style={{ height: `${Math.round(l * 100)}%` }} />
+            ))}
+          </span>
           <span className="font-mono text-[10px] font-bold">{elapsed}s</span>
         </>
       ) : (
