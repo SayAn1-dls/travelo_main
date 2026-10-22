@@ -97,3 +97,6 @@ backend/uploads/*
 *.env
 
 frontend/build/
+
+!.env.example
+!**/.env.example

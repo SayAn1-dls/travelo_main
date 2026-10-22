@@ -8,13 +8,13 @@ export function voiceOutputSupported() {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
 }
 
-export function createRecognizer({ onInterim, onFinal, onEnd, onError }) {
+export function createRecognizer({ onInterim, onFinal, onEnd, onError, lang, continuous = false }) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return null;
   const rec = new SR();
-  rec.lang = navigator.language || 'en-US';
+  rec.lang = lang || navigator.language || 'en-US';
   rec.interimResults = true;
-  rec.continuous = false;
+  rec.continuous = continuous;
   rec.maxAlternatives = 1;
   rec.onresult = (e) => {
     let interim = '';

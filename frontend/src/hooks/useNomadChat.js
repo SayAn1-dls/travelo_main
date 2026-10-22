@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getToken } from '@/lib/api';
+import { getToken, API_BASE } from '@/lib/api';
 
-const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 /**
  * Shared NOMAD chat engine — session restore, SSE streaming, multi-turn memory.

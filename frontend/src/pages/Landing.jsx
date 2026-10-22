@@ -39,7 +39,7 @@ export default function Landing() {
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-8 pt-32 md:px-8">
           <p className="mb-6 font-mono text-xs uppercase tracking-[0.4em] text-acid">
-            Est. 2026 — Planet Earth · 30 destinations · 3 tiers · zero excuses
+            Est. 2026 — Planet Earth · 46 destinations · 3 tiers · zero excuses
           </p>
 
           <h1 className="font-display uppercase leading-[0.82]" data-testid="hero-headline">
@@ -90,7 +90,7 @@ export default function Landing() {
             className="group flex items-center gap-2 font-mono text-sm uppercase tracking-[0.25em] text-acid hover:text-white"
             data-testid="see-all-destinations"
           >
-            All 30 destinations <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            All 46 destinations <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </motion.div>
 
@@ -113,7 +113,7 @@ export default function Landing() {
       <section className="mx-auto max-w-7xl px-5 py-20 md:px-8">
         <div className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-4">
           {[
-            ['30', 'Destinations'],
+            ['46', 'Destinations'],
             ['6', 'Continents'],
             ['3', 'Savage tiers'],
             ['∞', 'Bragging rights'],

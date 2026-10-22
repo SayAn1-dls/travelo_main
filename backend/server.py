@@ -1,4 +1,5 @@
 """TRAVELO backend — auth, destinations, bookings, Stripe payments, quotes."""
+import asyncio
 import os
 import re
 import secrets
@@ -20,7 +21,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr, Field
 
-from destinations_data import DESTINATIONS, QUOTES, TIERS, tier_price
+from destinations_data import DESTINATIONS, GUIDES, QUOTES, TIERS, tier_price
+import llm
+from nomad_local import local_reply
 import setup_stripe
 
 ROOT_DIR = Path(__file__).parent
@@ -322,28 +325,40 @@ async def create_checkout(req: CheckoutRequest, user=Depends(get_current_user)):
     if booking["status"] == "confirmed":
         raise HTTPException(400, "Booking is already paid")
     lookup_key = f"{booking['destination_id']}_{booking['tier']}"
-    prices = stripe.Price.list(lookup_keys=[lookup_key], active=True, limit=1).data
-    if not prices:
-        raise HTTPException(500, f"Price not found: {lookup_key}")
-    price = prices[0]
     quantity = int(booking["travelers"])
-    kwargs = dict(
-        line_items=[{"price": price.id, "quantity": quantity}],
-        mode="payment",
-        success_url=f"{req.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{req.origin_url}/payment/cancel?booking_id={booking['id']}",
-        metadata={"user_id": user["id"], "booking_id": booking["id"], "lookup_key": lookup_key},
-    )
-    if tax_mode == "calc_only":
-        try:
-            session = stripe.checkout.Session.create(
-                **kwargs, automatic_tax={"enabled": True}, billing_address_collection="required",
-            )
-        except stripe.error.InvalidRequestError as e:
-            logger.warning("automatic tax unavailable, falling back to plain session: %s", e)
-            session = stripe.checkout.Session.create(**kwargs)
-    else:
-        session = stripe.checkout.Session.create(**kwargs)
+
+    def _make_session():
+        prices = stripe.Price.list(lookup_keys=[lookup_key], active=True, limit=1).data
+        if not prices:
+            raise HTTPException(503, "Payments are being set up for this destination — try again shortly")
+        price = prices[0]
+        kwargs = dict(
+            line_items=[{"price": price.id, "quantity": quantity}],
+            mode="payment",
+            success_url=f"{req.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{req.origin_url}/payment/cancel?booking_id={booking['id']}",
+            metadata={"user_id": user["id"], "booking_id": booking["id"], "lookup_key": lookup_key},
+        )
+        if tax_mode == "calc_only":
+            try:
+                sess = stripe.checkout.Session.create(
+                    **kwargs, automatic_tax={"enabled": True}, billing_address_collection="required",
+                )
+            except stripe.InvalidRequestError as e:
+                logger.warning("automatic tax unavailable, falling back to plain session: %s", e)
+                sess = stripe.checkout.Session.create(**kwargs)
+        else:
+            sess = stripe.checkout.Session.create(**kwargs)
+        return price, sess
+
+    try:
+        price, session = await asyncio.to_thread(_make_session)
+    except stripe.AuthenticationError:
+        logger.error("Stripe rejected the API key — set STRIPE_SECRET_KEY in backend/.env")
+        raise HTTPException(503, "Payments are not configured on this server yet (missing Stripe key)")
+    except stripe.StripeError as e:
+        logger.error("Stripe checkout failed: %s", e)
+        raise HTTPException(502, "Payment provider error — please try again")
     await payment_transactions.insert_one({
         "session_id": session.id,
         "user_id": user["id"],
@@ -409,7 +424,7 @@ async def get_payment_status(session_id: str):
             if s.payment_status == "paid" or s.status == "complete":
                 await _mark_paid(session_id, {"stripe_payment_intent_id": s.payment_intent})
                 record = await payment_transactions.find_one({"session_id": session_id})
-        except stripe.error.StripeError:
+        except stripe.StripeError:
             pass
     return {
         "session_id": record["session_id"],
@@ -425,7 +440,7 @@ async def stripe_webhook(request: Request):
     sig = request.headers.get("stripe-signature", "")
     try:
         event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
-    except stripe.error.SignatureVerificationError:
+    except stripe.SignatureVerificationError:
         raise HTTPException(400, "Invalid signature")
     except Exception:
         raise HTTPException(400, "Invalid payload")
@@ -722,20 +737,15 @@ VIBE_PROMPT = (
 @api.post("/collage/analyze")
 async def analyze_collage(req: CollageAnalyzeRequest, user=Depends(get_current_user)):
     import json as _json
-    from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-
-    key = os.environ.get("EMERGENT_LLM_KEY")
-    if not key:
+    if not llm.available():
         return {**VIBE_FALLBACK, "source": "fallback"}
     try:
-        chat = LlmChat(
-            api_key=key,
+        text = await llm.complete(
+            "You analyze travel photos and answer in strict JSON only.",
+            VIBE_PROMPT,
+            images_b64=[llm.b64_payload(img) for img in req.images],
             session_id=f"vibe-{uuid.uuid4()}",
-            system_message="You analyze travel photos and answer in strict JSON only.",
-        ).with_model("openai", "gpt-5.4")
-        attachments = [ImageContent(image_base64=img.split(",")[-1]) for img in req.images]
-        response = await chat.send_message(UserMessage(text=VIBE_PROMPT, file_contents=attachments))
-        text = response if isinstance(response, str) else str(response)
+        )
         start, end = text.find("{"), text.rfind("}")
         if start == -1 or end == -1:
             raise ValueError("No JSON in model response")
@@ -805,9 +815,6 @@ def _nomad_system(place: str, phase: str, vibe: Optional[dict], language: str = 
 @api.post("/chat/message")
 async def nomad_chat(req: ChatMessageRequest, user=Depends(get_current_user)):
     import json as _json
-    from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
-
-    key = os.environ.get("EMERGENT_LLM_KEY")
     phase = req.phase if req.phase in CHAT_PHASES else "before"
     now = datetime.now(timezone.utc).isoformat()
 
@@ -858,24 +865,21 @@ async def nomad_chat(req: ChatMessageRequest, user=Depends(get_current_user)):
         yield f"data: {_json.dumps({'type': 'session', 'session_id': sid})}\n\n"
         chunks = []
         try:
-            if not key:
+            if not llm.available():
                 raise RuntimeError("No LLM key configured")
-            chat = LlmChat(
-                api_key=key, session_id=sid, system_message=system_message,
-            ).with_model("openai", "gpt-5.4")
-            async for ev in chat.stream_message(UserMessage(text=prompt)):
-                if isinstance(ev, TextDelta):
-                    chunks.append(ev.content)
-                    yield f"data: {_json.dumps({'type': 'delta', 'content': ev.content})}\n\n"
-                elif isinstance(ev, StreamDone):
-                    break
+            async for piece in llm.stream_chat(system_message, prompt, sid):
+                chunks.append(piece)
+                yield f"data: {_json.dumps({'type': 'delta', 'content': piece})}\n\n"
         except Exception as e:  # noqa: BLE001
             logger.error("NOMAD chat failed: %s", e)
             if not chunks:
-                fallback = "NOMAD lost signal in the mountains. Give it another shot in a moment."
-                chunks.append(fallback)
-                yield f"data: {_json.dumps({'type': 'delta', 'content': fallback})}\n\n"
-        reply = "".join(chunks)
+                fallback = local_reply(req.text, session.get("place", ""), phase, req.language)
+                for word in fallback.split(" "):
+                    piece = word + " "
+                    chunks.append(piece)
+                    yield f"data: {_json.dumps({'type': 'delta', 'content': piece})}\n\n"
+                    await asyncio.sleep(0.015)
+        reply = "".join(chunks).strip()
         await chat_messages.insert_one({
             "id": str(uuid.uuid4()), "session_id": sid, "user_id": user["id"],
             "role": "assistant", "text": reply, "created_at": datetime.now(timezone.utc).isoformat(),
@@ -1555,11 +1559,42 @@ async def _wiki_thumb(client, query: str) -> Optional[str]:
     return None
 
 
+def _static_guide(dest: dict) -> dict:
+    """Hand-written guide when available, otherwise one assembled from catalog data."""
+    import copy
+    if dest["id"] in GUIDES:
+        return copy.deepcopy(GUIDES[dest["id"]])
+    hl = dest["highlights"]
+    return {
+        "overview": f"{dest['description']} A typical TRAVELO trip to {dest['name']} runs about {dest['duration_days']} days "
+                    f"and is rated {dest['rating']}/5 by travellers.",
+        "top_spots": [
+            {"name": h, "description": f"One of the signature experiences in {dest['name']}, {dest['country']}.",
+             "why_go": dest["tagline"], "best_time": "see best-season advice"}
+            for h in hl
+        ],
+        "underrated": [],
+        "getting_there": {
+            "by_air": f"Fly into the nearest major airport to {dest['name']} and continue by road or rail.",
+            "by_train": "Check the national rail operator for the nearest station.",
+            "by_road": "Taxis, rental cars and regional buses connect the nearest city.",
+        },
+        "getting_around": f"Use local taxis, ride-hailing apps and public transport around {dest['name']}.",
+        "food": [{"dish": "Local specialities", "description": f"Ask locals for the signature dishes of {dest['name']}."}],
+        "tips": [
+            "Book flights and stays early for peak season.",
+            "Carry some local cash for small vendors.",
+            "Respect local customs and dress codes.",
+            "Keep digital and paper copies of documents.",
+            "Check the season before you go.",
+        ],
+    }
+
+
 @api.get("/destinations/{dest_id}/guide")
 async def destination_guide(dest_id: str):
     import json as _json
     import httpx
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
 
     dest = DEST_MAP.get(dest_id)
     if not dest:
@@ -1568,24 +1603,23 @@ async def destination_guide(dest_id: str):
     if cached:
         return cached["data"]
 
-    key = os.environ.get("EMERGENT_LLM_KEY")
-    if not key:
-        raise HTTPException(503, "Guide engine unavailable")
-    try:
-        chat = LlmChat(
-            api_key=key,
-            session_id=f"guide-{dest_id}-{uuid.uuid4()}",
-            system_message="You write factual, vivid travel guides and answer in strict JSON only.",
-        ).with_model("openai", "gpt-5.4")
-        response = await chat.send_message(UserMessage(text=GUIDE_PROMPT.format(name=dest["name"], country=dest["country"])))
-        text = response if isinstance(response, str) else str(response)
-        start, end = text.find("{"), text.rfind("}")
-        data = _json.loads(text[start:end + 1])
-        if not isinstance(data, dict):
-            raise ValueError("Guide JSON malformed (expected object)")
-    except Exception as e:  # noqa: BLE001
-        logger.error("Guide generation failed for %s: %s", dest_id, e)
-        raise HTTPException(502, "Guide generation failed — try again in a moment")
+    data = None
+    if llm.available():
+        try:
+            text = await llm.complete(
+                "You write factual, vivid travel guides and answer in strict JSON only.",
+                GUIDE_PROMPT.format(name=dest["name"], country=dest["country"]),
+                session_id=f"guide-{dest_id}-{uuid.uuid4()}",
+            )
+            start, end = text.find("{"), text.rfind("}")
+            data = _json.loads(text[start:end + 1])
+            if not isinstance(data, dict):
+                raise ValueError("Guide JSON malformed (expected object)")
+        except Exception as e:  # noqa: BLE001
+            logger.error("Guide generation failed for %s: %s", dest_id, e)
+            data = None
+    if data is None:
+        data = _static_guide(dest)
 
     # enrich spots with wikipedia images (parallel)
     async with httpx.AsyncClient(headers={
@@ -1618,10 +1652,7 @@ VOICE_EXTS = {"webm", "mp4", "mp3", "wav", "m4a", "mpeg", "mpga", "ogg"}
 
 @api.post("/voice/transcribe")
 async def transcribe_voice(file: UploadFile = File(...), language: Optional[str] = Form(None), user=Depends(get_current_user)):
-    from emergentintegrations.llm.openai import OpenAISpeechToText
-
-    key = os.environ.get("EMERGENT_LLM_KEY")
-    if not key:
+    if not llm.available():
         raise HTTPException(503, "Transcription unavailable")
     lang = language if language in {"en", "hi"} else None
     content_type = (file.content_type or "").lower()
@@ -1639,14 +1670,10 @@ async def transcribe_voice(file: UploadFile = File(...), language: Optional[str]
     try:
         with open(tmp_path, "wb") as f:
             f.write(data)
-        stt = OpenAISpeechToText(api_key=key)
-        kwargs = {"model": "whisper-1", "response_format": "json",
-                  "prompt": "A traveler talking to a travel assistant about trips, destinations, packing, food and plans."}
-        if lang:
-            kwargs["language"] = lang
-        with open(tmp_path, "rb") as audio_file:
-            response = await stt.transcribe(file=audio_file, **kwargs)
-        text = (getattr(response, "text", "") or "").strip()
+        text = await llm.transcribe(
+            str(tmp_path), lang,
+            "A traveler talking to a travel assistant about trips, destinations, packing, food and plans.",
+        )
         return {"text": text}
     except HTTPException:
         raise
@@ -1682,16 +1709,13 @@ PACKING_PROMPT = (
 
 async def _reminder_content(place: str, start_date: str) -> dict:
     import json as _json
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
-    key = os.environ.get("EMERGENT_LLM_KEY")
     fallback = {"hype_line": "3 days. Pack smart, sleep early, dream big.", "checklist": DEFAULT_CHECKLIST}
-    if not key:
+    if not llm.available():
         return fallback
     try:
-        chat = LlmChat(api_key=key, session_id=f"remind-{uuid.uuid4()}",
-                       system_message="You answer in strict JSON only.").with_model("openai", "gpt-5.4")
-        resp = await chat.send_message(UserMessage(text=PACKING_PROMPT.format(place=place, start_date=start_date)))
-        text = resp if isinstance(resp, str) else str(resp)
+        text = await llm.complete("You answer in strict JSON only.",
+                                  PACKING_PROMPT.format(place=place, start_date=start_date),
+                                  session_id=f"remind-{uuid.uuid4()}")
         data = _json.loads(text[text.find("{"):text.rfind("}") + 1])
         checklist = [str(x)[:70] for x in (data.get("checklist") or [])][:10] or DEFAULT_CHECKLIST
         return {"hype_line": str(data.get("hype_line") or fallback["hype_line"])[:110], "checklist": checklist}

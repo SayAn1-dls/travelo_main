@@ -1,11 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Mic, Square, Loader2 } from 'lucide-react';
-import { getToken } from '@/lib/api';
-import { stopSpeaking } from '@/lib/voice';
+import { getToken, API_BASE } from '@/lib/api';
+import { stopSpeaking, createRecognizer, voiceInputSupported } from '@/lib/voice';
 
-const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const MAX_SECONDS = 30;
+
+// Once the server reports it cannot transcribe (no AI key), rely on the browser engine.
+let serverSttDown = false;
 
 function pickMimeType() {
   if (typeof MediaRecorder === 'undefined') return null;
@@ -19,7 +21,9 @@ function pickMimeType() {
 /**
  * Push-to-talk mic: records real audio (MediaRecorder — works in Chrome, Edge,
  * Firefox, Safari), sends it to the backend, Whisper transcribes, onFinal(text)
- * auto-sends. onInterim gets status text for the input placeholder.
+ * auto-sends. In parallel the browser's speech recognition (when available)
+ * produces a live transcript that is used as a fallback if the server cannot
+ * transcribe. onInterim gets status text for the input placeholder.
  */
 export default function MicButton({ disabled, onInterim, onFinal, size = 'md', language = 'en' }) {
   const [phase, setPhase] = useState('idle'); // idle | recording | transcribing
@@ -29,9 +33,17 @@ export default function MicButton({ disabled, onInterim, onFinal, size = 'md', l
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
   const cancelledRef = useRef(false);
+  const recogRef = useRef(null);
+  const heardRef = useRef('');
+
+  const stopRecognizer = () => {
+    try { recogRef.current?.stop(); } catch (e) { /* noop */ }
+    recogRef.current = null;
+  };
 
   useEffect(() => () => {
     clearInterval(timerRef.current);
+    try { recogRef.current?.abort?.(); } catch (e) { /* noop */ }
     try { recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop(); } catch (e) { /* noop */ }
     streamRef.current?.getTracks().forEach((t) => t.stop());
   }, []);
@@ -43,22 +55,32 @@ export default function MicButton({ disabled, onInterim, onFinal, size = 'md', l
     setElapsed(0);
   };
 
-  const transcribe = async (blob, mime) => {
+  const transcribe = async (blob, mime, browserText = '') => {
     setPhase('transcribing');
     if (onInterim) onInterim('… transcribing your voice');
     try {
-      const ext = mime.includes('mp4') ? 'mp4' : mime.includes('ogg') ? 'ogg' : 'webm';
-      const fd = new FormData();
-      fd.append('file', new File([blob], `voice.${ext}`, { type: mime || 'audio/webm' }));
-      if (language) fd.append('language', language);
-      const res = await fetch(`${API_BASE}/voice/transcribe`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: fd,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'Transcription failed');
-      const text = (data.text || '').trim();
+      let text = '';
+      if (!serverSttDown) {
+        try {
+          const ext = mime.includes('mp4') ? 'mp4' : mime.includes('ogg') ? 'ogg' : 'webm';
+          const fd = new FormData();
+          fd.append('file', new File([blob], `voice.${ext}`, { type: mime || 'audio/webm' }));
+          if (language) fd.append('language', language);
+          const res = await fetch(`${API_BASE}/voice/transcribe`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${getToken()}` },
+            body: fd,
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.status === 503) serverSttDown = true;
+          if (!res.ok) throw new Error(data.detail || 'Transcription failed');
+          text = (data.text || '').trim();
+        } catch (serverErr) {
+          if (!browserText) throw serverErr;
+        }
+      }
+      if (!text) text = browserText.trim();
+      if (!text && serverSttDown) throw new Error('Voice transcription is unavailable here — try Chrome or Edge, or type your message.');
       if (onInterim) onInterim('');
       if (!text) {
         toast.info('Didn\u2019t catch any words — try again, a bit louder.');
@@ -119,6 +141,7 @@ export default function MicButton({ disabled, onInterim, onFinal, size = 'md', l
     recorder.onstop = () => {
       const type = recorder.mimeType || mime || 'audio/webm';
       const blob = new Blob(chunksRef.current, { type });
+      stopRecognizer();
       cleanupStream();
       if (cancelledRef.current) { setPhase('idle'); if (onInterim) onInterim(''); return; }
       if (blob.size < 1000) {
@@ -127,9 +150,26 @@ export default function MicButton({ disabled, onInterim, onFinal, size = 'md', l
         toast.info('That was too quick — hold it and speak.');
         return;
       }
-      transcribe(blob, type);
+      // give the browser recogniser a moment to deliver its last result
+      setPhase('transcribing');
+      setTimeout(() => transcribe(blob, type, heardRef.current), 350);
     };
     recorder.start(250);
+    heardRef.current = '';
+    if (voiceInputSupported()) {
+      try {
+        let finals = '';
+        const rec = createRecognizer({
+          lang: language === 'hi' ? 'hi-IN' : undefined,
+          continuous: true,
+          onInterim: (t) => { if (onInterim) onInterim(`\u{1F399} ${(finals + ' ' + t).trim()}`); },
+          onFinal: (t) => { finals = t; heardRef.current = finals; if (onInterim) onInterim(`\u{1F399} ${finals}`); },
+          onEnd: () => {},
+          onError: () => {},
+        });
+        if (rec) { rec.start(); recogRef.current = rec; }
+      } catch (e) { /* recogniser is optional */ }
+    }
     setPhase('recording');
     setElapsed(0);
     if (onInterim) onInterim('\u{1F399} recording… tap the mic again to send');

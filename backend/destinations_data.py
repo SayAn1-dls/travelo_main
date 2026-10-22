@@ -444,3 +444,9 @@ QUOTES = [
     {"text": "Eat local. Get lost. Trust strangers. Repeat.", "author": "TRAVELO"},
     {"text": "Nobody ever lay on their deathbed wishing they'd stayed home more.", "author": "TRAVELO"},
 ]
+
+
+# Extended catalog + hand-written guides (see destinations_guides.py)
+from destinations_guides import NEW_DESTINATIONS, GUIDES  # noqa: E402
+
+DESTINATIONS.extend(d for d in NEW_DESTINATIONS if d["id"] not in {x["id"] for x in DESTINATIONS})

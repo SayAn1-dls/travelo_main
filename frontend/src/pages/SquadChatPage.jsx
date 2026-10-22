@@ -6,11 +6,10 @@ import {
   Users, Plus, LogIn, Send, Loader2, Copy, Paperclip, ArrowLeft,
   MessagesSquare, Ticket, Mic, Square,
 } from 'lucide-react';
-import api, { getToken } from '@/lib/api';
+import api, { getToken, API_BASE, API_ORIGIN } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
-const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const MEDIA_BASE = process.env.REACT_APP_BACKEND_URL;
+const MEDIA_BASE = API_ORIGIN;
 const POLL_MS = 2500;
 const MAX_MEDIA_BYTES = 20 * 1024 * 1024;
 
