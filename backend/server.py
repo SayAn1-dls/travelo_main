@@ -714,29 +714,31 @@ async def trip_notifications_list(trip_id: str, user=Depends(get_current_user)):
 
 # ---------------------------------------------------------------- vibe lab (AI collage analysis)
 VIBE_FALLBACK = {
-    "vibe_title": "WANDER MODE ON",
-    "caption": "Some trips don't need captions. This is one of them.",
-    "mood": "epic",
-    "palette": ["#FF4500", "#EAFF00", "#141414"],
-    "hashtags": ["#travelo", "#wanderlust", "#tripdump", "#goldenhour", "#squadgoals"],
+    "vibe_title": "golden hours",
+    "caption": "the kind of light you remember long after.",
+    "mood": "dreamy",
+    "palette": ["#C9A58F", "#E8D5C4", "#3B2F2F"],
+    "hashtags": ["#goldenhour", "#softlight", "#slowdays", "#memories", "#tripdump"],
     "photo_type": "friends",
-    "scrapbook_labels": ["take us back", "no bad days", "squad forever"],
+    "scrapbook_labels": ["take us back", "no bad days", "stay a little"],
 }
 
 PHOTO_TYPES = {"friends", "couple", "solo", "family", "scenery"}
 
 VIBE_PROMPT = (
-    "You are TRAVELO's vibe analyst. Look at these trip photos and capture their collective vibe. "
-    "First judge WHO is in the photos: a group of friends, a couple, a solo traveler, a family, or pure scenery with no clear people. "
+    "You are a poet and art director making an aesthetic, Pinterest-style photo poster from someone's trip photos. "
+    "Study the photos closely: who is in them (friends, a couple, a solo traveler, a family, or pure scenery), "
+    "the setting, the light, the colours, the weather and the feeling. "
+    "Write copy that is specific to what is actually visible (the light, the place, the people, the moment) — never generic. "
+    "Do NOT mention any brand, app or website, and do not use the words 'travelo', 'vibe lab' or 'trip dump'. "
     "Return ONLY raw valid JSON (no markdown, no code fences) with exactly these keys: "
-    "vibe_title (2-4 punchy words in caps energy, e.g. 'GOLDEN HOUR CHAOS'), "
-    "caption (one short, warm-but-savage social-story sentence, max 90 characters, matched to who is in the photos), "
+    "vibe_title (2-3 evocative lowercase words, e.g. 'golden hour hush', 'salt & sunburn'), "
+    "caption (one tender, poetic or witty sentence, lowercase, max 80 characters, that references something concrete in the photos), "
     "mood (a single lowercase word), "
-    "palette (array of exactly 3 hex color strings pulled from the photos' dominant tones, dark-theme friendly), "
-    "hashtags (array of exactly 5 lowercase hashtags starting with #, matched to the photo type), "
+    "palette (array of exactly 3 hex colour strings sampled from the photos' dominant tones), "
+    "hashtags (array of exactly 5 lowercase hashtags starting with #, about the scene and feeling, none about any brand), "
     "photo_type (exactly one of: friends, couple, solo, family, scenery), "
-    "scrapbook_labels (array of exactly 3 short handwritten-sticker phrases, lowercase, max 18 chars each, matched to the photo type — "
-    "e.g. friends: 'squad forever'; couple: 'just us two'; family: 'the whole gang'; solo: 'my own map')."
+    "scrapbook_labels (array of exactly 3 short handwritten phrases, lowercase, max 18 chars each, tied to the photos)."
 )
 
 
