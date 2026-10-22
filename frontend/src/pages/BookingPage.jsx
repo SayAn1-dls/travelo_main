@@ -82,7 +82,7 @@ export default function BookingPage() {
   if (!dest) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink pt-16">
-        <span className="font-display text-4xl uppercase text-white/30 animate-pulse">Loading…</span>
+        <span className="font-display text-4xl uppercase text-white/50 animate-pulse">Loading…</span>
       </div>
     );
   }
@@ -93,7 +93,7 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-ink pt-16 text-white">
       <div className="mx-auto max-w-5xl px-5 py-14 md:px-8">
-        <Link to={`/destinations/${dest.id}`} className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-white/60 hover:text-acid">
+        <Link to={`/destinations/${dest.id}`} className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-white/60 hover:text-acid">
           <ArrowLeft className="h-4 w-4" /> {dest.name}
         </Link>
 
@@ -106,7 +106,7 @@ export default function BookingPage() {
           {STEPS.map((s, i) => (
             <div key={s}>
               <div className={`h-1.5 ${i <= step ? 'bg-blaze' : 'bg-white/10'}`} />
-              <span className={`mt-2 block font-mono text-[10px] uppercase tracking-[0.2em] ${i <= step ? 'text-blaze' : 'text-white/30'}`}>
+              <span className={`mt-2 block font-mono text-xs uppercase tracking-[0.2em] ${i <= step ? 'text-blaze' : 'text-white/50'}`}>
                 {String(i + 1).padStart(2, '0')} {s}
               </span>
             </div>
@@ -127,11 +127,11 @@ export default function BookingPage() {
                 <h2 className="font-display text-4xl uppercase">When do you vanish?</h2>
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div>
-                    <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Departure</label>
+                    <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-white/50">Departure</label>
                     <input type="date" value={startDate} min={toISO(new Date())} onChange={(e) => setStartDate(e.target.value)} className={inputCls} data-testid="booking-start-date" />
                   </div>
                   <div>
-                    <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Return</label>
+                    <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-white/50">Return</label>
                     <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} data-testid="booking-end-date" />
                   </div>
                 </div>
@@ -159,7 +159,7 @@ export default function BookingPage() {
                     <Plus className="h-6 w-6" />
                   </button>
                 </div>
-                <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">{travelers === 1 ? 'Solo mission. Respect.' : `${travelers} travelers · max 12`}</p>
+                <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/60">{travelers === 1 ? 'Solo mission. Respect.' : `${travelers} travelers · max 12`}</p>
               </div>
             )}
 
@@ -181,7 +181,7 @@ export default function BookingPage() {
                         <span className={`h-4 w-4 border ${tier === key ? 'border-blaze bg-blaze' : 'border-white/30'}`} />
                       </div>
                       <p className="mt-1 text-sm text-white/50">{meta.blurb}</p>
-                      <div className="mt-4 font-display text-3xl">{fmt(dest.tiers[key])}<span className="ml-1 font-mono text-[10px] uppercase text-white/40">/person</span></div>
+                      <div className="mt-4 font-display text-3xl">{fmt(dest.tiers[key])}<span className="ml-1 font-mono text-xs uppercase text-white/60">/person</span></div>
                     </button>
                   ))}
                 </div>
@@ -208,7 +208,7 @@ export default function BookingPage() {
                         <span className="text-white/50">TOTAL</span>
                         <span className="font-display text-5xl text-acid" data-testid="review-total">{fmt(total)}</span>
                       </div>
-                      <p className="text-right text-[10px] uppercase text-white/30">+ applicable taxes at checkout</p>
+                      <p className="text-right text-xs uppercase text-white/50">+ applicable taxes at checkout</p>
                     </div>
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export default function BookingPage() {
                       </>
                     )}
                   </button>
-                  <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">
+                  <p className="mt-4 text-center font-mono text-xs uppercase tracking-[0.25em] text-white/60">
                     Secure Stripe checkout · test mode · card 4242 4242 4242 4242
                   </p>
                 </div>

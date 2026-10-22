@@ -72,7 +72,7 @@ export default function NomadChat({ vibe }) {
 
   return (
     <section className="mt-20" data-testid="nomad-chat-section">
-      <p className="font-mono text-xs uppercase tracking-[0.4em] text-blaze">// The USP — your trip talks back</p>
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-blaze">// The USP — your trip talks back</p>
       <h2 className="mt-3 font-display uppercase leading-[0.85]">
         <span className="text-[clamp(2.5rem,7vw,6rem)] text-white">Chat with </span>
         <span className="text-[clamp(2.5rem,7vw,6rem)] text-outline-acid">NOMAD.</span>
@@ -95,14 +95,14 @@ export default function NomadChat({ vibe }) {
             </span>
             <div>
               <p className="font-display text-xl uppercase leading-none">Nomad</p>
-              <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
+              <p className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.2em] text-white/60">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-acid" /> travel co-pilot · always on
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {vibe && (
-              <span className="hidden border border-acid/40 bg-acid/5 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.15em] text-acid sm:block">
+              <span className="hidden border border-acid/40 bg-acid/5 px-3 py-1.5 font-mono text-xs uppercase tracking-[0.15em] text-acid sm:block">
                 knows your vibe: {vibe.vibe_title}
               </span>
             )}
@@ -113,7 +113,7 @@ export default function NomadChat({ vibe }) {
                 toast.success(next === 'hi' ? 'NOMAD ab Hindi mein baat karega 🇮🇳' : 'NOMAD back to English.');
               }}
               title="Toggle Hindi mode"
-              className={`border px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition ${
+              className={`border px-3 py-2 font-mono text-xs font-bold uppercase tracking-[0.2em] transition ${
                 language === 'hi' ? 'border-blaze bg-blaze text-black' : 'border-white/20 text-white/60 hover:border-blaze hover:text-blaze'
               }`}
               data-testid="nomad-lang-toggle"
@@ -128,7 +128,7 @@ export default function NomadChat({ vibe }) {
                 toast.success(next ? 'NOMAD will speak replies out loud.' : 'Voice replies off.');
               }}
               title={voiceReplies ? 'Voice replies on' : 'Voice replies off'}
-              className={`flex items-center gap-1.5 border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] transition ${
+              className={`flex items-center gap-1.5 border px-3 py-2 font-mono text-xs uppercase tracking-[0.2em] transition ${
                 voiceReplies ? 'border-acid bg-acid text-black' : 'border-white/20 text-white/60 hover:border-acid hover:text-acid'
               }`}
               data-testid="nomad-voice-toggle"
@@ -137,7 +137,7 @@ export default function NomadChat({ vibe }) {
             </button>
             <button
               onClick={handleNewChat}
-              className="flex items-center gap-1.5 border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/60 transition hover:border-blaze hover:text-blaze"
+              className="flex items-center gap-1.5 border border-white/20 px-3 py-2 font-mono text-xs uppercase tracking-[0.2em] text-white/60 transition hover:border-blaze hover:text-blaze"
               data-testid="nomad-new-chat"
             >
               <Plus className="h-3.5 w-3.5" /> New chat
@@ -151,7 +151,7 @@ export default function NomadChat({ vibe }) {
             <button
               key={p.id}
               onClick={() => setPhase(p.id)}
-              className={`border px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition ${
+              className={`border px-3 py-2 font-mono text-xs font-bold uppercase tracking-[0.15em] transition ${
                 phase === p.id ? 'border-blaze bg-blaze text-black' : 'border-white/15 text-white/60 hover:border-white/40'
               }`}
               data-testid={`nomad-phase-${p.id}`}
@@ -160,12 +160,12 @@ export default function NomadChat({ vibe }) {
             </button>
           ))}
           <div className="relative ml-auto w-full sm:w-60">
-            <MapPin className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
+            <MapPin className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/60" />
             <input
               value={place}
               onChange={(e) => setPlace(e.target.value)}
               placeholder="DESTINATION (E.G. LADAKH)"
-              className="w-full border border-white/15 bg-zinc-950 py-2 pl-9 pr-3 font-mono text-[11px] uppercase tracking-widest text-white placeholder:text-white/30 outline-none focus:border-acid"
+              className="w-full border border-white/15 bg-zinc-950 py-2 pl-9 pr-3 font-mono text-xs uppercase tracking-widest text-white placeholder:text-white/50 outline-none focus:border-acid"
               data-testid="nomad-place-input"
             />
           </div>
@@ -176,13 +176,13 @@ export default function NomadChat({ vibe }) {
           {messages.length === 0 && !streaming && (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <p className="font-display text-3xl uppercase text-outline">Ask me anything about your trip.</p>
-              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">try one of these — or tap the mic and just talk:</p>
+              <p className="mt-2 font-mono text-xs uppercase tracking-[0.25em] text-white/60">try one of these — or tap the mic and just talk:</p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {SUGGESTIONS[phase].map((s) => (
                   <button
                     key={s}
                     onClick={() => submitDraft(s)}
-                    className="border border-white/15 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-white/70 transition hover:border-acid hover:text-acid"
+                    className="border border-white/15 px-4 py-2 font-mono text-xs uppercase tracking-[0.15em] text-white/70 transition hover:border-acid hover:text-acid"
                     data-testid="nomad-suggestion"
                   >
                     {s}
@@ -210,7 +210,7 @@ export default function NomadChat({ vibe }) {
             <div className="flex justify-start">
               <div className="max-w-[85%] border border-white/10 bg-zinc-950 px-4 py-3 text-sm leading-relaxed text-white/85 sm:max-w-[70%]">
                 {streamText ? renderMessage(streamText) : (
-                  <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                  <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-white/60">
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-blaze" /> Nomad is thinking…
                   </span>
                 )}
@@ -235,7 +235,7 @@ export default function NomadChat({ vibe }) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={`MESSAGE NOMAD (${PHASES.find((p) => p.id === phase).label.toUpperCase()})…`}
-            className="flex-1 border border-white/15 bg-zinc-950 px-4 py-3 font-mono text-sm text-white placeholder:text-white/30 outline-none focus:border-blaze"
+            className="flex-1 border border-white/15 bg-zinc-950 px-4 py-3 font-mono text-sm text-white placeholder:text-white/50 outline-none focus:border-blaze"
             data-testid="nomad-input"
           />
           <button

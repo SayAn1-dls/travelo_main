@@ -37,7 +37,7 @@ function openPayApp(handle, amount) {
 }
 
 const inputCls =
-  'w-full border border-white/15 bg-zinc-950 px-4 py-3.5 font-mono text-sm text-white placeholder:text-white/30 outline-none transition focus:border-blaze';
+  'w-full border border-white/15 bg-zinc-950 px-4 py-3.5 font-mono text-sm text-white placeholder:text-white/50 outline-none transition focus:border-blaze';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -168,7 +168,7 @@ export default function TripDetailPage() {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
-            <Link to="/planner" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-white/60 hover:text-acid">
+            <Link to="/planner" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-white/60 hover:text-acid">
               <ArrowLeft className="h-4 w-4" /> All plans
             </Link>
             <motion.h1
@@ -179,7 +179,7 @@ export default function TripDetailPage() {
             >
               {trip.place}<span className="text-blaze">.</span>
             </motion.h1>
-            <p className="mt-3 flex flex-wrap items-center gap-4 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">
+            <p className="mt-3 flex flex-wrap items-center gap-4 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
               <span>{trip.start_date} → {trip.end_date}</span>
               <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-blaze" /> squad of {trip.members.length}</span>
             </p>
@@ -187,14 +187,14 @@ export default function TripDetailPage() {
           <div className="flex items-center gap-2">
             <Link
               to={`/squad?create=${encodeURIComponent(trip.place)}`}
-              className="flex items-center gap-2 border border-acid/40 bg-acid/5 px-4 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-acid transition hover:bg-acid hover:text-black"
+              className="flex items-center gap-2 border border-acid/40 bg-acid/5 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.2em] text-acid transition hover:bg-acid hover:text-black"
               data-testid="open-squad-chat-btn"
             >
               <MessagesSquare className="h-3.5 w-3.5" /> Squad chat
             </Link>
             <button
               onClick={deleteTrip}
-              className="flex items-center gap-2 border border-white/15 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50 transition hover:border-blaze hover:text-blaze"
+              className="flex items-center gap-2 border border-white/15 px-4 py-2.5 font-mono text-xs uppercase tracking-[0.2em] text-white/50 transition hover:border-blaze hover:text-blaze"
               data-testid="delete-trip-btn"
             >
               <Trash2 className="h-3.5 w-3.5" /> Delete plan
@@ -212,7 +212,7 @@ export default function TripDetailPage() {
           ].map(([num, label], i) => (
             <div key={label} className="bg-ink p-6 text-center md:p-8">
               <div className={`font-display text-3xl md:text-5xl ${i === 3 ? (over ? 'text-blaze' : 'text-acid') : 'text-white'}`}>{num}</div>
-              <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-white/50">{label}</div>
+              <div className="mt-1 font-mono text-xs uppercase tracking-[0.25em] text-white/50">{label}</div>
             </div>
           ))}
         </div>
@@ -220,10 +220,10 @@ export default function TripDetailPage() {
         {/* Budget bar */}
         <div className="mt-6 border border-white/15 p-6" data-testid="budget-analysis">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="font-mono text-xs uppercase tracking-[0.3em] text-white/60">
+            <span className="font-mono text-xs uppercase tracking-[0.2em] text-white/60">
               Budget burn: {fmt0(fin.spent)} of {fmt0(fin.budget)} ({fin.budget_used_pct}%)
             </span>
-            <span className={`px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] ${over ? 'bg-blaze text-black' : 'bg-acid text-black'}`} data-testid="budget-status-badge">
+            <span className={`px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.2em] ${over ? 'bg-blaze text-black' : 'bg-acid text-black'}`} data-testid="budget-status-badge">
               {over ? '⚠ Over budget' : '✓ Under budget'}
             </span>
           </div>
@@ -271,12 +271,12 @@ export default function TripDetailPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-bold text-white">{e.description}</p>
-                        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                        <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/60">
                           paid by <span className="text-blaze">{e.paid_by_name}</span> · {e.category} · {new Date(e.created_at).toLocaleDateString()}
                         </p>
                       </div>
                       <span className="font-display text-2xl text-white">{fmt(e.amount)}</span>
-                      <button onClick={() => removeExpense(e.id)} className="text-white/25 transition hover:text-blaze" data-testid={`delete-expense-${e.id}`}>
+                      <button onClick={() => removeExpense(e.id)} className="text-white/50 transition hover:text-blaze" data-testid={`delete-expense-${e.id}`}>
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -288,7 +288,7 @@ export default function TripDetailPage() {
             {/* Booking essentials */}
             <div>
               <h2 className="font-display text-4xl uppercase">Book the essentials<span className="text-blaze">.</span></h2>
-              <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">Hotels, flights, wheels — sorted for {trip.place}.</p>
+              <p className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-white/60">Hotels, flights, wheels — sorted for {trip.place}.</p>
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
                 {bookingLinks.map((b) => (
                   <a
@@ -301,7 +301,7 @@ export default function TripDetailPage() {
                   >
                     <b.icon className="h-7 w-7 text-blaze transition group-hover:text-acid" />
                     <p className="mt-4 font-display text-2xl uppercase">{b.label}</p>
-                    <p className="mt-1 flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                    <p className="mt-1 flex items-center gap-1 font-mono text-xs uppercase tracking-[0.2em] text-white/60">
                       Opens partner site <ExternalLink className="h-3 w-3" />
                     </p>
                   </a>
@@ -321,7 +321,7 @@ export default function TripDetailPage() {
             {/* Invite friends by email */}
             <div className="border border-blaze/40 bg-blaze/5 p-5" data-testid="invite-by-email-box">
               <h2 className="flex items-center gap-2 font-display text-2xl uppercase"><Send className="h-5 w-5 text-blaze" /> Add friends by Gmail</h2>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
+              <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
                 They get an email — one click and they&apos;re in the trip + squad chat. No codes.
               </p>
               <form
@@ -356,13 +356,13 @@ export default function TripDetailPage() {
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="FRIEND@GMAIL.COM"
-                  className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-3 py-2.5 font-mono text-xs text-white placeholder:text-white/30 outline-none focus:border-blaze"
+                  className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-3 py-2.5 font-mono text-xs text-white placeholder:text-white/50 outline-none focus:border-blaze"
                   data-testid="invite-email-input"
                 />
                 <button
                   type="submit"
                   disabled={inviting}
-                  className="flex items-center gap-1.5 bg-blaze px-4 font-mono text-[10px] font-bold uppercase tracking-widest text-black transition hover:bg-blaze-hover disabled:opacity-50"
+                  className="flex items-center gap-1.5 bg-blaze px-4 font-mono text-xs font-bold uppercase tracking-widest text-black transition hover:bg-blaze-hover disabled:opacity-50"
                   data-testid="invite-send-btn"
                 >
                   {inviting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Invite'}
@@ -372,15 +372,15 @@ export default function TripDetailPage() {
               {/* pending invite list */}
               {invites.length > 0 && (
                 <div className="mt-4 space-y-2" data-testid="invite-status-list">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-white/40">Invite status</p>
+                  <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/60">Invite status</p>
                   {invites.map((inv) => (
                     <div key={inv.id} className="flex items-center justify-between gap-2 border border-white/10 bg-black/30 px-3 py-2" data-testid={`invite-row-${inv.id}`}>
-                      <span className="truncate font-mono text-[11px] text-white/70">{inv.email}</span>
+                      <span className="truncate font-mono text-xs text-white/70">{inv.email}</span>
                       <span className="flex shrink-0 items-center gap-1.5">
                         {inv.status === 'accepted' ? (
-                          <span className="bg-acid px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Joined ✓</span>
+                          <span className="bg-acid px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-black">Joined ✓</span>
                         ) : (
-                          <span className="bg-blaze px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Pending…</span>
+                          <span className="bg-blaze px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-black">Pending…</span>
                         )}
                         {inv.token && inv.status !== 'accepted' && (
                           <button
@@ -416,13 +416,13 @@ export default function TripDetailPage() {
                   }
                 }}
                 disabled={hyping}
-                className="mt-4 flex w-full items-center justify-center gap-2 border border-acid/50 bg-acid/5 px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-acid transition hover:bg-acid hover:text-black disabled:opacity-50"
+                className="mt-4 flex w-full items-center justify-center gap-2 border border-acid/50 bg-acid/5 px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-acid transition hover:bg-acid hover:text-black disabled:opacity-50"
                 data-testid="send-hype-btn"
               >
                 {hyping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
                 Send pre-trip hype email + packing list
               </button>
-              <p className="mt-2 text-center font-mono text-[8px] uppercase tracking-[0.2em] text-white/30">
+              <p className="mt-2 text-center font-mono text-xs uppercase tracking-[0.2em] text-white/50">
                 also fires automatically 3 days before departure
               </p>
             </div>
@@ -436,14 +436,14 @@ export default function TripDetailPage() {
                     <div className="flex items-center justify-between">
                       <span className="font-bold">{m.name}</span>
                       {Math.abs(m.balance) < 0.01 ? (
-                        <span className="bg-white/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-white/60">Even ✓</span>
+                        <span className="bg-white/10 px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-white/60">Even ✓</span>
                       ) : m.balance > 0 ? (
-                        <span className="bg-acid px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Gets back {fmt(m.balance)}</span>
+                        <span className="bg-acid px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-black">Gets back {fmt(m.balance)}</span>
                       ) : (
-                        <span className="bg-blaze px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Owes {fmt(Math.abs(m.balance))}</span>
+                        <span className="bg-blaze px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-black">Owes {fmt(Math.abs(m.balance))}</span>
                       )}
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2 font-mono text-[10px] uppercase tracking-wider text-white/40">
+                    <div className="mt-3 grid grid-cols-3 gap-2 font-mono text-xs uppercase tracking-wider text-white/60">
                       <div>Brought<br /><span className="text-white">{fmt0(m.contribution)}</span></div>
                       <div>Spent<br /><span className="text-white">{fmt0(m.paid)}</span></div>
                       <div>Share<br /><span className="text-white">{fmt0(m.share)}</span></div>
@@ -460,7 +460,7 @@ export default function TripDetailPage() {
                 <button
                   onClick={remind}
                   disabled={busyAction === 'remind'}
-                  className="flex items-center gap-2 border border-blaze px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-blaze transition hover:bg-blaze hover:text-black disabled:opacity-50"
+                  className="flex items-center gap-2 border border-blaze px-4 py-2 font-mono text-xs font-bold uppercase tracking-[0.2em] text-blaze transition hover:bg-blaze hover:text-black disabled:opacity-50"
                   data-testid="remind-btn"
                 >
                   {busyAction === 'remind' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
@@ -479,7 +479,7 @@ export default function TripDetailPage() {
                     <div key={i} className="border border-white/15 p-4" data-testid={`settle-suggestion-${i}`}>
                       <p className="font-mono text-xs uppercase tracking-wider">
                         <span className="text-blaze">{memberName(s.from_member)}</span>
-                        <span className="text-white/40"> pays </span>
+                        <span className="text-white/60"> pays </span>
                         <span className="text-acid">{memberName(s.to_member)}</span>
                       </p>
                       <div className="mt-2 flex items-center justify-between">
@@ -487,7 +487,7 @@ export default function TripDetailPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => payAndSettle(s)}
-                            className="flex items-center gap-1.5 bg-blaze px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black transition hover:bg-blaze-hover"
+                            className="flex items-center gap-1.5 bg-blaze px-3 py-2 font-mono text-xs font-bold uppercase tracking-widest text-black transition hover:bg-blaze-hover"
                             data-testid={`pay-btn-${i}`}
                           >
                             <Send className="h-3 w-3" /> Pay
@@ -495,7 +495,7 @@ export default function TripDetailPage() {
                           <button
                             onClick={() => settle(s)}
                             disabled={busyAction === `settle-${s.from_member}-${s.to_member}`}
-                            className="border border-white/25 px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-white transition hover:border-acid hover:text-acid disabled:opacity-50"
+                            className="border border-white/25 px-3 py-2 font-mono text-xs font-bold uppercase tracking-widest text-white transition hover:border-acid hover:text-acid disabled:opacity-50"
                             data-testid={`mark-paid-btn-${i}`}
                           >
                             {busyAction === `settle-${s.from_member}-${s.to_member}` ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Mark paid'}
@@ -513,7 +513,7 @@ export default function TripDetailPage() {
               <h2 className="flex items-center gap-2 font-display text-3xl uppercase"><Bell className="h-6 w-6 text-acid" /> Squad feed</h2>
               <div className="mt-5 max-h-96 space-y-3 overflow-y-auto pr-1" data-testid="notifications-feed">
                 {notifications.length === 0 && (
-                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/30">No activity yet.</p>
+                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/50">No activity yet.</p>
                 )}
                 {notifications.map((n) => (
                   <div
@@ -523,7 +523,7 @@ export default function TripDetailPage() {
                     }`}
                   >
                     <p className="text-white/80">{n.message}</p>
-                    <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-white/30">
+                    <p className="mt-1 font-mono text-xs uppercase tracking-widest text-white/50">
                       {n.type} · {new Date(n.created_at).toLocaleString()}
                     </p>
                   </div>
@@ -565,7 +565,7 @@ function ExpenseModal({ trip, onClose, onSubmit }) {
       >
         <div className="flex items-center justify-between">
           <h3 className="font-display text-3xl uppercase">Log an expense<span className="text-blaze">.</span></h3>
-          <button onClick={onClose} className="text-white/40 hover:text-white" data-testid="expense-modal-close"><X className="h-6 w-6" /></button>
+          <button onClick={onClose} className="text-white/60 hover:text-white" data-testid="expense-modal-close"><X className="h-6 w-6" /></button>
         </div>
 
         <form onSubmit={submit} className="mt-8 space-y-5">
@@ -590,14 +590,14 @@ function ExpenseModal({ trip, onClose, onSubmit }) {
           />
 
           <div>
-            <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Category</label>
+            <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-white/50">Category</label>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setCategory(c.id)}
-                  className={`flex items-center gap-1.5 border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition ${
+                  className={`flex items-center gap-1.5 border px-3 py-2 font-mono text-xs uppercase tracking-widest transition ${
                     category === c.id ? 'border-blaze bg-blaze text-black' : 'border-white/15 text-white/60 hover:border-white/40'
                   }`}
                   data-testid={`expense-category-${c.id}`}
@@ -609,14 +609,14 @@ function ExpenseModal({ trip, onClose, onSubmit }) {
           </div>
 
           <div>
-            <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Who paid?</label>
+            <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-white/50">Who paid?</label>
             <div className="flex flex-wrap gap-2">
               {trip.members.map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setPaidBy(m.id)}
-                  className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition ${
+                  className={`border px-3 py-2 font-mono text-xs uppercase tracking-widest transition ${
                     paidBy === m.id ? 'border-acid bg-acid text-black' : 'border-white/15 text-white/60 hover:border-white/40'
                   }`}
                   data-testid={`expense-paidby-${m.id}`}
@@ -635,7 +635,7 @@ function ExpenseModal({ trip, onClose, onSubmit }) {
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Record it'}
           </button>
-          <p className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">
+          <p className="text-center font-mono text-xs uppercase tracking-[0.2em] text-white/50">
             Splits equally across the squad · deducted from the pool
           </p>
         </form>

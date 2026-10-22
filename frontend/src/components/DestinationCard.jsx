@@ -33,7 +33,7 @@ export default function DestinationCard({ dest, index = 0 }) {
           </span>
 
           {/* region chip */}
-          <span className="absolute left-4 top-4 border border-white/30 bg-black/50 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white backdrop-blur">
+          <span className="absolute left-4 top-4 border border-white/30 bg-black/50 px-3 py-1 font-mono text-xs uppercase tracking-[0.2em] text-white backdrop-blur">
             {dest.region}
           </span>
 
@@ -46,7 +46,7 @@ export default function DestinationCard({ dest, index = 0 }) {
             <div className="flex items-end justify-between gap-2">
               <div>
                 <h3 className="font-display text-4xl uppercase leading-none text-white md:text-5xl">{dest.name}</h3>
-                <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.25em] text-white/60">
+                <p className="mt-1 font-mono text-xs uppercase tracking-[0.25em] text-white/60">
                   {dest.country} · {dest.duration_days} days · <Star className="inline h-3 w-3 fill-acid text-acid" /> {dest.rating}
                 </p>
               </div>

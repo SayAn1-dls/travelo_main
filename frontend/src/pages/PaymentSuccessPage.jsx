@@ -57,7 +57,7 @@ export default function PaymentSuccessPage() {
           <div data-testid="payment-checking">
             <Loader2 className="mx-auto h-12 w-12 animate-spin text-blaze" />
             <h1 className="mt-8 font-display text-6xl uppercase">Verifying<span className="text-blaze">…</span></h1>
-            <p className="mt-4 font-mono text-xs uppercase tracking-[0.3em] text-white/50">Confirming your payment with Stripe. Hold tight.</p>
+            <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-white/50">Confirming your payment with Stripe. Hold tight.</p>
           </div>
         )}
 
@@ -97,7 +97,7 @@ export default function PaymentSuccessPage() {
         {state === 'pending' && (
           <div data-testid="payment-pending">
             <h1 className="font-display text-6xl uppercase text-outline">Still processing…</h1>
-            <p className="mt-4 font-mono text-xs uppercase tracking-[0.3em] text-white/50">
+            <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
               Payment is taking longer than usual. Check your trips in a minute.
             </p>
             <Link to="/dashboard" className="mt-8 inline-block border border-white/20 px-8 py-4 font-mono text-xs uppercase tracking-[0.25em] text-white hover:border-acid hover:text-acid">
@@ -109,7 +109,7 @@ export default function PaymentSuccessPage() {
         {state === 'error' && (
           <div data-testid="payment-error">
             <h1 className="font-display text-6xl uppercase text-blaze">Something broke.</h1>
-            <p className="mt-4 font-mono text-xs uppercase tracking-[0.3em] text-white/50">We couldn't verify this payment session.</p>
+            <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-white/50">We couldn't verify this payment session.</p>
             <Link to="/dashboard" className="mt-8 inline-block border border-white/20 px-8 py-4 font-mono text-xs uppercase tracking-[0.25em] text-white hover:border-acid hover:text-acid">
               Check my trips
             </Link>

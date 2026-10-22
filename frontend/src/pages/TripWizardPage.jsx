@@ -11,7 +11,7 @@ const toISO = (d) => d.toISOString().slice(0, 10);
 const STEPS = ['Where', 'Squad', 'Dates', 'Budget', 'Review'];
 
 const inputCls =
-  'w-full border border-white/15 bg-zinc-950 px-4 py-4 font-mono text-sm text-white placeholder:text-white/30 outline-none transition focus:border-blaze';
+  'w-full border border-white/15 bg-zinc-950 px-4 py-4 font-mono text-sm text-white placeholder:text-white/50 outline-none transition focus:border-blaze';
 
 export default function TripWizardPage() {
   const navigate = useNavigate();
@@ -90,7 +90,7 @@ export default function TripWizardPage() {
   return (
     <div className="min-h-screen bg-ink pt-16 text-white">
       <div className="mx-auto max-w-4xl px-5 py-14 md:px-8">
-        <Link to="/planner" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-white/60 hover:text-acid">
+        <Link to="/planner" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-white/60 hover:text-acid">
           <ArrowLeft className="h-4 w-4" /> All plans
         </Link>
         <h1 className="mt-6 font-display text-[clamp(3rem,8vw,6.5rem)] uppercase leading-[0.85]">
@@ -102,7 +102,7 @@ export default function TripWizardPage() {
           {STEPS.map((s, i) => (
             <div key={s}>
               <div className={`h-1.5 ${i <= step ? 'bg-blaze' : 'bg-white/10'}`} />
-              <span className={`mt-2 block font-mono text-[10px] uppercase tracking-[0.15em] ${i <= step ? 'text-blaze' : 'text-white/30'}`}>
+              <span className={`mt-2 block font-mono text-xs uppercase tracking-[0.15em] ${i <= step ? 'text-blaze' : 'text-white/50'}`}>
                 {String(i + 1).padStart(2, '0')} {s}
               </span>
             </div>
@@ -137,7 +137,7 @@ export default function TripWizardPage() {
               <div className="space-y-8">
                 <h2 className="flex items-center gap-3 font-display text-4xl uppercase"><Users className="h-8 w-8 text-blaze" /> Who's coming with you?</h2>
                 <div className="max-w-xs">
-                  <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">How many people are going with you?</label>
+                  <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-white/50">How many people are going with you?</label>
                   <input
                     type="number"
                     min="0"
@@ -154,7 +154,7 @@ export default function TripWizardPage() {
                   <div className="border border-blaze/50 bg-blaze/5 p-5">
                     <div className="mb-3 flex items-center justify-between">
                       <span className="font-display text-2xl uppercase">{user?.name} <span className="text-blaze">(You)</span></span>
-                      <span className="bg-blaze px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">Trip captain</span>
+                      <span className="bg-blaze px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-black">Trip captain</span>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <input
@@ -179,7 +179,7 @@ export default function TripWizardPage() {
                   {/* Companion rows */}
                   {companions.map((c, i) => (
                     <div key={i} className="border border-white/15 p-5" data-testid={`wizard-member-row-${i}`}>
-                      <span className="mb-3 block font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">Traveler {String(i + 2).padStart(2, '0')}</span>
+                      <span className="mb-3 block font-mono text-xs uppercase tracking-[0.2em] text-white/60">Traveler {String(i + 2).padStart(2, '0')}</span>
                       <div className="grid gap-3 sm:grid-cols-3">
                         <input
                           value={c.name}
@@ -221,11 +221,11 @@ export default function TripWizardPage() {
                 <h2 className="font-display text-4xl uppercase">When does it happen?</h2>
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div>
-                    <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Departure</label>
+                    <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-white/50">Departure</label>
                     <input type="date" value={startDate} min={toISO(new Date())} onChange={(e) => setStartDate(e.target.value)} className={inputCls} data-testid="wizard-start-date" />
                   </div>
                   <div>
-                    <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Return</label>
+                    <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-white/50">Return</label>
                     <input type="date" value={endDate} min={startDate || toISO(new Date())} onChange={(e) => setEndDate(e.target.value)} className={inputCls} data-testid="wizard-end-date" />
                   </div>
                 </div>

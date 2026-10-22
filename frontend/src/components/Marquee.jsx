@@ -8,7 +8,7 @@ export default function Marquee({ items, variant = 'blaze', slow = false, classN
   const palette = {
     blaze: 'bg-blaze text-black',
     acid: 'bg-acid text-black',
-    ghost: 'bg-transparent text-white/20 border-y border-white/10',
+    ghost: 'bg-transparent text-white/50 border-y border-white/10',
   };
   const row = [...items, ...items];
   return (

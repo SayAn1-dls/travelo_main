@@ -98,6 +98,14 @@ export const api = {
   destinationGuide: (id) => request(`/destinations/${id}/guide`, { auth: false }),
   // Contact us
   contact: (payload) => request('/contact', { method: 'POST', body: payload, auth: false }),
+  // Admin
+  adminStats: () => request('/admin/stats'),
+  adminBookings: (status) => request(`/admin/bookings${status ? `?status=${status}` : ''}`),
+  adminSetBookingStatus: (id, status) => request(`/admin/bookings/${id}`, { method: 'PATCH', body: { status } }),
+  adminUsers: () => request('/admin/users'),
+  adminMessages: () => request('/admin/messages'),
+  adminMarkMessage: (id, read) => request(`/admin/messages/${id}`, { method: 'PATCH', body: { read } }),
+  adminDeleteMessage: (id) => request(`/admin/messages/${id}`, { method: 'DELETE' }),
 };
 
 export default api;

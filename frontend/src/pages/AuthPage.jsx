@@ -15,7 +15,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState(params.get('mode') === 'register' ? 'register' : 'login');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [busy, setBusy] = useState(false);
-  const next = params.get('next') || '/explore';
+  const next = params.get('next') || (user?.is_admin ? '/admin' : '/explore');
 
   useEffect(() => {
     if (user) navigate(next, { replace: true });
@@ -27,14 +27,15 @@ export default function AuthPage() {
     e.preventDefault();
     setBusy(true);
     try {
+      let u;
       if (mode === 'register') {
-        await register(form.name, form.email, form.password);
+        u = await register(form.name, form.email, form.password);
         toast.success('Welcome aboard. The world just got smaller.');
       } else {
-        await login(form.email, form.password);
+        u = await login(form.email, form.password);
         toast.success('Back in the cockpit. Let\u2019s go.');
       }
-      navigate(next, { replace: true });
+      navigate(params.get('next') || (u?.is_admin ? '/admin' : '/explore'), { replace: true });
     } catch (err) {
       toast.error(err.message || 'Something went wrong');
     } finally {
@@ -43,7 +44,7 @@ export default function AuthPage() {
   };
 
   const inputCls =
-    'w-full border border-white/15 bg-zinc-950 px-4 py-4 font-mono text-sm text-white placeholder:text-white/30 outline-none transition focus:border-blaze';
+    'w-full border border-white/15 bg-zinc-950 px-4 py-4 font-mono text-sm text-white placeholder:text-white/50 outline-none transition focus:border-blaze';
 
   return (
     <div className="flex min-h-screen bg-ink pt-16">
@@ -64,7 +65,7 @@ export default function AuthPage() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-blaze">// {mode === 'register' ? 'New recruit' : 'Welcome back'}</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-blaze">// {mode === 'register' ? 'New recruit' : 'Welcome back'}</p>
           <h1 className="mt-3 font-display text-6xl uppercase leading-[0.9] text-white md:text-7xl">
             {mode === 'register' ? (
               <>Join the <span className="text-outline-blaze">chaos.</span></>

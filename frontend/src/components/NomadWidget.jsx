@@ -78,7 +78,7 @@ export default function NomadWidget() {
                 </span>
                 <div>
                   <p className="font-display text-lg uppercase leading-none">Nomad</p>
-                  <p className="flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-[0.2em] text-white/40">
+                  <p className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.2em] text-white/60">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-acid" /> always on
                   </p>
                 </div>
@@ -87,7 +87,7 @@ export default function NomadWidget() {
                 <button
                   onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
                   title="Toggle Hindi mode"
-                  className={`flex h-8 min-w-8 items-center justify-center border px-1.5 font-mono text-[9px] font-bold transition ${
+                  className={`flex h-8 min-w-8 items-center justify-center border px-1.5 font-mono text-xs font-bold transition ${
                     language === 'hi' ? 'border-blaze bg-blaze text-black' : 'border-white/20 text-white/60 hover:border-blaze hover:text-blaze'
                   }`}
                   data-testid="widget-lang-toggle"
@@ -125,7 +125,7 @@ export default function NomadWidget() {
                 <button
                   key={p.id}
                   onClick={() => setPhase(p.id)}
-                  className={`border px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em] transition ${
+                  className={`border px-2.5 py-1.5 font-mono text-xs font-bold uppercase tracking-[0.12em] transition ${
                     phase === p.id ? 'border-blaze bg-blaze text-black' : 'border-white/15 text-white/60 hover:border-white/40'
                   }`}
                   data-testid={`widget-phase-${p.id}`}
@@ -134,12 +134,12 @@ export default function NomadWidget() {
                 </button>
               ))}
               <div className="relative ml-auto min-w-0 flex-1">
-                <MapPin className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-white/40" />
+                <MapPin className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-white/60" />
                 <input
                   value={place}
                   onChange={(e) => setPlace(e.target.value)}
                   placeholder="WHERE?"
-                  className="w-full border border-white/15 bg-zinc-950 py-1.5 pl-7 pr-2 font-mono text-[10px] uppercase tracking-widest text-white placeholder:text-white/30 outline-none focus:border-acid"
+                  className="w-full border border-white/15 bg-zinc-950 py-1.5 pl-7 pr-2 font-mono text-xs uppercase tracking-widest text-white placeholder:text-white/50 outline-none focus:border-acid"
                   data-testid="widget-place-input"
                 />
               </div>
@@ -168,7 +168,7 @@ export default function NomadWidget() {
                 <div className="flex justify-start">
                   <div className="max-w-[88%] border border-white/10 bg-zinc-950 px-3 py-2.5 text-[13px] leading-relaxed text-white/85">
                     {streamText ? renderMessage(streamText) : (
-                      <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
+                      <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-white/60">
                         <Loader2 className="h-3 w-3 animate-spin text-blaze" /> thinking…
                       </span>
                     )}
@@ -194,7 +194,7 @@ export default function NomadWidget() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="MESSAGE NOMAD…"
-                className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-3 py-2 font-mono text-[13px] text-white placeholder:text-white/30 outline-none focus:border-blaze"
+                className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-3 py-2 font-mono text-[13px] text-white placeholder:text-white/50 outline-none focus:border-blaze"
                 data-testid="widget-input"
               />
               <button

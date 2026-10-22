@@ -34,6 +34,7 @@ export default function Navbar() {
           {user && <NavLink to="/squad" className={linkClass} data-testid="nav-squad">Squad</NavLink>}
           {user && <NavLink to="/dashboard" className={linkClass} data-testid="nav-dashboard">My Trips</NavLink>}
           <NavLink to="/contact" className={linkClass} data-testid="nav-contact">Contact</NavLink>
+          {user?.is_admin && <NavLink to="/admin" className={linkClass} data-testid="nav-admin">Admin</NavLink>}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -84,6 +85,7 @@ export default function Navbar() {
             {user && <NavLink to="/squad" className={linkClass} onClick={() => setOpen(false)}>Squad</NavLink>}
             {user && <NavLink to="/dashboard" className={linkClass} onClick={() => setOpen(false)}>My Trips</NavLink>}
             <NavLink to="/contact" className={linkClass} onClick={() => setOpen(false)}>Contact</NavLink>
+            {user?.is_admin && <NavLink to="/admin" className={linkClass} onClick={() => setOpen(false)}>Admin</NavLink>}
             {user ? (
               <button onClick={handleLogout} className="w-fit border border-white/20 px-4 py-2 font-mono text-xs uppercase tracking-widest text-white">
                 Logout

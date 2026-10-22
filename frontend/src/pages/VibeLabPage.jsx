@@ -557,7 +557,7 @@ export default function VibeLabPage() {
     <div className="min-h-screen bg-ink pt-16 text-white">
       <div className="mx-auto max-w-7xl px-5 py-14 md:px-8">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-acid">// The memory factory</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-acid">// The memory factory</p>
           <h1 className="mt-3 font-display uppercase leading-[0.85]">
             <span className="block text-[clamp(3rem,9vw,8rem)] text-white">The vibe</span>
             <span className="block text-[clamp(3rem,9vw,8rem)] text-outline-blaze">lab.</span>
@@ -583,7 +583,7 @@ export default function VibeLabPage() {
             >
               <UploadCloud className={`h-10 w-10 ${dragOver ? 'text-acid' : 'text-blaze'}`} />
               <p className="mt-4 font-display text-2xl uppercase">Drop your trip photos here</p>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.25em] text-white/40">
+              <p className="mt-1 font-mono text-xs uppercase tracking-[0.25em] text-white/60">
                 or click to browse · max {MAX_PHOTOS} · jpeg / png / webp
               </p>
               <input
@@ -615,7 +615,7 @@ export default function VibeLabPage() {
                     >
                       <X className="h-4 w-4" />
                     </button>
-                    <span className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/70">
+                    <span className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 font-mono text-xs uppercase tracking-widest text-white/70">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                   </motion.div>
@@ -648,18 +648,18 @@ export default function VibeLabPage() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="bg-acid px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-black">
+                      <span className="bg-acid px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.2em] text-black">
                         Mood: {vibe.mood}
                       </span>
                       <span
-                        className="px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-white"
+                        className="px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.2em] text-white"
                         style={{ backgroundColor: (TYPE_THEMES[vibe.photo_type] || TYPE_THEMES.scenery).accent }}
                         data-testid="vibe-detected-type"
                       >
                         Detected: {(TYPE_THEMES[vibe.photo_type] || TYPE_THEMES.scenery).name}
                       </span>
                     </div>
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                    <span className="font-mono text-xs uppercase tracking-[0.2em] text-white/60">
                       {vibe.source === 'ai' ? '\u2726 decoded by AI \u00b7 auto-edit applied' : 'house vibe'}
                     </span>
                   </div>
@@ -669,7 +669,7 @@ export default function VibeLabPage() {
                     {vibe.palette.map((c) => (
                       <span key={c} className="h-8 w-8 border border-white/20" style={{ backgroundColor: c }} title={c} />
                     ))}
-                    <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-white/40">extracted palette</span>
+                    <span className="ml-2 font-mono text-xs uppercase tracking-widest text-white/60">extracted palette</span>
                   </div>
                   <p className="mt-4 font-mono text-xs text-acid">{(vibe.hashtags || []).join(' ')}</p>
                 </motion.div>
@@ -691,7 +691,7 @@ export default function VibeLabPage() {
                     key={t.id}
                     onClick={() => switchTemplate(t.id)}
                     disabled={rendering}
-                    className={`flex items-center gap-2 border px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition disabled:opacity-50 ${
+                    className={`flex items-center gap-2 border px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest transition disabled:opacity-50 ${
                       template === t.id ? 'border-blaze bg-blaze text-black' : 'border-white/15 text-white/60 hover:border-white/40'
                     }`}
                     data-testid={`template-${t.id}`}
@@ -706,7 +706,7 @@ export default function VibeLabPage() {
                 {rendering ? (
                   <div className="text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-blaze" />
-                    <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">Building your masterpiece…</p>
+                    <p className="mt-3 font-mono text-xs uppercase tracking-[0.25em] text-white/60">Building your masterpiece…</p>
                   </div>
                 ) : collageUrl ? (
                   <img src={collageUrl} alt="Vibe collage" className="h-full w-full object-contain" data-testid="collage-image" />
@@ -731,20 +731,20 @@ export default function VibeLabPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={download}
-                      className="flex items-center justify-center gap-2 bg-blaze px-4 py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-black transition hover:bg-blaze-hover"
+                      className="flex items-center justify-center gap-2 bg-blaze px-4 py-3.5 font-mono text-xs font-bold uppercase tracking-[0.2em] text-black transition hover:bg-blaze-hover"
                       data-testid="download-collage-btn"
                     >
                       <Download className="h-4 w-4" /> Download
                     </button>
                     <button
                       onClick={copyCaption}
-                      className="flex items-center justify-center gap-2 border border-white/20 px-4 py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-white transition hover:border-acid hover:text-acid"
+                      className="flex items-center justify-center gap-2 border border-white/20 px-4 py-3.5 font-mono text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:border-acid hover:text-acid"
                       data-testid="copy-caption-btn"
                     >
                       <Copy className="h-4 w-4" /> Copy caption
                     </button>
                   </div>
-                  <p className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">
+                  <p className="text-center font-mono text-xs uppercase tracking-[0.2em] text-white/50">
                     1080×1920 · perfect for stories & status
                   </p>
                 </div>

@@ -190,14 +190,14 @@ export default function VoiceNotePlayer({ src, id, mine }) {
             );
           })}
         </div>
-        <div className={`flex items-center justify-between font-mono text-[10px] ${mine ? 'text-black/70' : 'text-white/50'}`}>
+        <div className={`flex items-center justify-between font-mono text-xs ${mine ? 'text-black/70' : 'text-white/50'}`}>
           <span className="flex items-center gap-1">
             <Mic className="h-3 w-3" /> {failed ? 'cannot play' : fmt(shown)}
           </span>
           <button
             type="button"
             onClick={cycleSpeed}
-            className={`px-1.5 py-0.5 text-[9px] font-bold tracking-wider ${mine ? 'bg-black/15 text-black' : 'bg-white/10 text-acid'}`}
+            className={`px-1.5 py-0.5 text-xs font-bold tracking-wider ${mine ? 'bg-black/15 text-black' : 'bg-white/10 text-acid'}`}
             title="Playback speed"
           >
             {SPEEDS[speedIdx]}x

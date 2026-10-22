@@ -100,6 +100,12 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     return user
 
 
+async def require_admin(user=Depends(get_current_user)):
+    if not user.get("is_admin"):
+        raise HTTPException(403, "Admin access required")
+    return user
+
+
 # ---------------------------------------------------------------- models
 class RegisterRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=60)
@@ -216,7 +222,7 @@ async def register(req: RegisterRequest):
     }
     await users_col.insert_one({**user})
     token = create_token(user["id"])
-    return {"token": token, "user": {k: user[k] for k in ("id", "name", "email", "created_at")}}
+    return {"token": token, "user": {**{k: user[k] for k in ("id", "name", "email", "created_at")}, "is_admin": bool(user.get("is_admin"))}}
 
 
 @api.post("/auth/login")
@@ -225,7 +231,7 @@ async def login(req: LoginRequest):
     if not user or not verify_password(req.password, user.get("password", "")):
         raise HTTPException(401, "Invalid email or password")
     token = create_token(user["id"])
-    return {"token": token, "user": {k: user[k] for k in ("id", "name", "email", "created_at")}}
+    return {"token": token, "user": {**{k: user[k] for k in ("id", "name", "email", "created_at")}, "is_admin": bool(user.get("is_admin"))}}
 
 
 @api.get("/auth/me")
@@ -1972,6 +1978,134 @@ async def health_root():
     return {"status": "ok"}
 
 
+# ---------------------------------------------------------------- admin
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+BOOKING_STATUSES = ("pending_payment", "confirmed", "cancelled")
+
+
+class BookingStatusRequest(BaseModel):
+    status: str
+
+
+class MessageReadRequest(BaseModel):
+    read: bool = True
+
+
+async def _seed_admin():
+    """Create/refresh the admin account from ADMIN_EMAIL + ADMIN_PASSWORD (kept in .env, never in code)."""
+    if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+        return
+    existing = await users_col.find_one({"email": ADMIN_EMAIL})
+    if existing:
+        update = {"is_admin": True}
+        if not verify_password(ADMIN_PASSWORD, existing.get("password", "")):
+            update["password"] = hash_password(ADMIN_PASSWORD)
+        await users_col.update_one({"email": ADMIN_EMAIL}, {"$set": update})
+    else:
+        await users_col.insert_one({
+            "id": str(uuid.uuid4()), "name": "Admin", "email": ADMIN_EMAIL,
+            "password": hash_password(ADMIN_PASSWORD), "is_admin": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    logger.info("Admin account ready: %s", ADMIN_EMAIL)
+
+
+@api.get("/admin/stats")
+async def admin_stats(admin=Depends(require_admin)):
+    bookings = await bookings_col.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    paid = [b for b in bookings if b.get("status") == "confirmed"]
+    pending = [b for b in bookings if b.get("status") == "pending_payment"]
+
+    by_status = {st: sum(1 for b in bookings if b.get("status") == st) for st in BOOKING_STATUSES}
+    by_tier = {t: sum(1 for b in paid if b.get("tier") == t) for t in TIERS}
+    dest_rev: dict = {}
+    for b in paid:
+        d = dest_rev.setdefault(b["destination_name"], {"name": b["destination_name"], "bookings": 0, "revenue": 0.0})
+        d["bookings"] += 1
+        d["revenue"] += b.get("amount", 0)
+    top_destinations = sorted(dest_rev.values(), key=lambda d: d["revenue"], reverse=True)[:5]
+
+    today = datetime.now(timezone.utc).date()
+    days = [(today - timedelta(days=i)).isoformat() for i in range(13, -1, -1)]
+    series = {d: {"date": d, "bookings": 0, "revenue": 0.0} for d in days}
+    for b in bookings:
+        day = (b.get("created_at") or "")[:10]
+        if day in series:
+            series[day]["bookings"] += 1
+            if b.get("status") == "confirmed":
+                series[day]["revenue"] += b.get("amount", 0)
+
+    return {
+        "totals": {
+            "users": await users_col.count_documents({}),
+            "bookings": len(bookings),
+            "revenue": sum(b.get("amount", 0) for b in paid),
+            "pending_value": sum(b.get("amount", 0) for b in pending),
+            "trips": await trip_plans.count_documents({}),
+            "unread_messages": await contact_messages.count_documents({"read": {"$ne": True}}),
+        },
+        "by_status": by_status,
+        "by_tier": by_tier,
+        "top_destinations": top_destinations,
+        "daily": list(series.values()),
+        "recent_bookings": bookings[:6],
+    }
+
+
+@api.get("/admin/bookings")
+async def admin_bookings(status: Optional[str] = None, admin=Depends(require_admin)):
+    query = {"status": status} if status in BOOKING_STATUSES else {}
+    bookings = await bookings_col.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    owners = {u["id"]: u async for u in users_col.find(
+        {"id": {"$in": list({b["user_id"] for b in bookings})}}, {"_id": 0, "id": 1, "name": 1, "email": 1})}
+    return [{**b, "user_name": owners.get(b["user_id"], {}).get("name", "—"),
+             "user_email": owners.get(b["user_id"], {}).get("email", "—")} for b in bookings]
+
+
+@api.patch("/admin/bookings/{booking_id}")
+async def admin_update_booking(booking_id: str, req: BookingStatusRequest, admin=Depends(require_admin)):
+    if req.status not in BOOKING_STATUSES:
+        raise HTTPException(400, f"Status must be one of: {', '.join(BOOKING_STATUSES)}")
+    res = await bookings_col.update_one({"id": booking_id}, {"$set": {"status": req.status}})
+    if not res.matched_count:
+        raise HTTPException(404, "Booking not found")
+    return {"id": booking_id, "status": req.status}
+
+
+@api.get("/admin/users")
+async def admin_users(admin=Depends(require_admin)):
+    users = await users_col.find({}, {"_id": 0, "password": 0}).sort("created_at", -1).to_list(1000)
+    stats: dict = {}
+    async for b in bookings_col.find({}, {"_id": 0, "user_id": 1, "status": 1, "amount": 1}):
+        s = stats.setdefault(b["user_id"], {"bookings": 0, "spent": 0.0})
+        s["bookings"] += 1
+        if b.get("status") == "confirmed":
+            s["spent"] += b.get("amount", 0)
+    return [{**u, "is_admin": bool(u.get("is_admin")), **stats.get(u["id"], {"bookings": 0, "spent": 0.0})} for u in users]
+
+
+@api.get("/admin/messages")
+async def admin_messages(admin=Depends(require_admin)):
+    return await contact_messages.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+@api.patch("/admin/messages/{message_id}")
+async def admin_mark_message(message_id: str, req: MessageReadRequest, admin=Depends(require_admin)):
+    res = await contact_messages.update_one({"id": message_id}, {"$set": {"read": req.read}})
+    if not res.matched_count:
+        raise HTTPException(404, "Message not found")
+    return {"id": message_id, "read": req.read}
+
+
+@api.delete("/admin/messages/{message_id}")
+async def admin_delete_message(message_id: str, admin=Depends(require_admin)):
+    res = await contact_messages.delete_one({"id": message_id})
+    if not res.deleted_count:
+        raise HTTPException(404, "Message not found")
+    return {"deleted": message_id}
+
+
 @api.get("/health")
 async def health_api():
     return {"status": "ok"}
@@ -1994,6 +2128,7 @@ async def startup():
     await users_col.create_index("id")
     await bookings_col.create_index([("user_id", 1), ("created_at", -1)])
     await payment_transactions.create_index("session_id")
+    await _seed_admin()
     # Idempotent Stripe catalog setup in background thread (sync SDK calls)
     threading.Thread(target=_setup_catalog, daemon=True).start()
     # Hourly pre-trip reminder scanner

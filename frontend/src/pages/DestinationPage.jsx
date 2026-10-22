@@ -12,19 +12,19 @@ export const TIER_META = {
     label: 'Explorer',
     color: 'white',
     blurb: 'The essentials, done right.',
-    perks: ['4-star handpicked stays', 'Guided highlight experiences', 'Airport transfers included', 'Local SIM + city passes'],
+    perks: ['4-star stays', 'Guided highlights', 'Airport transfers'],
   },
   elite: {
     label: 'Elite',
     color: 'blaze',
     blurb: 'Skip lines. Skip compromises.',
-    perks: ['5-star boutique stays', 'Private guides all days', 'Premium experiences unlocked', 'Priority everything'],
+    perks: ['5-star boutique stays', 'Private guides', 'Priority access'],
   },
   legend: {
     label: 'Legend',
     color: 'acid',
     blurb: 'The trip people think you made up.',
-    perks: ['Ultra-luxury signature stays', 'Helicopters & private charters', '24/7 personal concierge', 'Once-in-a-lifetime access'],
+    perks: ['Ultra-luxury stays', 'Private charters', '24/7 concierge'],
   },
 };
 
@@ -43,7 +43,7 @@ export default function DestinationPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-ink pt-16">
         <p className="font-display text-6xl uppercase text-outline">Lost?</p>
-        <Link to="/explore" className="mt-6 font-mono text-xs uppercase tracking-[0.3em] text-acid">← Back to explore</Link>
+        <Link to="/explore" className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-acid">← Back to explore</Link>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default function DestinationPage() {
   if (!dest) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink pt-16">
-        <span className="font-display text-4xl uppercase text-white/30 animate-pulse">Loading…</span>
+        <span className="font-display text-4xl uppercase text-white/50 animate-pulse">Loading…</span>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function DestinationPage() {
         <img src={`${dest.image}?auto=format&fit=crop&w=2000&q=75`} alt={dest.name} className="absolute inset-0 h-full w-full object-cover opacity-70" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent" />
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-14 md:px-8">
-          <Link to="/explore" className="mb-8 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-white/60 hover:text-acid">
+          <Link to="/explore" className="mb-8 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-white/60 hover:text-acid">
             <ArrowLeft className="h-4 w-4" /> All destinations
           </Link>
           <motion.h1
@@ -94,12 +94,12 @@ export default function DestinationPage() {
       {/* BODY */}
       <section className="mx-auto grid max-w-7xl gap-16 px-5 py-20 md:px-8 lg:grid-cols-5">
         <div className="lg:col-span-2">
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-blaze">// The pitch</p>
-          <p className="mt-6 text-lg leading-relaxed text-white/80">{dest.description}</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-blaze">// The pitch</p>
+          <p className="mt-6 max-w-prose text-lg leading-relaxed text-white/80">{dest.description}</p>
 
-          <p className="mt-12 font-mono text-xs uppercase tracking-[0.4em] text-blaze">// What you'll actually do</p>
+          <p className="mt-12 font-mono text-xs uppercase tracking-[0.2em] text-blaze">// What you'll actually do</p>
           <ul className="mt-6 space-y-4">
-            {dest.highlights.map((h) => (
+            {dest.highlights.slice(0, 4).map((h) => (
               <li key={h} className="flex items-start gap-3 text-white/80">
                 <span className="mt-1.5 h-2.5 w-2.5 shrink-0 bg-blaze" />
                 {h}
@@ -110,7 +110,7 @@ export default function DestinationPage() {
 
         {/* TIERS */}
         <div className="lg:col-span-3">
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-blaze">// Choose your intensity</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-blaze">// Choose your intensity</p>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {Object.entries(TIER_META).map(([key, meta]) => (
               <div
@@ -123,13 +123,13 @@ export default function DestinationPage() {
                 <span className={`font-display text-3xl uppercase ${key === 'legend' ? 'text-acid' : key === 'elite' ? 'text-blaze' : 'text-white'}`}>
                   {meta.label}
                 </span>
-                <p className="mt-1 text-sm text-white/50">{meta.blurb}</p>
+                <p className="mt-1 text-sm text-white/70">{meta.blurb}</p>
                 <div className="my-5 dashed-divider" />
                 <div className="font-display text-4xl text-white">{fmt(dest.tiers[key])}</div>
-                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">per person</span>
+                <span className="font-mono text-xs uppercase tracking-[0.25em] text-white/60">per person</span>
                 <ul className="mt-5 space-y-2.5">
                   {meta.perks.map((p) => (
-                    <li key={p} className="flex items-start gap-2 text-xs text-white/70">
+                    <li key={p} className="flex items-start gap-2 text-sm text-white/70">
                       <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-acid" /> {p}
                     </li>
                   ))}

@@ -38,8 +38,8 @@ export default function Landing() {
         </div>
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-8 pt-32 md:px-8">
-          <p className="mb-6 font-mono text-xs uppercase tracking-[0.4em] text-acid">
-            Est. 2026 — Planet Earth · 46 destinations · 3 tiers · zero excuses
+          <p className="mb-6 font-mono text-xs uppercase tracking-[0.2em] text-acid">
+            30 destinations · 3 tiers · zero excuses
           </p>
 
           <h1 className="font-display uppercase leading-[0.82]" data-testid="hero-headline">
@@ -90,7 +90,7 @@ export default function Landing() {
             className="group flex items-center gap-2 font-mono text-sm uppercase tracking-[0.25em] text-acid hover:text-white"
             data-testid="see-all-destinations"
           >
-            All 46 destinations <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            All 30 destinations <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </motion.div>
 
@@ -104,7 +104,7 @@ export default function Landing() {
       {/* ============ QUOTES ============ */}
       <section id="quotes" className="border-y border-white/10 bg-zinc-950">
         <div className="mx-auto max-w-6xl px-5 py-24 md:px-8 md:py-32">
-          <p className="mb-10 font-mono text-xs uppercase tracking-[0.4em] text-blaze">// Words to quit your couch by</p>
+          <p className="mb-10 font-mono text-xs uppercase tracking-[0.2em] text-blaze">// Words to quit your couch by</p>
           <QuoteRotator />
         </div>
       </section>
@@ -113,14 +113,14 @@ export default function Landing() {
       <section className="mx-auto max-w-7xl px-5 py-20 md:px-8">
         <div className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-4">
           {[
-            ['46', 'Destinations'],
+            ['30', 'Destinations'],
             ['6', 'Continents'],
             ['3', 'Savage tiers'],
             ['∞', 'Bragging rights'],
           ].map(([num, label]) => (
             <motion.div key={label} {...fadeUp} className="bg-ink p-8 text-center md:p-12">
               <div className="font-display text-6xl text-acid md:text-8xl">{num}</div>
-              <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.3em] text-white/50">{label}</div>
+              <div className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-white/50">{label}</div>
             </motion.div>
           ))}
         </div>
@@ -133,18 +133,18 @@ export default function Landing() {
         </motion.h2>
         <div className="space-y-px bg-white/10">
           {[
-            { n: '01', icon: Globe2, title: 'Pick a place', desc: '30 hand-picked destinations from Ladakh to Bora Bora. Every single one worth crossing the planet for.' },
-            { n: '02', icon: CalendarCheck, title: 'Lock your dates', desc: 'Choose dates, squad size and your tier — Explorer, Elite, or full Legend mode.' },
-            { n: '03', icon: CreditCard, title: 'Pay and pack', desc: 'Secure Stripe checkout. Instant confirmation. Your only job left is the suitcase.' },
+            { n: '01', icon: Globe2, title: 'Pick a place', desc: '30 hand-picked places, from Ladakh to Bora Bora.' },
+            { n: '02', icon: CalendarCheck, title: 'Lock your dates', desc: 'Choose dates, group size and a tier.' },
+            { n: '03', icon: CreditCard, title: 'Pay and pack', desc: 'Secure checkout. Instant confirmation.' },
           ].map((step) => (
             <motion.div key={step.n} {...fadeUp} className="group flex flex-col gap-4 bg-ink px-6 py-10 transition hover:bg-zinc-950 md:flex-row md:items-center md:gap-12 md:px-10">
               <span className="font-display text-6xl text-outline-blaze md:text-8xl">{step.n}</span>
               <step.icon className="h-8 w-8 text-acid" />
               <div>
                 <h3 className="font-display text-3xl uppercase text-white md:text-4xl">{step.title}</h3>
-                <p className="mt-1 max-w-xl text-white/50">{step.desc}</p>
+                <p className="mt-1 max-w-xl text-base text-white/70">{step.desc}</p>
               </div>
-              <ArrowRight className="ml-auto hidden h-6 w-6 text-white/20 transition group-hover:translate-x-2 group-hover:text-blaze md:block" />
+              <ArrowRight className="ml-auto hidden h-6 w-6 text-white/50 transition group-hover:translate-x-2 group-hover:text-blaze md:block" />
             </motion.div>
           ))}
         </div>
@@ -177,8 +177,8 @@ export default function Landing() {
         <Marquee items={['Stop scrolling', 'Start packing', 'Travelo', 'See the world', 'Zero excuses']} variant="ghost" slow />
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-10 md:flex-row md:px-8">
           <span className="font-display text-3xl text-white">TRAVELO<span className="text-blaze">.</span></span>
-          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-white/40">
-            © 2026 Travelo — Built for people who actually go.
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/60">
+            © 2026 Travelo — Built for people who go.
           </p>
         </div>
       </footer>

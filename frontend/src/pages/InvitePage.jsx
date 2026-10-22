@@ -55,7 +55,7 @@ export default function InvitePage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink px-5 pt-16 text-white">
       <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-xl py-16 text-center" data-testid="invite-page">
-        <p className="font-mono text-xs uppercase tracking-[0.4em] text-acid">// You've been summoned</p>
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-acid">// You've been summoned</p>
         <h1 className="mt-4 font-display uppercase leading-[0.85]">
           <span className="block text-[clamp(2.5rem,8vw,5.5rem)]">Join the</span>
           <span className="block text-[clamp(2.5rem,8vw,5.5rem)] text-blaze">{invite.trip.place}</span>
@@ -72,7 +72,7 @@ export default function InvitePage() {
             <div key={label} className="bg-ink p-4">
               <Icon className="mx-auto h-4 w-4 text-blaze" />
               <div className="mt-2 font-display text-lg">{val}</div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{label}</div>
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-white/60">{label}</div>
             </div>
           ))}
         </div>
@@ -106,7 +106,7 @@ export default function InvitePage() {
             >
               Yes — sign in & join <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">
+            <p className="mt-4 font-mono text-xs uppercase tracking-[0.25em] text-white/60">
               Takes 20 seconds · you'll land straight in the trip + squad chat
             </p>
           </div>

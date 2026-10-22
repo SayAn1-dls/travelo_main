@@ -18,7 +18,7 @@ export default function TripPlannerPage() {
       <div className="mx-auto max-w-6xl px-5 py-14 md:px-8">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.4em] text-acid">// Squad logistics HQ</p>
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-acid">// Squad logistics HQ</p>
             <h1 className="mt-3 font-display uppercase leading-[0.85]">
               <span className="block text-[clamp(3rem,9vw,8rem)] text-white">Plan the</span>
               <span className="block text-[clamp(3rem,9vw,8rem)] text-outline-blaze">madness.</span>
@@ -65,7 +65,7 @@ export default function TripPlannerPage() {
                   <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
                       <h3 className="font-display text-4xl uppercase leading-none md:text-5xl">{t.place}</h3>
-                      <p className="mt-2 flex flex-wrap items-center gap-4 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">
+                      <p className="mt-2 flex flex-wrap items-center gap-4 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
                         <span>{t.start_date} → {t.end_date}</span>
                         <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-blaze" /> squad of {t.members.length}</span>
                         <span className="flex items-center gap-1.5"><Wallet className="h-3.5 w-3.5 text-blaze" /> pool {fmt(t.finances.pool)}</span>
@@ -73,14 +73,14 @@ export default function TripPlannerPage() {
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <span className={`px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] ${over ? 'bg-blaze text-black' : 'bg-acid text-black'}`}>
+                        <span className={`px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.2em] ${over ? 'bg-blaze text-black' : 'bg-acid text-black'}`}>
                           {over ? 'Over budget' : 'Under budget'}
                         </span>
-                        <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">
+                        <p className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
                           spent {fmt(t.finances.spent)} / {fmt(t.finances.budget)}
                         </p>
                       </div>
-                      <ArrowRight className="h-6 w-6 text-white/20 transition group-hover:translate-x-1 group-hover:text-blaze" />
+                      <ArrowRight className="h-6 w-6 text-white/50 transition group-hover:translate-x-1 group-hover:text-blaze" />
                     </div>
                   </div>
                   <div className="mt-5 h-1.5 w-full bg-white/10">

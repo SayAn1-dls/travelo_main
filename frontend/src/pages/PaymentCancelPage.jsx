@@ -11,7 +11,7 @@ export default function PaymentCancelPage() {
           You <span className="text-outline-blaze">blinked.</span>
         </h1>
         <p className="mt-4 font-marker text-2xl text-acid">the checkout was cancelled. the wanderlust wasn't.</p>
-        <p className="mt-2 font-mono text-xs uppercase tracking-[0.3em] text-white/50">
+        <p className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
           Your booking is saved — finish paying whenever you're ready.
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-4">

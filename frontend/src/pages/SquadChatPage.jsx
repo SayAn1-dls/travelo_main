@@ -183,14 +183,14 @@ export default function SquadChatPage() {
       {/* ============ SIDEBAR ============ */}
       <aside className={`w-full flex-col border-r border-white/10 md:flex md:w-80 lg:w-96 ${mobileChatOpen ? 'hidden' : 'flex'}`}>
         <div className="border-b border-white/10 px-5 py-5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-acid">// One place. All the gossip.</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-acid">// One place. All the gossip.</p>
           <h1 className="mt-1 font-display text-4xl uppercase leading-none" data-testid="squad-title">
             Squad chat<span className="text-blaze">.</span>
           </h1>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button
               onClick={() => { setPanel(panel === 'create' ? null : 'create'); setPanelValue(''); }}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.15em] transition ${
                 panel === 'create' ? 'bg-acid text-black' : 'bg-blaze text-black hover:bg-blaze-hover'
               }`}
               data-testid="new-room-btn"
@@ -199,7 +199,7 @@ export default function SquadChatPage() {
             </button>
             <button
               onClick={() => { setPanel(panel === 'join' ? null : 'join'); setPanelValue(''); }}
-              className={`flex items-center justify-center gap-1.5 border px-3 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition ${
+              className={`flex items-center justify-center gap-1.5 border px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.15em] transition ${
                 panel === 'join' ? 'border-acid text-acid' : 'border-white/20 text-white hover:border-acid hover:text-acid'
               }`}
               data-testid="join-room-btn"
@@ -215,12 +215,12 @@ export default function SquadChatPage() {
                 value={panelValue}
                 onChange={(e) => setPanelValue(e.target.value)}
                 placeholder={panel === 'create' ? 'ROOM NAME (E.G. GOA GANG)' : 'INVITE CODE'}
-                className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-3 py-2.5 font-mono text-xs uppercase tracking-widest text-white placeholder:text-white/30 outline-none focus:border-blaze"
+                className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-3 py-2.5 font-mono text-xs uppercase tracking-widest text-white placeholder:text-white/50 outline-none focus:border-blaze"
                 data-testid="room-panel-input"
               />
               <button
                 type="submit"
-                className="bg-acid px-4 font-mono text-[10px] font-bold uppercase tracking-widest text-black"
+                className="bg-acid px-4 font-mono text-xs font-bold uppercase tracking-widest text-black"
                 data-testid="room-panel-submit"
               >
                 Go
@@ -233,7 +233,7 @@ export default function SquadChatPage() {
           {rooms === null && <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-blaze" /></div>}
           {rooms && rooms.length === 0 && (
             <div className="px-6 py-16 text-center">
-              <MessagesSquare className="mx-auto h-8 w-8 text-white/20" />
+              <MessagesSquare className="mx-auto h-8 w-8 text-white/50" />
               <p className="mt-4 font-display text-2xl uppercase text-outline">No rooms yet.</p>
               <p className="mt-2 font-marker text-sm text-acid">create one and drag your squad in.</p>
             </div>
@@ -254,10 +254,10 @@ export default function SquadChatPage() {
                 <span className="flex items-center justify-between gap-2">
                   <span className="truncate font-bold">{r.name}</span>
                   {r.last_message && (
-                    <span className="shrink-0 font-mono text-[9px] uppercase text-white/30">{timeOf(r.last_message.created_at)}</span>
+                    <span className="shrink-0 font-mono text-xs uppercase text-white/50">{timeOf(r.last_message.created_at)}</span>
                   )}
                 </span>
-                <span className="block truncate font-mono text-[11px] text-white/45">
+                <span className="block truncate font-mono text-xs text-white/60">
                   {r.last_message ? `${r.last_message.user_name.split(' ')[0]}: ${r.last_message.preview}` : `invite code ${r.invite_code}`}
                 </span>
               </span>
@@ -270,7 +270,7 @@ export default function SquadChatPage() {
       <main className={`flex-1 flex-col md:flex ${mobileChatOpen ? 'flex' : 'hidden'}`}>
         {!activeRoom ? (
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-            <Users className="h-10 w-10 text-white/15" />
+            <Users className="h-10 w-10 text-white/50" />
             <p className="mt-6 font-display text-4xl uppercase text-outline md:text-5xl">Pick a room. Start the chaos.</p>
             <p className="mt-3 font-marker text-acid">chats, pics, videos — the whole trip in one place.</p>
           </div>
@@ -286,13 +286,13 @@ export default function SquadChatPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-display text-2xl uppercase leading-none" data-testid="active-room-name">{activeRoom.name}</p>
-                <p className="truncate font-mono text-[10px] uppercase tracking-[0.15em] text-white/40">
+                <p className="truncate font-mono text-xs uppercase tracking-[0.15em] text-white/60">
                   {(activeRoom.members || []).map((m) => m.name.split(' ')[0]).join(' · ')}
                 </p>
               </div>
               <button
                 onClick={copyCode}
-                className="flex shrink-0 items-center gap-2 border border-acid/40 bg-acid/5 px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-acid transition hover:bg-acid hover:text-black"
+                className="flex shrink-0 items-center gap-2 border border-acid/40 bg-acid/5 px-3 py-2 font-mono text-xs font-bold uppercase tracking-[0.15em] text-acid transition hover:bg-acid hover:text-black"
                 title="Copy invite code"
                 data-testid="copy-invite-code"
               >
@@ -306,7 +306,7 @@ export default function SquadChatPage() {
                 if (m.type === 'system') {
                   return (
                     <div key={m.id} className="flex justify-center">
-                      <span className="border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
+                      <span className="border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-xs uppercase tracking-[0.2em] text-white/60">
                         {m.text}
                       </span>
                     </div>
@@ -324,7 +324,7 @@ export default function SquadChatPage() {
                   >
                     <div className={`max-w-[85%] sm:max-w-[65%] ${mine ? 'bg-blaze text-black' : 'border border-white/10 bg-zinc-950 text-white/90'} px-3.5 py-2.5`}>
                       {!mine && (
-                        <p className="mb-1 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-acid">{m.user_name}</p>
+                        <p className="mb-1 font-mono text-xs font-bold uppercase tracking-[0.15em] text-acid">{m.user_name}</p>
                       )}
                       {m.type === 'media' && m.media_type === 'image' && (
                         <a href={`${MEDIA_BASE}${m.media_url}`} target="_blank" rel="noreferrer">
@@ -345,7 +345,7 @@ export default function SquadChatPage() {
                         <VoiceNotePlayer src={`${MEDIA_BASE}${m.media_url}`} id={m.id} mine={mine} />
                       )}
                       {m.text && <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.text}</p>}
-                      <p className={`mt-1 text-right font-mono text-[9px] ${mine ? 'text-black/50' : 'text-white/30'}`}>
+                      <p className={`mt-1 text-right font-mono text-xs ${mine ? 'text-black/50' : 'text-white/50'}`}>
                         {timeOf(m.created_at)}
                         {mine && (
                           <span
@@ -363,7 +363,7 @@ export default function SquadChatPage() {
               })}
               {uploading && (
                 <div className="flex justify-end">
-                  <div className="flex items-center gap-2 bg-blaze/60 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-black">
+                  <div className="flex items-center gap-2 bg-blaze/60 px-4 py-3 font-mono text-xs uppercase tracking-[0.2em] text-black">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> uploading media…
                   </div>
                 </div>
@@ -395,7 +395,7 @@ export default function SquadChatPage() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="MESSAGE THE SQUAD…"
-                className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-4 py-2.5 font-mono text-sm text-white placeholder:text-white/30 outline-none focus:border-blaze"
+                className="min-w-0 flex-1 border border-white/15 bg-zinc-950 px-4 py-2.5 font-mono text-sm text-white placeholder:text-white/50 outline-none focus:border-blaze"
                 data-testid="squad-input"
               />
               <button
@@ -544,7 +544,7 @@ function VoiceNoteButton({ disabled, onBlob }) {
               <span key={i} className="w-[3px] rounded-[1px] bg-black transition-[height] duration-75" style={{ height: `${Math.round(l * 100)}%` }} />
             ))}
           </span>
-          <span className="font-mono text-[10px] font-bold">{elapsed}s</span>
+          <span className="font-mono text-xs font-bold">{elapsed}s</span>
         </>
       ) : (
         <Mic className="h-4 w-4" />

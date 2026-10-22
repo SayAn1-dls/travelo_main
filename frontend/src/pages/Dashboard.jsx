@@ -41,7 +41,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-ink pt-16 text-white">
       <div className="mx-auto max-w-6xl px-5 py-14 md:px-8">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-acid">// Mission control</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-acid">// Mission control</p>
           <h1 className="mt-3 font-display text-[clamp(3rem,9vw,8rem)] uppercase leading-[0.85]" data-testid="dashboard-title">
             {user?.name?.split(' ')[0]}'s <span className="text-outline-blaze">escapes.</span>
           </h1>
@@ -56,7 +56,7 @@ export default function Dashboard() {
           ].map(([num, label]) => (
             <div key={label} className="bg-ink p-6 text-center md:p-8">
               <div className="font-display text-3xl text-acid sm:text-4xl md:text-6xl">{num}</div>
-              <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-white/50">{label}</div>
+              <div className="mt-1 font-mono text-xs uppercase tracking-[0.25em] text-white/50">{label}</div>
             </div>
           ))}
         </div>
@@ -91,7 +91,7 @@ export default function Dashboard() {
             >
               <div className="relative h-44 w-full shrink-0 md:h-auto md:w-56">
                 <img src={`${b.image}?auto=format&fit=crop&w=600&q=60`} alt={b.destination_name} className="h-full w-full object-cover" />
-                <span className={`absolute left-3 top-3 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] ${STATUS_STYLES[b.status] || 'bg-white/10'}`} data-testid="booking-status">
+                <span className={`absolute left-3 top-3 px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.2em] ${STATUS_STYLES[b.status] || 'bg-white/10'}`} data-testid="booking-status">
                   {b.status === 'pending_payment' ? 'Payment due' : b.status}
                 </span>
               </div>
@@ -99,10 +99,10 @@ export default function Dashboard() {
               <div className="flex flex-1 flex-col justify-between gap-4 p-6 md:flex-row md:items-center">
                 <div>
                   <h3 className="font-display text-4xl uppercase leading-none">{b.destination_name}</h3>
-                  <p className="mt-2 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">
+                  <p className="mt-2 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
                     <MapPin className="h-3.5 w-3.5 text-blaze" /> {b.country} · {b.start_date} → {b.end_date}
                   </p>
-                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">
+                  <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
                     ×{b.travelers} travelers · <span className="text-blaze">{b.tier}</span> tier
                   </p>
                 </div>

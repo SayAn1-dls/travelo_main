@@ -212,7 +212,7 @@ export default function MicButton({ disabled, onInterim, onFinal, size = 'md', l
       {phase === 'recording' ? (
         <>
           <Square className="h-4 w-4" />
-          <span className="font-mono text-[10px] font-bold">{elapsed}s</span>
+          <span className="font-mono text-xs font-bold">{elapsed}s</span>
         </>
       ) : phase === 'transcribing' ? (
         <Loader2 className="h-4 w-4 animate-spin" />

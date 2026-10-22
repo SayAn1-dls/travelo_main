@@ -10,6 +10,7 @@ import api from '@/lib/api';
 export default function DestinationIntel({ dest }) {
   const [guide, setGuide] = useState(null);
   const [state, setState] = useState('loading'); // loading | ready | error
+  const [full, setFull] = useState(false);
 
   const load = () => {
     setState('loading');
@@ -26,18 +27,18 @@ export default function DestinationIntel({ dest }) {
   return (
     <section className="border-t border-white/10" data-testid="intel-section">
       <div className="mx-auto max-w-7xl px-5 py-20 md:px-8">
-        <p className="font-mono text-xs uppercase tracking-[0.4em] text-acid">// Know before you go</p>
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-acid">// Know before you go</p>
         <h2 className="mt-3 font-display uppercase leading-[0.85]">
           <span className="text-[clamp(2.5rem,7vw,6rem)] text-white">The </span>
           <span className="text-[clamp(2.5rem,7vw,6rem)] text-outline-blaze">intel.</span>
         </h2>
-        <p className="mt-3 font-marker text-lg text-acid">everything about {dest.name} — the spots, the secrets, the directions.</p>
+        <p className="mt-3 font-marker text-lg text-acid">spots, secrets and directions.</p>
 
         {state === 'loading' && (
           <div className="mt-12 border border-white/10 py-20 text-center" data-testid="intel-loading">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-blaze" />
             <p className="mt-4 font-display text-2xl uppercase text-white/60">Compiling the dossier…</p>
-            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">first time takes ~30 seconds · instant after that</p>
+            <p className="mt-1 font-mono text-xs uppercase tracking-[0.25em] text-white/60">first load takes ~30s</p>
           </div>
         )}
 
@@ -54,7 +55,7 @@ export default function DestinationIntel({ dest }) {
           <div className="mt-12 space-y-16">
             {/* Overview */}
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-              <p className="font-mono text-xs uppercase tracking-[0.4em] text-blaze">// The story</p>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-blaze">// The story</p>
               <p className="mt-4 max-w-4xl text-lg leading-relaxed text-white/80" data-testid="intel-overview">{guide.overview}</p>
             </motion.div>
 
@@ -62,7 +63,7 @@ export default function DestinationIntel({ dest }) {
             <div>
               <h3 className="font-display text-4xl uppercase">Where to roam<span className="text-blaze">.</span></h3>
               <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {guide.top_spots.map((s, i) => (
+                {guide.top_spots.slice(0, full ? undefined : 3).map((s, i) => (
                   <motion.div
                     key={s.name}
                     initial={{ opacity: 0, y: 30 }}
@@ -74,19 +75,19 @@ export default function DestinationIntel({ dest }) {
                   >
                     <div className="relative h-44 overflow-hidden">
                       <img src={s.image} alt={s.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                      <span className="absolute left-3 top-3 bg-black/60 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-acid backdrop-blur">
+                      <span className="absolute left-3 top-3 bg-black/60 px-2 py-1 font-mono text-xs uppercase tracking-widest text-acid backdrop-blur">
                         best: {s.best_time}
                       </span>
                     </div>
                     <div className="flex flex-1 flex-col p-5">
                       <h4 className="font-display text-2xl uppercase leading-none">{s.name}</h4>
-                      <p className="mt-2 flex-1 text-sm leading-relaxed text-white/60">{s.description}</p>
+                      <p className="mt-2 flex-1 text-sm leading-relaxed text-white/70">{s.description}</p>
                       <p className="mt-3 font-marker text-sm text-acid">{s.why_go}</p>
                       <a
                         href={mapsUrl(s.name)}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-4 inline-flex w-fit items-center gap-1.5 border border-blaze/50 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-blaze transition hover:bg-blaze hover:text-black"
+                        className="mt-4 inline-flex w-fit items-center gap-1.5 border border-blaze/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-[0.15em] text-blaze transition hover:bg-blaze hover:text-black"
                         data-testid={`spot-directions-${i}`}
                       >
                         Directions <ExternalLink className="h-3 w-3" />
@@ -102,24 +103,24 @@ export default function DestinationIntel({ dest }) {
               <h3 className="flex items-center gap-3 font-display text-4xl uppercase">
                 <Gem className="h-7 w-7 text-acid" /> The underrated<span className="text-acid">.</span>
               </h3>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">hidden gems the tour buses miss</p>
+              <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-white/60">hidden gems</p>
               <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {guide.underrated.map((g, i) => (
+                {guide.underrated.slice(0, full ? undefined : 4).map((g, i) => (
                   <div key={g.name} className="group border border-acid/30 bg-acid/[0.03]" data-testid={`gem-card-${i}`}>
                     <div className="relative h-36 overflow-hidden">
                       <img src={g.image} alt={g.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                      <span className="absolute left-3 top-3 bg-acid px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-black">
+                      <span className="absolute left-3 top-3 bg-acid px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-black">
                         Hidden gem
                       </span>
                     </div>
                     <div className="p-4">
                       <h4 className="font-display text-xl uppercase leading-none">{g.name}</h4>
-                      <p className="mt-2 text-xs leading-relaxed text-white/60">{g.description}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-white/70">{g.description}</p>
                       <a
                         href={mapsUrl(g.name)}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-acid hover:text-white"
+                        className="mt-3 inline-flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-[0.15em] text-acid hover:text-white"
                       >
                         Directions <ExternalLink className="h-3 w-3" />
                       </a>
@@ -147,7 +148,7 @@ export default function DestinationIntel({ dest }) {
               </div>
               {guide.getting_around && (
                 <p className="mt-4 border border-white/10 bg-zinc-950 p-5 text-sm leading-relaxed text-white/60">
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-acid">Getting around · </span>
+                  <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-acid">Getting around · </span>
                   {guide.getting_around}
                 </p>
               )}
@@ -160,7 +161,7 @@ export default function DestinationIntel({ dest }) {
                   <UtensilsCrossed className="h-7 w-7 text-blaze" /> Eat like a local<span className="text-blaze">.</span>
                 </h3>
                 <ul className="mt-6 space-y-3">
-                  {guide.food.map((f) => (
+                  {guide.food.slice(0, full ? undefined : 3).map((f) => (
                     <li key={f.dish} className="border border-white/10 bg-zinc-950 p-4">
                       <span className="font-display text-xl uppercase text-white">{f.dish}</span>
                       <p className="mt-1 text-sm text-white/60">{f.description}</p>
@@ -173,7 +174,7 @@ export default function DestinationIntel({ dest }) {
                   <Lightbulb className="h-7 w-7 text-acid" /> Traveler tips<span className="text-acid">.</span>
                 </h3>
                 <ul className="mt-6 space-y-3">
-                  {guide.tips.map((t, i) => (
+                  {guide.tips.slice(0, full ? undefined : 3).map((t, i) => (
                     <li key={i} className="flex items-start gap-4 border border-white/10 bg-zinc-950 p-4">
                       <span className="font-display text-3xl text-outline-acid">{String(i + 1).padStart(2, '0')}</span>
                       <p className="pt-1 text-sm leading-relaxed text-white/70">{t}</p>
@@ -181,6 +182,16 @@ export default function DestinationIntel({ dest }) {
                   ))}
                 </ul>
               </div>
+            </div>
+
+            <div className="text-center">
+              <button
+                onClick={() => setFull((v) => !v)}
+                className="border border-white/30 px-8 py-3 font-mono text-sm uppercase tracking-[0.2em] text-white transition hover:border-acid hover:text-acid"
+                data-testid="intel-toggle"
+              >
+                {full ? 'Show less' : 'Show full guide'}
+              </button>
             </div>
           </div>
         )}

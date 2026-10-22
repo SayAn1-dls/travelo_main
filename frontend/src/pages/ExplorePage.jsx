@@ -34,7 +34,7 @@ export default function ExplorePage() {
     <div className="min-h-screen bg-ink pt-16 text-white">
       <div className="mx-auto max-w-7xl px-5 pb-24 pt-14 md:px-8">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-acid">// The menu</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-acid">// The menu</p>
           <h1 className="mt-3 font-display uppercase leading-[0.85]">
             <span className="block text-[clamp(3.5rem,10vw,9rem)] text-white">30 ways</span>
             <span className="block text-[clamp(3.5rem,10vw,9rem)] text-outline-blaze">to disappear.</span>
@@ -58,12 +58,12 @@ export default function ExplorePage() {
             </button>
           ))}
           <div className="relative ml-auto w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="SEARCH…"
-              className="w-full border border-white/15 bg-zinc-950 py-2.5 pl-10 pr-4 font-mono text-xs uppercase tracking-widest text-white placeholder:text-white/30 outline-none focus:border-acid"
+              className="w-full border border-white/15 bg-zinc-950 py-2.5 pl-10 pr-4 font-mono text-xs uppercase tracking-widest text-white placeholder:text-white/50 outline-none focus:border-acid"
               data-testid="explore-search-input"
             />
           </div>
@@ -85,7 +85,7 @@ export default function ExplorePage() {
         ) : (
           <div className="py-24 text-center">
             <p className="font-display text-5xl uppercase text-outline">Nothing here.</p>
-            <p className="mt-4 font-mono text-xs uppercase tracking-[0.3em] text-white/40">Try a different filter, adventurer.</p>
+            <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-white/60">Try a different filter.</p>
           </div>
         )}
       </div>

@@ -25,11 +25,12 @@ const VibeLabPage        = lazy(() => import('@/pages/VibeLabPage'));
 const SquadChatPage      = lazy(() => import('@/pages/SquadChatPage'));
 const InvitePage         = lazy(() => import('@/pages/InvitePage'));
 const ContactPage        = lazy(() => import('@/pages/ContactPage'));
+const AdminPage          = lazy(() => import('@/pages/AdminPage'));
 const NotFound           = lazy(() => import('@/pages/NotFound'));
 
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-ink">
-    <span className="font-display text-4xl uppercase text-white/40 animate-pulse">Loading…</span>
+    <span className="font-display text-4xl uppercase text-white/60 animate-pulse">Loading…</span>
   </div>
 );
 
@@ -45,6 +46,14 @@ function Protected({ children }) {
   const location = useLocation();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to={`/auth?next=${encodeURIComponent(location.pathname)}`} replace />;
+  return children;
+}
+
+function AdminOnly({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/auth?next=/admin" replace />;
+  if (!user.is_admin) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -71,6 +80,7 @@ function App() {
               <Route path="/vibe-lab"           element={<Protected><VibeLabPage /></Protected>} />
               <Route path="/squad"              element={<Protected><SquadChatPage /></Protected>} />
               <Route path="/invite/:token"      element={<InvitePage />} />
+              <Route path="/admin"              element={<AdminOnly><AdminPage /></AdminOnly>} />
               <Route path="/contact"            element={<ContactPage />} />
               <Route path="*"                   element={<NotFound />} />
             </Routes>

@@ -23,8 +23,8 @@ export class ErrorBoundary extends Component {
         <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mb-8 text-red-400">
           <AirplaneTilt size={40} weight="fill" className="rotate-180" />
         </div>
-        <h1 className="text-6xl font-[900] font-bebas text-white italic mb-4 uppercase">MISSION ABORTED</h1>
-        <p className="text-white/30 font-black text-sm uppercase tracking-widest mb-12">
+        <h1 className="text-6xl font-display text-white italic mb-4 uppercase">MISSION ABORTED</h1>
+        <p className="text-white/50 font-black text-sm uppercase tracking-widest mb-12">
           {this.state.error?.message ?? 'An unexpected fault occurred in the intelligence engine.'}
         </p>
         <button
