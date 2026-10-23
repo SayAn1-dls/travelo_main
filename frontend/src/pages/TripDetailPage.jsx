@@ -337,7 +337,7 @@ export default function TripDetailPage() {
                     } else if (res.failed.length) {
                       const f = res.failed[0];
                       try { await navigator.clipboard.writeText(f.link); } catch (err) { /* noop */ }
-                      toast.error('Email could not be sent — invite LINK copied to clipboard. Paste it to your friend on WhatsApp!', { duration: 8000 });
+                      toast.error(`Email not sent: ${f.reason}. Invite LINK copied — paste it to your friend on WhatsApp.`, { duration: 10000 });
                     }
                     setInviteEmail('');
                     loadNotifications();

@@ -1095,7 +1095,9 @@ from email.mime.text import MIMEText
 
 GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS", "")
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "")
-EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "console")
+# Gmail credentials present -> send for real; EMAIL_PROVIDER=console forces log-only mode
+EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER") or ("gmail" if GMAIL_ADDRESS and GMAIL_APP_PASSWORD else "console")
+APP_URL = os.environ.get("APP_URL", "").rstrip("/")
 
 
 import re as _re_email
@@ -1426,6 +1428,7 @@ async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_
     room = await _ensure_trip_room(trip, user)
     dates = f"{trip['start_date']} → {trip['end_date']}"
     sent, failed = [], []
+    base_url = (APP_URL or req.origin_url).rstrip("/")
     for email in req.emails:
         email_l = str(email).lower()
         token = secrets.token_urlsafe(24)
@@ -1440,7 +1443,7 @@ async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_
             "status": "pending",
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-        link = f"{req.origin_url}/invite/{token}"
+        link = f"{base_url}/invite/{token}"
         inviter_first = user["name"].split(" ")[0]
         plain_text = (
             f"Hey! {inviter_first} added you to the {trip['place']} trip on TRAVELO.\n\n"
@@ -1449,6 +1452,8 @@ async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_
             "See the plan, split expenses and chat with the crew once you join."
         )
         try:
+            if EMAIL_PROVIDER != "gmail":
+                raise RuntimeError("Email sending isn't set up on the server (add GMAIL_ADDRESS and GMAIL_APP_PASSWORD)")
             await send_email(
                 email_l,
                 f"{inviter_first} added you to the {trip['place']} trip on TRAVELO",
@@ -1458,7 +1463,7 @@ async def invite_to_trip(trip_id: str, req: TripInviteRequest, user=Depends(get_
             sent.append({"email": email_l, "link": link})
         except Exception as e:  # noqa: BLE001
             logger.error("Invite email to %s failed: %s", email_l, e)
-            failed.append({"email": email_l, "link": link, "reason": str(e)[:140]})
+            failed.append({"email": email_l, "link": link, "reason": str(e)[:160]})
     await _notify(trip["id"], "info", f"{user['name']} invited {len(req.emails)} friend(s) by email. Waiting for them to say yes.")
     return {"sent": sent, "failed": failed}
 
